@@ -96,9 +96,11 @@
   /* =======================
      CONSTANTS & STORES
   ======================= */
-  const AVAIL_DATES = [
-    'Dec 21','Dec 22','Dec 23', 'Dec 26','Dec 27','Dec 28','Dec 29','Jan 01'
-  ];
+const AVAIL_DATES = [
+  '2025-12-21','2025-12-22','2025-12-23',
+  '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
+  '2026-01-01'
+  
   const AvailabilityStore = {
     key: 'oracleAvailability',
     read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
@@ -218,15 +220,16 @@ roster:[
 ]
 
     ],
-    sessions:[
-      {id:'s1', date:'Dec 21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s2', date:'Dec 21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s3', date:'Dec 26', title:'Session 02', dm:'Kaela & Tory',  capacity:6, players:[]},
-      {id:'s4', date:'Dec 27', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s5', date:'Dec 28', title:'Session 04', dm:'Kaela & Tory',  capacity:6, players:[]},
-      {id:'s6', date:'Dec 29', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'finale', date:'Jan 01', title:'Grand Finale', dm:'Kaela & Tory', capacity:6, players:[], finale:true}
-    ]
+   sessions:[
+  {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
+  {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+]
+
   };
 
   /* =======================
