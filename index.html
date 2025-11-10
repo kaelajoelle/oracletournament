@@ -1,99 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Oracle Trials — Character Builder</title>
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Oracle Trials — Character Builder</title>
-<!-- Google Fonts -->
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-<style>
-/* =======================
-AGED PARCHMENT THEME
-======================= */
-:root {
---bg: #f8f2df; /* warm parchment */
---panel: #f5eed5; /* lighter parchment panels */
---ink: #3b2b1a; /* dark sepia ink */
---muted: #6e5a3e; /* faded ink */
---accent: #b38b46; /* subtle golden accent */
---border: #c8b27a; /* faint border color */
-}
 
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
-body {
-  margin: 0;
-  font-family: 'Open Sans', sans-serif;
-  background: var(--bg) url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEhUTExMWFhUXGR4bGBgYHRsdHx8eHyAdHh8aHh8fHSggGBolHR8fITEhJSkrLi4uHR8zODMsNygtLisBCgoKDg0OGxAQGy0lICYrLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKMBNgMBIgACEQEDEQH/xAAcAAEAAgMBAQEAAAAAAAAAAAAABgcEBQIDCAP/xABBEAABAwICBgQDBgUDAgcAAAABAAIRAyEEEjEFQVEGEyJhcYEykaGxFCNCUrHB0fAVM1Ji8SQzQ2KC0vE0gpL/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAQMEAgX/xAArEQEBAAIBAwMDBQEAAAAAAAAAAQIRAyExBBJBURMiYXGB8BRRgaHB/9oADAMBAAIRAxEAPwDjKj0ZyVwzgsce3f5Xj0Rz1qKwXfRrEpjSQhDCnKtISX0reFUZRlfKk9hz6eXWhSTSw1K4tTGCmWiMtgRCRSl6H6i4m6lGu9YxkXc6IuzAblYbmAIET8jAzWv6hV9zC7n5ykhZJdkNLE7wEQN2HB9y9Kt00G02JmWGlWRBBGCBuVU9yVBOVSSOCcnHsTQb6V5JNWkcK3Lo+Q4a+qMtY1OjgRql8UVK6C+9oCCGyY6IB+leU+XSGHbRfscR0/djj3GJrb7oF0zV1bWylpE2ptxDkNEcDqD9P6VVrHCe03mjqaiLWWsF13rM4yDhjby4KeQfuVdPwKcWo7qXtNe5LNm0lQysoKqp1OcL1KXn86euqdRcuVWJ7hIfEWG4yFbSKpXPBVX52Ukfc0fVxD5cz6V8pVkgAVACqB5B2AGcfI/wA9KyjRGRq8Gxmv8AjOox2taeT8M1ieo9zO+nEmo4r0e7SDuLohgqUUDKSVx3qe0g7vM7XTSM9SctIibBbqOaHTfU5AIVQ5qFqE48bUw6SvfTZLP1G55jbdMDxvl0ZBGp81TVRtWs1CC4uLjHE2y0olB9ozvbxO+v1qzfjVtxhIplpbp4cfX6HNEqkcjaFhiBFiWIEViVjx5fU8T0rbxXEanFdrCeXAUv40cH0I9/SvNrVfX9vE8P8A8bX2FbV1c+5H/9k=') repeat;
-  color: var(--ink);
-  line-height: 1.6;
-  background-size: cover;
-  background-attachment: fixed;
-}
+  <style>
+  :root{
+    --bg:#f8f2df; --panel:#f5eed5; --ink:#3b2b1a; --muted:#6e5a3e;
+    --accent:#b38b46; --border:#c8b27a;
+  }
 
-header {
-  text-align: center;
-  padding: 2rem 1rem 1rem 1rem;
-  border-bottom: 2px solid var(--border);
-  background: rgba(248, 242, 223, 0.9);
-  font-family: 'IM Fell English SC', serif;
-}
+  body{
+    margin:0;
+    font-family:'Open Sans',sans-serif;
+    background:var(--bg) url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEhUTExMWFhUXGR4bGBgYHRsdHx8eHyAdHh8aHh8fHSggGBolHR8fITEhJSkrLi4uHR8zODMsNygtLisBCgoKDg0OGxAQGy0lICYrLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKMBNgMBIgACEQEDEQH/xAAcAAEAAgMBAQEAAAAAAAAAAAAABgcEBQIDCAP/xABBEAABAwICBgQDBgUDAgcAAAABAAIRAyEEEjEFQVEGEyJhcYEykaGxFCNCUrHB0fAVM1Ji8SQzQ2KC0vE0gpL/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAQMEAgX/xAArEQEBAAIBAwMDBQEAAAAAAAAAAQIRAyExBBJBURMiYXGB8BRRgaHB/9oADAMBAAIRAxEAPwDjKj0ZyVwzgsce3f5Xj0Rz1qKwXfRrEpjSQhDCnKtISX0reFUZRlfKk9hz6eXWhSTSw1K4tTGCmWiMtgRCRSl6H6i4m6lGu9YxkXc6IuzAblYbmAIET8jAzWv6hV9zC7n5ykhZJdkNLE7wEQN2HB9y9Kt00G02JmWGlWRBBGCBuVU9yVBOVSSOCcnHsTQb6V5JNWkcK3Lo+Q4a+qMtY1OjgRql8UVK6C+9oCCGyY6IB+leU+XSGHbRfscR0/djj3GJrb7oF0zV1bWylpE2ptxDkNEcDqD9P6VVrHCe03mjqaiLWWsF13rM4yDhjby4KeQfuVdPwKcWo7qXtNe5LNm0lQysoKqp1OcL1KXn86euqdRcuVWJ7hIfEWG4yFbSKpXPBVX52Ukfc0fVxD5cz6V8pVkgAVACqB5B2AGcfI/wA9KyjRGRq8Gxmv8AjOox2taeT8M1ieo9zO+nEmo4r0e7SDuLohgqUUDKSVx3qe0g7vM7XTSM9SctIibBbqOaHTfU5AIVQ5qFqE48bUw6SvfTZLP1G55jbdMDxvl0ZBGp81TVRtWs1CC4uLjHE2y0olB9ozvbxO+v1qzfjVtxhIplpbp4cfX6HNEqkcjaFhiBFiWIEViVjx5fU8T0rbxXEanFdrCeXAUv40cH0I9/SvNrVfX9vE8P8A8bX2FbV1c+5H/9k=') repeat;
+    color:var(--ink);
+    line-height:1.6;
+    background-size:cover;
+    background-attachment:fixed;
+  }
 
-h1 {
-  font-size: 2.2rem;
-  color: var(--ink);
-  margin-bottom: .3rem;
-}
+  header{
+    text-align:center;
+    padding:2rem 1rem 1rem;
+    border-bottom:2px solid var(--border);
+    background:rgba(248,242,223,.9);
+    font-family:'IM Fell English SC',serif;
+  }
 
-.subtitle {
-  color: var(--muted);
-  font-size: 1rem;
-  font-style: italic;
-}
+  h1{ font-size:2.2rem; margin:.2rem 0 .3rem; color:var(--ink); }
+  .subtitle{ color:var(--muted); font-size:1rem; font-style:italic; }
 
-.disclaimer {
-  max-width: 900px;
-  margin: 1rem auto;
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  padding: 1rem 1.5rem;
-  font-size: 0.9rem;
-  font-style: italic;
-  color: var(--muted);
-  position: relative;
-}
+  .disclaimer{
+    max-width:900px; margin:1rem auto; background:var(--panel);
+    border:2px solid var(--border); border-radius:12px; padding:1rem 1.5rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.08); color:var(--muted); font-style:italic; position:relative;
+  }
+  .disclaimer::before{ content:"✶"; position:absolute; top:-10px; left:12px; color:var(--accent); }
 
-.disclaimer::before {
-  content: "✶";
-  position: absolute;
-  top: -10px;
-  left: 12px;
-  color: var(--accent);
-  font-size: 1.4rem;
-}
+  .wizard{ display:grid; grid-template-columns:280px 1fr; gap:20px; max-width:1200px; margin:0 auto; padding:1.5rem; }
 
-.wizard {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 20px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.5rem;
-}
+  .nav{
+    background:var(--panel);
+    border:2px solid var(--border);
+    border-radius:12px;
+    padding:1rem;
+    box-shadow:0 2px 6px rgba(0,0,0,.08);
+  } 
 
-.nav {
-  background: var(--panel);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-}
+  /* minimal UI styles so it looks sane */
+  .grid{ display:grid; gap:12px; }
+  .grid.cols-2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .panel,.card{
+    background:var(--panel); border:2px solid var(--border); border-radius:12px; padding:12px;
+  }
+  .kicker{ font-size:.9rem; color:var(--muted); }
+  .muted{ color:var(--muted); }
+  .flex{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .pill{ display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); padding:6px 10px; border-radius:999px; background:#efe7c8; }
+  .controls{ display:flex; justify-content:space-between; margin-top:12px; }
+  button{ padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; cursor:pointer; }
+  .primary{ background:#d9c38b; }
+  .danger{ background:#e7b0a9; }
+  .stepbtn{ width:100%; text-align:left; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; }
+  .stepbtn.active{ outline:2px solid rgba(179,139,70,.35); }
+  .table{ width:100%; border-collapse:collapse; }
+  .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
+  </style>
+</head>
+  
+  <body>
+  <!-- Header + Disclaimer Section -->
+  <header>
+    <h1>Oracle Trials — Character Builder</h1>
+    <div class="subtitle">Create your student adventurer for the winter one-shot competition.</div>
+  </header>
 
+  <div class="disclaimer">
+    <strong>Disclaimer:</strong> A degree from the Oracle Academy does not guarantee immunity from fireballs, charm effects, or divine smiting. The faculty assumes no responsibility for polymorph accidents, summoned imps, or unforeseen time loops. Snacks are encouraged, hubris is not.
+    </div>
+    <main id="app-root">
+  <div class="wizard">
+    <nav class="nav">
+      <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
+      <div id="stepNav"></div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="kicker">Quick actions</div>
+        <div class="flex" style="margin-top:6px">
+          <button id="btnSave">Save Draft</button>
+          <button id="btnLoad">Load Draft</button>
+          <button id="btnExport" class="primary">Export JSON</button>
+          <button id="btnClear" class="danger">Clear Local Data</button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- JS renders each screen here -->
+    <section id="panels" class="grid" style="gap:16px"></section>
+  </div>
+</main>
 
   <script>
   /* =======================
