@@ -71,6 +71,85 @@
   .stepbtn.active{ outline:2px solid rgba(179,139,70,.35); }
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
+    /* =============== MOBILE PATCH =============== */
+@media (max-width: 900px){
+  /* Background: avoid jank on mobile */
+  body{
+    background-attachment: scroll;
+    background-size: 120% auto;
+  }
+
+  header{ padding: 1rem .75rem .75rem; }
+  h1{ font-size: 1.6rem; }
+  .subtitle{ font-size: .95rem; }
+
+  /* Stack layout */
+  .wizard{
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: .75rem;
+  }
+
+  /* Nav collapses into a toggle */
+  .nav{
+    padding: .75rem;
+  }
+  .nav .stepbtn{ padding: 10px; }
+  .nav .stepbtn{ font-size: .95rem; }
+
+  /* Turn step list into a 2-col pill grid for quicker taps */
+  #stepNav{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 8px;
+  }
+
+  /* Buttons: bigger tap targets */
+  button{
+    padding: 12px 14px;
+    min-height: 44px;
+    width: 100%;
+  }
+  .controls{ flex-direction: column; gap: 8px; }
+  .controls .left, .controls .right{ width: 100%; gap: 8px; }
+  .controls .right button{ width: 100%; }
+
+  /* Cards & panels */
+  .panel, .card{
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  /* Forms */
+  input, select, textarea{ font-size: 16px; } /* iOS zoom fix */
+  .grid.cols-2{ grid-template-columns: 1fr; }
+  .two{ grid-template-columns: 1fr; }
+
+  /* Pills wrap nicely */
+  .pill{ padding: 6px 10px; }
+
+  /* Tables: make scrollable with a shadow hint */
+  .table{ width: max(640px, 100%); } /* keep columns readable */
+  .table-wrap{
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+  }
+  .table-wrap::after{
+    content:"";
+    position:absolute; top:0; right:0; width:24px; height:100%;
+    pointer-events:none;
+    background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
+  }
+
+  /* Typography trims */
+  .kicker{ font-size: .85rem; }
+  .muted{ font-size: .9rem; }
+}
+
+/* Wrap any wide table in this to get the scroll behavior */
+.table-wrap{ overflow: visible; } /* desktop default */
+
   </style>
 </head>
   
@@ -511,8 +590,9 @@
         </div>
         <div>
           <div class="kicker">Player Roster & Availability</div>
-          <div class="card" style="overflow:auto">
-            <table class="table" id="avail_table">
+          <div class="card">
+  <div class="table-wrap">
+    <table class="table" id="avail_table">
               <thead>
                 <tr>
                   <th>Name</th>
