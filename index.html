@@ -71,8 +71,8 @@
   <main>
     <div class="wizard">
       <nav class="nav">
-        <h3>Steps</h3>
-        <div class="steps" id="stepNav"></div>
+        <h3></h3>
+        <div class="" id="stepNav"></div>
         <div class="callout" style="margin-top:12px">
           <div class="kicker">Quick actions</div>
           <div class="flex" style="margin-top:6px">
@@ -248,24 +248,51 @@
     URL.revokeObjectURL(a.href);
   }
     
-    function downloadICS(session){
-  // 2-hour default duration; tweak if you like
-  const start = new Date(session.date + "T19:00:00"); // 7pm local by default
-  const end = new Date(start.getTime() + 4*60*60*1000);
+function downloadSessionsCSV() {
+  const avail = AvailabilityStore.read();
+  const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
 
-  const toICS = (d)=> d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+  const header1 = ["id","date","title","dm","capacity","players"];
+  const header2 = ["name","class","university","signed_sessions","available_dates"];
+
+  const rows = [];
+  rows.push(header1);
+  State.sessions.forEach(s=>{
+    rows.push([s.id, s.date, s.title, s.dm, s.capacity, (s.players||[]).join(" | ")]);
+  });
+
+  rows.push([]); // blank line
+  rows.push(header2);
+  DATA.roster.forEach(r=>{
+    const b = builds[r.name]||{};
+    const signed = State.sessions.filter(s=>(s.players||[]).includes(r.name)).map(s=>`${s.title} (${s.date})`).join(' | ');
+    const a = Object.entries(avail[r.name]||{}).filter(([_,v])=>v).map(([d])=>d.slice(5)).join(' ');
+    rows.push([r.name, b.class||'', b.university||'', signed, a]);
+  });
+
+  const csv = rows.map(r=>r.map(x=>`"${String(x??'').replaceAll('"','""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "oracle-sessions-and-availability.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+
   const uid = `${session.id}@oracletrials`;
   const ics = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
     'PRODID:-//OracleTrials//Scheduler//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
     'BEGIN:VEVENT',
     `UID:${uid}`,
-    `DTSTAMP:${toICS(new Date())}`,
-    `DTSTART:${toICS(start)}`,
-    `DTEND:${toICS(end)}`,
     `SUMMARY:${session.title}`,
     `DESCRIPTION:DM: ${session.dm} | Capacity: ${session.capacity}`,
+    `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
+    `DTEND;TZID=${tz}:${toLocalICS(end)}`,
     'END:VEVENT',
     'END:VCALENDAR'
   ].join('\r\n');
@@ -273,23 +300,26 @@
   const blob = new Blob([ics], {type:'text/calendar'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `${session.title.replace(/\\s+/g,'-')}.ics`;
+  a.download = `${session.title.replace(/\s+/g,'-')}.ics`;
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
 
+
   /* =======================
      STEPS
   ======================= */
-  const STEPS = [
-    {key:'core',        label:'1) Core 5e Setup'},
-    {key:'university',  label:'2) University & Feat'},
-    {key:'extras',      label:'3) Job & Extracurriculars'},
-    {key:'sessions',    label:'4) Sessions & Signup'},
-    {key:'personality', label:'5) Personality & Prompt'},
-    {key:'summary',     label:'6) Summary & Export'}
-  ];
+ const STEPS = [
+  {key:'intro',      label:'1) Welcome'},
+  {key:'sessions',   label:'2) Sessions & Signup'},     // moved up
+  {key:'core',       label:'3) Core 5e Setup'},
+  {key:'university', label:'4) University & Feat'},
+  {key:'extras',     label:'5) Job & Extracurriculars'},
+  {key:'personality',label:'6) Personality & Prompt'},
+  {key:'summary',    label:'7) Summary & Export'}
+];
+
   let currentStep = 0;
 
   function renderNav(){
@@ -314,67 +344,191 @@
     if(step==='sessions') el.appendChild(panelSessions());
     if(step==='personality') el.appendChild(panelPersonality());
     if(step==='summary') el.appendChild(panelSummary());
+    if(step==='intro') el.appendChild(panelIntro());
   }
 
   /* =======================
      PANELS
   ======================= */
+  function panelIntro(){
+  const p=document.createElement('div'); p.className='panel';
+  p.innerHTML = `
+    <h2>Oracle Trials — Winter One-Shot Tournament</h2>
+    <div class="card">
+      <p>Welcome to the Oracle Trials! Players from different academies compete in a series of festive one-shots leading to a New Year’s Day finale. Expect cozy vibes, clever play, and a little friendly rivalry.</p>
+      <ul>
+        <li><strong>When:</strong> Dec 21–29, Finale Jan 1</li>
+        <li><strong>What to bring:</strong> dice, pencil, character idea, snack to share (potluck encouraged!)</li>
+        <li><strong>Level:</strong> DM will confirm (likely 3)</li>
+      </ul>
+      <p class="muted">Tip: Go to “Sessions & Signup” first to mark availability and claim a seat. Then finish your character.</p>
+    </div>
+    <div class="controls"><div></div><div><button class="primary" id="next_intro">Go to Sessions →</button></div></div>
+  `;
+  p.querySelector('#next_intro').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='sessions'); renderAll(); };
+  return p;
+}
+
   function panelSessions(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML = `
-      <h2>Sessions & Signup</h2>
-      <div class="grid cols-2">
-        <div>
-          <div class="kicker">New Session</div>
-          <div class="card" style="margin-bottom:10px">
-            <div class="grid cols-3">
-              <div>
-                <label>Date</label>
-                <input id="new_date" type="date" />
-              </div>
-              <div>
-                <label>Title</label>
-                <input id="new_title" placeholder="e.g., Oracle Heat F" />
-              </div>
-              <div>
-                <label>DM</label>
-                <input id="new_dm" placeholder="e.g., Kaela" />
-              </div>
-            </div>
-            <div class="row" style="margin-top:8px">
-              <div>
-                <label>Capacity</label>
-                <input id="new_capacity" type="number" min="1" value="6" />
-              </div>
-              <div style="display:flex;align-items:end;gap:8px">
-                <button id="add_session" class="primary">Add Session</button>
-                <button id="reset_sessions" class="danger" title="Restore defaults (careful)">Reset to Defaults</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="kicker">Schedule</div>
-          <div id="session_list" class="grid"></div>
-        </div>
-
-        <div>
-          <div class="kicker">Player Roster (from Kaela)</div>
-          <div class="card" style="max-height:420px;overflow:auto">
-            <table class="table">
-              <thead><tr><th>Name</th><th>Status</th><th>Notes / Availability</th></tr></thead>
-              <tbody id="roster_tbody"></tbody>
-            </table>
-          </div>
+  const p=document.createElement('div'); p.className='panel';
+  p.innerHTML = `
+    <h2>Sessions & Signup</h2>
+    <div class="grid cols-2">
+      <div>
+        <div class="kicker">Schedule</div>
+        <div id="session_list" class="grid"></div>
+      </div>
+      <div>
+        <div class="kicker">Player Roster & Availability</div>
+        <div class="card" style="overflow:auto">
+          <table class="table" id="avail_table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                ${AVAIL_DATES.map(d=>`<th title="${d}">${d.slice(5)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody id="roster_tbody"></tbody>
+          </table>
+          <div class="muted" style="margin-top:6px">Tick when someone is available. Saves automatically.</div>
         </div>
       </div>
-      <div class="controls">
-        <div class="left"><button id="back_sessions">← Back</button></div>
-        <div class="right">
-          <button id="csv_export">Export CSV</button>
-          <button id="next_sessions" class="primary">Next →</button>
-        </div>
+    </div>
+    <div class="controls">
+      <div class="left"><button id="back_sessions">← Back</button></div>
+      <div class="right">
+        <button id="csv_export">Export CSV</button>
+        <button id="next_sessions" class="primary">Next →</button>
       </div>
-    `;
+    </div>
+  `;
+
+  /* --- Availability grid --- */
+  const avail = AvailabilityStore.read();
+  const rbody = p.querySelector('#roster_tbody');
+  rbody.innerHTML = DATA.roster.map(r=>{
+    const row = [`<td>${r.name}</td>`]
+    AVAIL_DATES.forEach(d=>{
+      const checked = (avail[r.name]?.[d]) ? 'checked' : '';
+      row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
+    });
+    return `<tr>${row.join('')}</tr>`;
+  }).join('');
+
+  rbody.addEventListener('change', (e)=>{
+    const cb = e.target.closest('input[type="checkbox"][data-name]');
+    if(!cb) return;
+    const name = cb.getAttribute('data-name');
+    const date = cb.getAttribute('data-date');
+    avail[name] = avail[name] || {};
+    avail[name][date] = cb.checked;
+    AvailabilityStore.write(avail);
+  });
+
+  /* --- Sessions list (read-only dates) --- */
+  const wrap=p.querySelector('#session_list');
+  function drawSessions(){
+    wrap.innerHTML='';
+    State.sessions.sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
+      const filled = (s.players||[]).length;
+      const full = filled>=s.capacity;
+      const rosterChips = (s.players||[]).length
+        ? s.players.map(name=>{
+            const build = SignedUpBuilds[name];
+            const extra = build ? ` — <span class="muted">${build.class||'?'} • ${build.university||'?'}</span>` : '';
+            return `<div class="pill"><span>${name}</span>${extra}</div>`;
+          }).join('')
+        : '<span class="muted">No players yet</span>';
+
+      const hintUni = `<div class="muted" style="margin-top:4px">No duplicate universities allowed. Pick a unique college.</div>`;
+
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `
+        <div class="flex" style="justify-content:space-between">
+          <div>
+            <strong>${s.title}</strong>
+            <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
+            ${hintUni}
+          </div>
+          <div class="flex">
+            <button data-id="${s.id}" class="primary"${full?' disabled':''}>Add my character</button>
+            <!-- Edit removed: sessions are admin-managed -->
+          </div>
+        </div>
+        <div style="margin-top:8px" class="flex">${rosterChips}</div>
+      `;
+      wrap.appendChild(card);
+    });
+  }
+
+  /* — Who’s signed up: collect class & uni from saved drafts — */
+  // When a player adds their character, we stash a tiny public “build card” here.
+  const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+
+  function saveBuildCard(){
+    const name = getCurrentCharacterName();
+    if(!name) return;
+    const uniKey = State.data?.university?.key || '';
+    const uniName = (DATA.universities.find(u=>u.key===uniKey)?.name) || '';
+    const klass = State.data?.core?.class || '';
+    SignedUpBuilds[name] = { class: klass, university: uniName };
+    localStorage.setItem('oracleBuildCards', JSON.stringify(SignedUpBuilds));
+  }
+
+  /* --- Fix “no name” bug + enforce unique university --- */
+  function getCurrentCharacterName(){
+    // read state first; if empty, read the input directly if present
+    const fromState = (State.data?.core?.name||'').trim();
+    if(fromState) return fromState;
+    const input = document.querySelector('#core_name');
+    return (input?.value||'').trim();
+  }
+
+  function canJoinSession(session, name){
+    // Enforce unique university per session
+    const thisUni = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
+    if(!thisUni) return {ok:false, msg:'Pick a University in step 4 first.'};
+    const players = session.players||[];
+    for(const n of players){
+      const b = SignedUpBuilds[n];
+      if(b && b.university && b.university === thisUni){
+        return {ok:false, msg:`Another ${thisUni} student is already in this session. Choose a different session or college.`};
+      }
+    }
+    return {ok:true};
+  }
+
+  wrap.addEventListener('click', (ev)=>{
+    const addBtn = ev.target.closest('button.primary[data-id]');
+    if(!addBtn) return;
+    const id = addBtn.getAttribute('data-id');
+    const s = State.sessions.find(x=>x.id===id);
+    const name = getCurrentCharacterName();
+    if(!name){ alert('Give your character a name (Step 3) before joining.'); return; }
+
+    // Basic capacity
+    s.players = s.players||[];
+    if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
+    if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
+
+    // Unique university rule + record build card
+    saveBuildCard();
+    const ok = canJoinSession(s, name);
+    if(!ok.ok){ alert(ok.msg); return; }
+
+    s.players.push(name);
+    State.saveSessions();
+    drawSessions();
+    alert(`Added ${name} to ${s.title}.`);
+  });
+
+  drawSessions();
+  p.querySelector('#csv_export').onclick = downloadSessionsCSV;
+  p.querySelector('#back_sessions').onclick=()=>{ currentStep = STEPS.findIndex(s=>s.key==='intro'); renderAll(); };
+  p.querySelector('#next_sessions').onclick=()=>{ currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll(); };
+  return p;
+}
+
 
     // prefill date input with next day after last session
     setTimeout(()=>{
@@ -397,6 +551,17 @@
       .join('');
 
     // sessions
+    const AVAIL_DATES = [
+  '2025-12-21','2025-12-22','2025-12-23','2025-12-24','2025-12-25',
+  '2025-12-26','2025-12-27','2025-12-28','2025-12-29','2026-01-01'
+];
+// availability map saved in localStorage: { "Name": {"2025-12-21":true,...}, ... }
+const AvailabilityStore = {
+  key: 'oracleAvailability',
+  read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
+  write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
+};
+
     const wrap=p.querySelector('#session_list');
     function drawSessions(){
       wrap.innerHTML='';
