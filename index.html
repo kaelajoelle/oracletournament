@@ -79,6 +79,7 @@
             <button id="btnSave">Save Draft</button>
             <button id="btnLoad">Load Draft</button>
             <button id="btnExport" class="primary">Export JSON</button>
+            <button id="btnClear" class="danger">Clear Local Data</button>
           </div>
           <div class="muted" style="margin-top:6px">Print/PDF is on the Summary step.</div>
         </div>
@@ -872,6 +873,19 @@
     document.getElementById('btnSave').onclick=()=>State.save();
     document.getElementById('btnLoad').onclick=()=>State.load();
     document.getElementById('btnExport').onclick=()=>State.export();
+    const clr = document.getElementById('btnClear');
+    if(clr){
+      clr.onclick = ()=>{
+        if(confirm('Clear all local data for this app?')){
+          localStorage.removeItem('oracleSessions');
+          localStorage.removeItem('oracleAvailability');
+          localStorage.removeItem('oracleBuildCards');
+          localStorage.removeItem('oracleTrialsSave');
+          alert('Local data cleared. Reloading…');
+          location.reload();
+        }
+      };
+    }
   }
   renderAll();
   </script>
