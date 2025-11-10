@@ -192,33 +192,22 @@
       {key:'labs', name:'Magic Labs', skills:['Arcana','Investigation']},
       {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
     ],
-roster:[
-  {name:'Amy', status:'Yes'},
-  {name:'Aramis', status:'Unknown'},
-  {name:'Becca', status:'Preferred', notes:'27, 28'},
-  {name:'Bela', status:'Unknown'},
-  {name:'David', status:'Unknown'},
-  {name:'Emory', status:'Maybe'},
-  {name:'Erin Warner', status:'Preferred', notes:'26/27'},
-  {name:'Erin', status:'Yes', notes:'Schedule Dependant'},       // (this was “Snack Erin” before)
-  {name:'Evan', status:'Preferred', notes:'27, 28'},
-  {name:'James', status:'Unknown'},
-  {name:'Jocelyn', status:'Maybe'},
-  {name:'Jordan', status:'Unknown'},
-  {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
-  {name:'Link', status:'No'},
-  {name:'Lyric', status:'Unknown'},
-  {name:'Marvin', status:'Unknown'},
-  {name:'Megan', status:'Maybe'},
-  {name:'Megan E.', status:'Unknown'},
-  {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'},
-  {name:'Mike', status:'Maybe'},
-  {name:'Nicole', status:'Yes', notes:'26-27'},
-  {name:'Nova', status:'Yes', notes:'Checking Schedule'},
-  {name:'Spencer', status:'Yes', notes:'26-27'},
-  {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'}
-],
-
+    roster:[
+      {name:'Mike', status:'Maybe'},{name:'Megan', status:'Maybe'},{name:'Jocelyn', status:'Maybe'},{name:'Emory', status:'Maybe'},
+      {name:'Snack Erin', status:'Yes', notes:'Schedule Dependant'},
+      {name:'Erin', status:'Preferred', notes:'26/27'},
+      {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'},
+      {name:'Amy', status:'Yes'},{name:'Bela', status:'Unknown'},
+      {name:'Nicole', status:'Yes', notes:'26-27'},{name:'Spencer', status:'Yes', notes:'26-27'},
+      {name:'Marvin', status:'Unknown'},{name:'Megan E.', status:'Unknown'},{name:'Jordan', status:'Unknown'},
+      {name:'Becca', status:'Preferred', notes:'27, 28'},
+      {name:'Evan', status:'Preferred', notes:'27, 28'},
+      {name:'Lyric', status:'Unknown'},
+      {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
+      {name:'Aramis', status:'Unknown'},{name:'James', status:'Unknown'},{name:'David', status:'Unknown'},
+      {name:'Nova', status:'Yes', notes:'Checking Schedule'},
+      {name:'Link', status:'No'},
+      {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'}
     ],
     sessions:[
       {id:'s1', date:'2025-12-22', title:'Oracle Heat A', dm:'Kaela', capacity:6, players:[]},
@@ -229,6 +218,78 @@ roster:[
       {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
     ]
   };
+
+  /* =======================
+     VALIDATION & ERROR HANDLING
+  ======================= */
+  function validateConfig(){
+    const errors=[];
+
+    // AVAIL_DATES must exist and be ISO dates
+    try{
+      if(typeof AVAIL_DATES==='undefined' || !Array.isArray(AVAIL_DATES)) {
+        errors.push('AVAIL_DATES is missing or not an array.');
+      } else {
+        AVAIL_DATES.forEach((d,i)=>{
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be in YYYY-MM-DD format (got "${d}")`);
+        });
+      }
+    }catch{ errors.push('AVAIL_DATES could not be read.'); }
+
+    // DATA.sessions checks
+    try{
+      if(!DATA.sessions || !Array.isArray(DATA.sessions)) {
+        errors.push('DATA.sessions is missing or not an array.');
+      } else {
+        const ids=new Set();
+        DATA.sessions.forEach((s,idx)=>{
+          if(!s || typeof s!=='object'){ errors.push(`sessions[${idx}] is not an object`); return; }
+          if(!s.id){ errors.push(`sessions[${idx}] is missing an id`); }
+          if(s.id){ if(ids.has(s.id)) errors.push(`Duplicate session id: ${s.id}`); else ids.add(s.id); }
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has a non-ISO date "${s.date}"`);
+          if(typeof s.capacity !== 'number') errors.push(`${s.title||s.id||('session#'+idx)} capacity must be a number`);
+        });
+      }
+    }catch{ errors.push('DATA.sessions could not be validated.'); }
+
+    // DATA.roster checks
+    try{
+      if(!Array.isArray(DATA.roster)) {
+        errors.push('DATA.roster is missing or not an array.');
+      } else {
+        DATA.roster.forEach((r,i)=>{ if(!r || !r.name) errors.push(`roster[${i}] is missing a name`); });
+      }
+    }catch{ errors.push('DATA.roster could not be validated.'); }
+
+    return errors;
+  }
+
+  function showErrors(errors){
+    if(!errors || !errors.length) return;
+    const main=document.querySelector('main');
+    const box=document.createElement('div');
+    box.className='panel';
+    box.style.border='1px solid #f14a3b';
+    box.style.background='#1d1111';
+    box.style.color='var(--ink)';
+    box.innerHTML = `
+      <h2>Configuration issues</h2>
+      <p>Something in the editable data is off. Fix the items below, then refresh. If you changed dates/IDs recently, hit <strong>Clear Local Data</strong> in the sidebar.</p>
+      <ul>${errors.map(e=>`<li>${e.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}</ul>
+    `;
+    main.prepend(box);
+  }
+
+  window.addEventListener('error', (e)=>{
+    const main=document.querySelector('main');
+    if(!main) return;
+    const box=document.createElement('div');
+    box.className='panel';
+    box.style.border='1px solid #f14a3b';
+    box.style.background='#1d1111';
+    box.innerHTML=`<strong>Runtime error:</strong> ${String(e.message||'Unknown error')}`;
+    main.prepend(box);
+  });
 
   /* =======================
      STATE
@@ -245,7 +306,15 @@ roster:[
     },
     sessions: JSON.parse(localStorage.getItem('oracleSessions')||'null') || DATA.sessions.map(x=>({...x})),
     save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
-    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
+    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); (function(){
+    const errs = validateConfig();
+    if(errs.length){
+      showErrors(errs);
+      bindHeaderActions();
+      return;
+    }
+    renderAll();
+  })(); alert('Draft loaded.'); },
     export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
     saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
   };
@@ -879,7 +948,16 @@ roster:[
   /* =======================
      BOOT
   ======================= */
-  function renderAll(){ renderNav(); renderPanels(); bindHeaderActions(); }
+  function renderAll(){
+    try{
+      renderNav();
+      renderPanels();
+      bindHeaderActions();
+    } catch(err){
+      showErrors([`Render failed: ${String(err && err.message || err)}`]);
+      console.error(err);
+    }
+  }
   function bindHeaderActions(){
     document.getElementById('btnSave').onclick=()=>State.save();
     document.getElementById('btnLoad').onclick=()=>State.load();
