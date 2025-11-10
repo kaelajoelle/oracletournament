@@ -355,6 +355,52 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
 #stepNav { gap: 12px; }
 .stepbtn { padding: 12px 16px; }
 
+    /* --- Arcane accordion --- */
+details.scroll-letter {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: rgba(245,238,213,0.95);
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  overflow: hidden;
+}
+
+details.scroll-letter > summary {
+  list-style: none; /* hide default marker */
+  cursor: pointer;
+  padding: 0.9rem 1.1rem;
+  font-family: 'IM Fell English SC', serif;
+  font-size: 1.15rem;
+  display: flex; align-items: center; gap: .6rem;
+  background: linear-gradient(180deg, #fff8df, #f4e8bf);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+details.scroll-letter > summary::-webkit-details-marker { display: none; }
+
+details.scroll-letter > summary .chev {
+  margin-left: auto;
+  transition: transform .2s ease;
+}
+details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
+
+.seal {
+  display:inline-flex; align-items:center; justify-content:center;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: #b38b46; color: #f7f2dd; font-weight: 700;
+  box-shadow: inset 0 -2px 0 rgba(0,0,0,.15);
+  font-family: 'IM Fell English SC', serif;
+}
+
+.scroll-content {
+  padding: 1.1rem 1.25rem 1.25rem;
+  font-family: 'IM Fell English SC', serif;
+  line-height: 1.6;
+}
+
+/* table inside the letter */
+.scroll-content .table th { text-align:center; }
+.scroll-content .table { margin: .8rem 0; }
+
 
   </style>
 </head>
@@ -838,36 +884,80 @@ const STEPS = [
   /* =======================
      PANELS
   ======================= */
-  function panelIntro(){
-  const p=document.createElement('div'); p.className='panel';
+function panelIntro(){
+  const p = document.createElement('div');
+  p.className = 'panel';
   p.innerHTML = `
-    <h2>Oracle Trials — Winter One-Shot Tournament</h2>
-    <div class="card">
-      <p>Welcome! Browse the schedule below to see who’s playing where, then build your character and join a session.</p>
-      <ul>
-        <li><strong>When:</strong> Dec 21–29, Finale Jan 1</li>
-        <li><strong>Bring:</strong> dice, pencil, character idea, snack to share</li>
-        <li><strong>Level:</strong> DM will confirm (likely 3)</li>
-      </ul>
-      <p class="muted">Tip: Mark your availability in <em>Schedule & Availability</em> after this.</p>
+<details class="scroll-letter" open>
+  <summary>
+    <span class="seal">✶</span>
+    Official Correspondence: Invitation to the Oracle Trials
+    <span class="chev">▶</span>
+  </summary>
+
+  <div class="scroll-content">
+    <div style="text-align:center; font-style:italic; color:var(--muted); margin-bottom:1rem;">
+      From the Office of the Dean of Arcane Affairs<br>
+      Strixhaven University — The Premier Institution of Magical Learning in the World<br>
+      <small>Founded by the Five Dragons — Velomachus, Galazeth, Tanazir, Shadrix, and Beledros</small>
     </div>
 
-    <h3 style="margin-top:14px">Upcoming Sessions (preview)</h3>
-    <div id="intro_sessions" class="grid"></div>
+    <hr style="border:none;border-top:1px dotted var(--border);margin:1rem 0;">
 
-    <div class="controls"><div></div>
-      <div>
-        <button id="to_avail">Mark Availability →</button>
-        <button class="primary" id="to_core">Start Character →</button>
-      </div>
-    </div>
+    <p><strong>Winter Term • Year 739 of Archavios</strong></p>
+    <p><em>To the Esteemed Prospective Student,</em></p>
+
+    <p>It is our great pleasure to inform you that you have been provisionally accepted to participate in this winter’s <strong>Oracle Trials</strong>, an extraordinary academic and magical tournament hosted by the distinguished faculty of Strixhaven University.</p>
+
+    <p>The Oracle Trials are a seasonal celebration of magical discovery and friendly rivalry — an opportunity for students from across the Five Colleges to demonstrate excellence, creativity, and courage in the pursuit of knowledge.</p>
+
+    <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
+
+    <table class="table">
+      <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
+        <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
+        <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
+        <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
+        <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
+      </tbody>
+    </table>
+
+    <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
+
+    <p><strong>Academic Calendar</strong><br>
+      Preliminary College Quests: December 26–29<br>
+      Grand Oracle Trial: January 1<br>
+      <em>(Trials hosted in the mortal realm by Professors Kaela and Tory. Potluck encouraged.)</em>
+    </p>
+
+    <p><strong>Student Expectations</strong><br>
+      Arrive prepared for adventure, study, and a modest amount of chaos.<br>
+      Dice, imagination, and one’s best festive attire recommended.<br>
+      Non-finalists may appear as professors, spirits, or helpful onlookers via “Supporter Cards.”<br>
+      Cooperation, roleplay, and good humour will be rewarded; detentions will be minimal.
+    </p>
+
+    <p>Should you accept, watch for the Sign-Up Scroll to confirm attendance and college preference. Positions are limited, and the Founders favour the punctual.</p>
+
+    <p style="margin-top:1.1rem;">
+      <strong>With warm regards and arcane esteem,</strong><br>
+      <em>Professor Kaela of House Glissandiants</em><br>
+      <em>Department of Druidic Studies</em><br>
+      <em>Professor Tory of House Wittatude</em><br>
+      <em>School of Bardic Applications</em><br>
+      <strong>Strixhaven University of Magic and Mystery</strong>
+    </p>
+
+    <p style="text-align:center; font-style:italic; margin-top:1rem;">“To discover, preserve, and share the boundless wonders of magic.”</p>
+  </div>
+</details>
+
   `;
-  // render read-only cards
-  renderSessionCards(p.querySelector('#intro_sessions'), {readOnly:true});
-  p.querySelector('#to_avail').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='sessions'); renderAll(); };
-  p.querySelector('#to_core').onclick   = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll(); };
   return p;
 }
+
 
 
 function panelSessions(){
