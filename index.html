@@ -4,94 +4,100 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Oracle Trials — Character Builder</title>
-  <style>
-    :root{
-      --bg:#0f0f14; --panel:#181a22; --ink:#e9ecf1; --muted:#aeb4c0;
-      --accent:#e6b800; --ok:#39d98a; --bad:#ff6b6b;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-    header{position:sticky;top:0;z-index:5;background:linear-gradient(180deg,rgba(15,15,20,.9),rgba(15,15,20,.6));backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid #2a2e3a}
-    .wrap{max-width:1100px;margin:0 auto;padding:20px}
-    h1{margin:0;font-weight:800;letter-spacing:.3px}
-    .subtitle{color:var(--muted);font-size:.95rem}
-    main{max-width:1100px;margin:0 auto;padding:24px}
-    .wizard{display:grid;grid-template-columns:280px 1fr;gap:20px}
-    .nav{background:var(--panel);border:1px solid #2a2e3a;border-radius:16px;padding:14px}
-    .steps{display:flex;flex-direction:column;gap:8px}
-    .stepbtn{appearance:none;border:1px solid #2a2e3a;background:#141722;color:var(--ink);padding:10px 12px;border-radius:12px;text-align:left;cursor:pointer}
-    .stepbtn.active{border-color:var(--accent);outline:2px solid rgba(230,184,0,.25)}
-    .panel{background:var(--panel);border:1px solid #2a2e3a;border-radius:16px;padding:16px}
-    .grid{display:grid;gap:12px}
-    .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
-    label{font-size:.9rem;color:var(--muted)}
-    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a2e3a;background:#121521;color:var(--ink)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .pill{display:inline-flex;gap:8px;align-items:center;border:1px solid #2a2e3a;padding:6px 10px;border-radius:999px;background:#121521}
-    .controls{display:flex;gap:10px;justify-content:space-between;margin-top:16px}
-    .controls .left,.controls .right{display:flex;gap:10px}
-    button{appearance:none;border:1px solid #2a2e3a;background:#15192a;color:var(--ink);padding:10px 14px;border-radius:12px;cursor:pointer}
-    .primary{background:linear-gradient(180deg,#2a66ff,#1a49c7);border-color:#3559ff}
-    .success{background:linear-gradient(180deg,#41d696,#24b374);border-color:#2dc184}
-    .danger{background:linear-gradient(180deg,#ff8a7a,#f14a3b);border-color:#f06858}
-    .card{border:1px solid #2a2e3a;background:#121521;border-radius:14px;padding:12px}
-    .kicker{font-size:.9rem;color:var(--muted)}
-    .muted{color:var(--muted)}
-    .callout{border:1px dashed #3a3f52;border-radius:12px;padding:10px;background:#10131d}
-    .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .tag{display:inline-block;font-size:.8rem;background:#0f1320;border:1px solid #2a2e3a;padding:2px 8px;border-radius:999px;margin-right:6px}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{border-bottom:1px solid #2a2e3a;padding:8px 6px;text-align:left}
-    .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .hidden{display:none}
-    footer{max-width:1100px;margin:30px auto;padding:16px;color:var(--muted)}
-    @media (max-width:920px){.wizard{grid-template-columns:1fr}}
-    /* Print styles */
-    @media print{
-      header, .nav, footer, .controls .left, .controls .right button#save_s, .controls .right button#export_s { display:none !important; }
-      body{ background:#fff; color:#000; }
-      .panel, .card{ background:#fff !important; border:1px solid #ccc !important; color:#000; }
-      .tag{ border-color:#bbb; background:#f7f7f7; }
-      .wizard{ grid-template-columns:1fr !important; }
-      .wrap, main, footer{ padding:0; margin:0; }
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <div class="wrap">
-      <h1>Oracle Trials — Character Builder</h1>
-      <div class="subtitle">D&D 5e-compatible one-shot builder with University, Jobs, Extracurriculars, Exams, and Student Dice. <strong>Sessions & Signup + Print/PDF</strong>.</div>
-    </div>
-  </header>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Oracle Trials — Character Builder</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* =======================
+AGED PARCHMENT THEME
+======================= */
+:root {
+--bg: #f8f2df; /* warm parchment */
+--panel: #f5eed5; /* lighter parchment panels */
+--ink: #3b2b1a; /* dark sepia ink */
+--muted: #6e5a3e; /* faded ink */
+--accent: #b38b46; /* subtle golden accent */
+--border: #c8b27a; /* faint border color */
+}
 
-  <main>
-    <div class="wizard">
-      <nav class="nav">
-        <h3>Steps</h3>
-        <div class="steps" id="stepNav"></div>
-        <div class="callout" style="margin-top:12px">
-          <div class="kicker">Quick actions</div>
-          <div class="flex" style="margin-top:6px">
-            <button id="btnSave">Save Draft</button>
-            <button id="btnLoad">Load Draft</button>
-            <button id="btnExport" class="primary">Export JSON</button>
-            <button id="btnClear" class="danger">Clear Local Data</button>
-          </div>
-          <div class="muted" style="margin-top:6px">Print/PDF is on the Summary step.</div>
-        </div>
-        <div id="cfgBadge" class="muted" style="margin-top:6px"></div>
-      </nav>
 
-      <section id="panels" class="grid" style="gap:16px"></section>
-    </div>
-  </main>
+body {
+margin: 0;
+font-family: 'Open Sans', sans-serif;
+background: var(--bg) url('https://i.imgur.com/Tf5r5zF.jpg') repeat;
+color: var(--ink);
+line-height: 1.6;
+background-size: cover;
+background-attachment: fixed;
+}
 
-  <footer>
-    <div>This is the single-file build. Everything (data, UI, logic) lives in this HTML.</div>
-  </footer>
+
+header {
+text-align: center;
+padding: 2rem 1rem 1rem 1rem;
+border-bottom: 2px solid var(--border);
+background: rgba(248, 242, 223, 0.9);
+font-family: 'IM Fell English SC', serif;
+}
+
+
+h1 {
+font-size: 2.2rem;
+color: var(--ink);
+margin-bottom: .3rem;
+}
+
+
+.subtitle {
+color: var(--muted);
+font-size: 1rem;
+font-style: italic;
+}
+
+
+.disclaimer {
+max-width: 900px;
+margin: 1rem auto;
+background: var(--panel);
+border: 2px solid var(--border);
+border-radius: 12px;
+box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+padding: 1rem 1.5rem;
+font-size: 0.9rem;
+font-style: italic;
+color: var(--muted);
+position: relative;
+}
+
+
+.disclaimer::before {
+content: "✶";
+position: absolute;
+top: -10px;
+left: 12px;
+color: var(--accent);
+font-size: 1.4rem;
+}
+
+
+.wizard {
+display: grid;
+grid-template-columns: 280px 1fr;
+gap: 20px;
+max-width: 1200px;
+margin: 0 auto;
+padding: 1.5rem;
+}
+
+
+.nav {
+background: var(--panel);
+border: 2px solid var(--border);
+border-radius: 12px;
+</div>
 
   <script>
   /* =======================
