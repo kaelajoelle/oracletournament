@@ -89,7 +89,7 @@
   </main>
 
   <footer>
-    <div>This is the single-file build. Everything (data, UI, logic) lives in this HTML.</div>
+    <div>Created hastily by Kaela... Devlopers and coders please be kind.</div>
   </footer>
 
   <script>
@@ -97,8 +97,7 @@
      CONSTANTS & STORES
   ======================= */
   const AVAIL_DATES = [
-    '2025-12-21','2025-12-22','2025-12-23','2025-12-24','2025-12-25',
-    '2025-12-26','2025-12-27','2025-12-28','2025-12-29','2026-01-01'
+    'Dec 21','Dec 22','Dec 23', 'Dec 26','Dec 27','Dec 28','Dec 29','2026-01-01'
   ];
   const AvailabilityStore = {
     key: 'oracleAvailability',
@@ -109,7 +108,7 @@
   // Optional quick rules (example): block Melissa on 2025-12-28, hard "No" for Link
   const ELIGIBILITY = {
     hardNo: ["Link"],
-    blockedDates: { "Melissa": ["2025-12-28"] }
+    blockedDates:
   };
 
   /* =======================
@@ -374,6 +373,9 @@
   /* =======================
      PANELS
   ======================= */
+
+/* intro panel */
+    
   function panelIntro(){
     const p=document.createElement('div'); p.className='panel';
     p.innerHTML = `
