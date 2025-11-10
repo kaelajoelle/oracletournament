@@ -19,7 +19,6 @@
     main{max-width:1100px;margin:0 auto;padding:24px}
     .wizard{display:grid;grid-template-columns:280px 1fr;gap:20px}
     .nav{background:var(--panel);border:1px solid #2a2e3a;border-radius:16px;padding:14px}
-    .nav h3{margin:.2rem 0 8px 0;font-size:.95rem;color:var(--muted);font-weight:600}
     .steps{display:flex;flex-direction:column;gap:8px}
     .stepbtn{appearance:none;border:1px solid #2a2e3a;background:#141722;color:var(--ink);padding:10px 12px;border-radius:12px;text-align:left;cursor:pointer}
     .stepbtn.active{border-color:var(--accent);outline:2px solid rgba(230,184,0,.25)}
@@ -64,7 +63,7 @@
   <header>
     <div class="wrap">
       <h1>Oracle Trials — Character Builder</h1>
-      <div class="subtitle">D&D 5e compatible one-shot builder with University, Jobs, Extracurriculars, Exams, and Student Dice. <strong>Sessions & Signup + Print/PDF</strong>.</div>
+      <div class="subtitle">D&D 5e-compatible one-shot builder with University, Jobs, Extracurriculars, Exams, and Student Dice. <strong>Sessions & Signup + Print/PDF</strong>.</div>
     </div>
   </header>
 
@@ -83,6 +82,7 @@
           </div>
           <div class="muted" style="margin-top:6px">Print/PDF is on the Summary step.</div>
         </div>
+        <div id="cfgBadge" class="muted" style="margin-top:6px"></div>
       </nav>
 
       <section id="panels" class="grid" style="gap:16px"></section>
@@ -98,20 +98,51 @@
      CONSTANTS & STORES
   ======================= */
   const AVAIL_DATES = [
-    '2025-12-21','2025-12-22','2025-12-23','2025-12-24','2025-12-25',
-    '2025-12-26','2025-12-27','2025-12-28','2025-12-29','2026-01-01'
+    '2025-12-21','2025-12-22','2025-12-23',
+    '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
+    '2026-01-01'
   ];
+
   const AvailabilityStore = {
     key: 'oracleAvailability',
     read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
     write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
   };
 
-  // Optional quick rules (example): block Melissa on 2025-12-28, hard "No" for Link
-  const ELIGIBILITY = {
-    hardNo: ["Link"],
-    blockedDates: { "Melissa": ["2025-12-28"] }
-  };
+  function labelDate(iso){
+    try{
+      const dt = new Date(iso + 'T00:00:00');
+      return dt.toLocaleDateString('en-CA',{month:'short', day:'2-digit'}); // e.g., Dec 21
+    }catch{ return iso; }
+  }
+
+  function toLocalICS(dt){
+    const pad = n => String(n).padStart(2,'0');
+    return dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+'T'+pad(dt.getHours())+pad(dt.getMinutes())+pad(dt.getSeconds());
+  }
+
+  function downloadICS(session){
+    const tz = 'America/Edmonton';
+    // default 7–9pm local
+    const start = new Date(session.date + 'T19:00:00');
+    const end   = new Date(session.date + 'T21:00:00');
+    const uid = `${session.id}@oracletrials`;
+    const ics = [
+      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OracleTrials//Scheduler//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+      `UID:${uid}`,
+      `SUMMARY:${session.title}`,
+      `DESCRIPTION:DM: ${session.dm} | Capacity: ${session.capacity}`,
+      `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
+      `DTEND;TZID=${tz}:${toLocalICS(end)}`,
+      'END:VEVENT','END:VCALENDAR'
+    ].join('\r\n');
+    const blob = new Blob([ics], {type:'text/calendar'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${session.title.replace(/\s+/g,'-')}.ics`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
   /* =======================
      DATA
@@ -159,10 +190,16 @@
     backgrounds:[
       {key:'lorehold-student', name:'Lorehold Student', skills:['History','Religion'], tools:[], languages:'2 of choice', gear:['Ink/pen','Hammer','Lantern','History tome','Uniform'], feat:'Strixhaven Initiate (Lorehold)'},
       {key:'prismari-student', name:'Prismari Student', skills:['Acrobatics','Performance'], tools:['+1 instrument/tool'], languages:'1', gear:['Ink/pen','Artisan tools or Instrument','Uniform'], feat:'Strixhaven Initiate (Prismari)'},
-      {key:'quandrix-student', name:'Quandrix Student', skills:['Arcana','Nature'], tools:['+1 artisan tool'], languages:'1', gear:['Ink/pen','Abacus','Arcane theory book','Uniform'], feat:'Strixhaven Initiate (Quandrix)'},
+      {key:'quandrix-student', name:'Quandrix Student', skills:['Arcana','Nature'], tools:['+1 artisan tool'], languages:'1', gear:['Ink/pen','Abacus','Arcane theory book','Uniform'], feat:'Strixhaven Initiite (Silverquill)'},
       {key:'silverquill-student', name:'Silverquill Student', skills:['Intimidation','Persuasion'], tools:[], languages:'2', gear:['Ink/pen','Poetry book','Uniform'], feat:'Strixhaven Initiite (Silverquill)'},
       {key:'witherbloom-student', name:'Witherbloom Student', skills:['Nature','Survival'], tools:['Herbalism Kit'], languages:'1', gear:['Plant ID book','Iron pot','Herbalism kit','Uniform'], feat:'Strixhaven Initiate (Witherbloom)'}
     ],
+    feats:{
+      strixhavenInitiate:{
+        name:'Strixhaven Initiate',
+        text:'Choose your college; learn 2 cantrips from its list + one 1st-level spell. Cast the 1st-level spell once per long rest without a slot; also with slots. Choose Int/Wis/Cha as spellcasting ability for these.'
+      }
+    },
     extracurriculars:[
       {key:'dead-languages', name:'Dead Languages Society', skills:['Athletics','History']},
       {key:'fine-artists', name:'Distinguished Society of Fine Artists', skills:['Performance','Sleight of Hand']},
@@ -193,34 +230,49 @@
       {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
     ],
     roster:[
-      // Always show roster alphabetically by name (without changing your source list)
-DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
-
-      {name:'Mike', status:'Maybe'},{name:'Megan', status:'Maybe'},{name:'Jocelyn', status:'Maybe'},{name:'Emory', status:'Maybe'},
-      {name:'Snack Erin', status:'Yes', notes:'Schedule Dependant'},
-      {name:'Erin', status:'Preferred', notes:'26/27'},
-      {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'},
-      {name:'Amy', status:'Yes'},{name:'Bela', status:'Unknown'},
-      {name:'Nicole', status:'Yes', notes:'26-27'},{name:'Spencer', status:'Yes', notes:'26-27'},
-      {name:'Marvin', status:'Unknown'},{name:'Megan E.', status:'Unknown'},{name:'Jordan', status:'Unknown'},
+      {name:'Amy', status:'Yes'},
+      {name:'Aramis', status:'Unknown'},
       {name:'Becca', status:'Preferred', notes:'27, 28'},
+      {name:'Bela', status:'Unknown'},
+      {name:'David', status:'Unknown'},
+      {name:'Emory', status:'Maybe'},
+      {name:'Erin', status:'Yes', notes:'Schedule Dependant'},
+      {name:'Erin Warner', status:'Preferred', notes:'26/27'},
       {name:'Evan', status:'Preferred', notes:'27, 28'},
-      {name:'Lyric', status:'Unknown'},
+      {name:'James', status:'Unknown'},
+      {name:'Jocelyn', status:'Maybe'},
+      {name:'Jordan', status:'Unknown'},
       {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
-      {name:'Aramis', status:'Unknown'},{name:'James', status:'Unknown'},{name:'David', status:'Unknown'},
-      {name:'Nova', status:'Yes', notes:'Checking Schedule'},
       {name:'Link', status:'No'},
-      {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'}
+      {name:'Lyric', status:'Unknown'},
+      {name:'Marvin', status:'Unknown'},
+      {name:'Megan', status:'Maybe'},
+      {name:'Megan E.', status:'Unknown'},
+      {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'},
+      {name:'Mike', status:'Maybe'},
+      {name:'Nicole', status:'Yes', notes:'26-27'},
+      {name:'Nova', status:'Yes', notes:'Checking Schedule'},
+      {name:'Spencer', status:'Yes', notes:'26-27'},
+      {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'}
     ],
     sessions:[
-      {id:'s1', date:'2025-12-22', title:'Oracle Heat A', dm:'Kaela', capacity:6, players:[]},
-      {id:'s2', date:'2025-12-26', title:'Oracle Heat B', dm:'Tory',  capacity:6, players:[]},
-      {id:'s3', date:'2025-12-27', title:'Oracle Heat C', dm:'Kaela', capacity:6, players:[]},
-      {id:'s4', date:'2025-12-28', title:'Oracle Heat D', dm:'Tory',  capacity:6, players:[]},
-      {id:'s5', date:'2025-12-29', title:'Oracle Heat E', dm:'Kaela', capacity:6, players:[]},
+      {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
       {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
-    ],
+    ]
+  };
 
+  // Always render roster A→Z without risk to source order
+  DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
+
+  // Optional quick rule examples
+  const ELIGIBILITY = {
+    hardNo: [ 'Link' ],
+    blockedDates: { 'Melissa': ['2025-12-28'] }
   };
 
   /* =======================
@@ -228,42 +280,27 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
   ======================= */
   function validateConfig(){
     const errors=[];
-
-    // AVAIL_DATES must exist and be ISO dates
     try{
-      if(typeof AVAIL_DATES==='undefined' || !Array.isArray(AVAIL_DATES)) {
-        errors.push('AVAIL_DATES is missing or not an array.');
-      } else {
-        AVAIL_DATES.forEach((d,i)=>{
-          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be in YYYY-MM-DD format (got "${d}")`);
-        });
-      }
+      if(!Array.isArray(AVAIL_DATES)) errors.push('AVAIL_DATES is missing or not an array.');
+      else AVAIL_DATES.forEach((d,i)=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be YYYY-MM-DD (got "${d}")`); });
     }catch{ errors.push('AVAIL_DATES could not be read.'); }
 
-    // DATA.sessions checks
     try{
-      if(!DATA.sessions || !Array.isArray(DATA.sessions)) {
-        errors.push('DATA.sessions is missing or not an array.');
-      } else {
+      if(!Array.isArray(DATA.sessions)) errors.push('DATA.sessions is missing or not an array.');
+      else{
         const ids=new Set();
         DATA.sessions.forEach((s,idx)=>{
           if(!s || typeof s!=='object'){ errors.push(`sessions[${idx}] is not an object`); return; }
-          if(!s.id){ errors.push(`sessions[${idx}] is missing an id`); }
+          if(!s.id) errors.push(`sessions[${idx}] is missing an id`);
           if(s.id){ if(ids.has(s.id)) errors.push(`Duplicate session id: ${s.id}`); else ids.add(s.id); }
-          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has a non-ISO date "${s.date}"`);
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has non-ISO date "${s.date}"`);
           if(typeof s.capacity !== 'number') errors.push(`${s.title||s.id||('session#'+idx)} capacity must be a number`);
         });
       }
     }catch{ errors.push('DATA.sessions could not be validated.'); }
 
-    // DATA.roster checks
-    try{
-      if(!Array.isArray(DATA.roster)) {
-        errors.push('DATA.roster is missing or not an array.');
-      } else {
-        DATA.roster.forEach((r,i)=>{ if(!r || !r.name) errors.push(`roster[${i}] is missing a name`); });
-      }
-    }catch{ errors.push('DATA.roster could not be validated.'); }
+    try{ if(!Array.isArray(DATA.roster)) errors.push('DATA.roster is missing or not an array.'); }
+    catch{ errors.push('DATA.roster could not be validated.'); }
 
     return errors;
   }
@@ -275,10 +312,9 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     box.className='panel';
     box.style.border='1px solid #f14a3b';
     box.style.background='#1d1111';
-    box.style.color='var(--ink)';
     box.innerHTML = `
       <h2>Configuration issues</h2>
-      <p>Something in the editable data is off. Fix the items below, then refresh. If you changed dates/IDs recently, hit <strong>Clear Local Data</strong> in the sidebar.</p>
+      <p>Fix the items below, then refresh. If you changed dates/IDs recently, hit <strong>Clear Local Data</strong> in the sidebar.</p>
       <ul>${errors.map(e=>`<li>${e.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}</ul>
     `;
     main.prepend(box);
@@ -300,7 +336,7 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
   ======================= */
   const State = {
     data:{
-      meta:{version:'0.4-scheduler-fixed'},
+      meta:{version:'0.5-stable'},
       core:{ name:'', race:'', class:'', background:'', level:3, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
       university:{ key:'', spellAbility:'INT' },
       feats:[],
@@ -308,17 +344,13 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       personality:{ traits:'', ideal:'', bond:'', rival:'', goal:'', prompt:'' },
       exams:{ notes:'', studyRerolls:0, results:[] }
     },
-    sessions: JSON.parse(localStorage.getItem('oracleSessions')||'null') || DATA.sessions.map(x=>({...x})),
+    sessions: (function(){
+      const saved = JSON.parse(localStorage.getItem('oracleSessions')||'null');
+      if(saved) return saved;
+      return DATA.sessions.map(x=>({...x}));
+    })(),
     save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
-    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); (function(){
-    const errs = validateConfig();
-    if(errs.length){
-      showErrors(errs);
-      bindHeaderActions();
-      return;
-    }
-    renderAll();
-  })(); alert('Draft loaded.'); },
+    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
     export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
     saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
   };
@@ -326,6 +358,19 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
   /* =======================
      HELPERS
   ======================= */
+  // Build-card cache: minimal public info per player for session rosters
+  const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+
+  function saveBuildCard(){
+    const name = getCurrentCharacterName();
+    if(!name) return;
+    const uniKey = State.data?.university?.key || '';
+    const uniName = (DATA.universities.find(u=>u.key===uniKey)?.name) || '';
+    const klass = State.data?.core?.class || '';
+    SignedUpBuilds[name] = { class: klass, university: uniName };
+    localStorage.setItem('oracleBuildCards', JSON.stringify(SignedUpBuilds));
+  }
+
   function getCurrentCharacterName(){
     const fromState = (State.data?.core?.name||'').trim();
     if(fromState) return fromState;
@@ -333,48 +378,20 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     return (input?.value||'').trim();
   }
 
-  function downloadICS(session){
-    // Default 7–9pm local (America/Edmonton). Adjust if needed.
-    const tz = 'America/Edmonton';
-    const start = new Date(`${session.date}T19:00:00`);
-    const end   = new Date(start.getTime() + 2*60*60*1000);
-
-    const toLocalICS = (d)=> {
-      const yyyy=d.getFullYear();
-      const mm=String(d.getMonth()+1).padStart(2,'0');
-      const dd=String(d.getDate()).padStart(2,'0');
-      const HH=String(d.getHours()).padStart(2,'0');
-      const MM=String(d.getMinutes()).padStart(2,'0');
-      const SS='00';
-      return `${yyyy}${mm}${dd}T${HH}${MM}${SS}`;
-    };
-
-    const uid = `${session.id}@oracletrials`;
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//OracleTrials//Scheduler//EN',
-      'CALSCALE:GREGORIAN',
-      'METHOD:PUBLISH',
-      'BEGIN:VEVENT',
-      `UID:${uid}`,
-      `SUMMARY:${session.title}`,
-      `DESCRIPTION:DM: ${session.dm} | Capacity: ${session.capacity}`,
-      `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
-      `DTEND;TZID=${tz}:${toLocalICS(end)}`,
-      'END:VEVENT',
-      'END:VCALENDAR'
-    ].join('\r\n');
-
-    const blob = new Blob([ics], {type:'text/calendar'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${session.title.replace(/\s+/g,'-')}.ics`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  function canJoinSession(session, name){
+    const thisUni = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
+    if(!thisUni) return {ok:false, msg:'Pick a University in step 4 first.'};
+    const players = session.players||[];
+    for(const n of players){
+      const b = SignedUpBuilds[n];
+      if(b && b.university && b.university === thisUni){
+        return {ok:false, msg:`Another ${thisUni} student is already in this session. Choose a different session or college.`};
+      }
+    }
+    return {ok:true};
   }
 
-  function downloadSessionsCSV() {
+  function downloadSessionsCSV(){
     const avail = AvailabilityStore.read();
     const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
 
@@ -387,12 +404,12 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       rows.push([s.id, s.date, s.title, s.dm, s.capacity, (s.players||[]).join(" | ")]);
     });
 
-    rows.push([]); // blank line
+    rows.push([]);
     rows.push(header2);
     DATA.roster.forEach(r=>{
       const b = builds[r.name]||{};
       const signed = State.sessions.filter(s=>(s.players||[]).includes(r.name)).map(s=>`${s.title} (${s.date})`).join(' | ');
-      const a = Object.entries(avail[r.name]||{}).filter(([_,v])=>v).map(([d])=>d.slice(5)).join(' ');
+      const a = Object.entries(avail[r.name]||{}).filter(([_,v])=>v).map(([d])=>labelDate(d)).join(' ');
       rows.push([r.name, b.class||'', b.university||'', signed, a]);
     });
 
@@ -403,18 +420,6 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     a.download = "oracle-sessions-and-availability.csv";
     a.click();
     URL.revokeObjectURL(a.href);
-  }
-
-  /* store tiny public build cards by name so session lists can show Class • University */
-  function saveBuildCard(){
-    const name = getCurrentCharacterName();
-    if(!name) return;
-    const uniKey = State.data?.university?.key || '';
-    const uniName = (DATA.universities.find(u=>u.key===uniKey)?.name) || '';
-    const klass = State.data?.core?.class || '';
-    const cards = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-    cards[name] = { class: klass, university: uniName };
-    localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
   }
 
   /* =======================
@@ -429,6 +434,7 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     {key:'personality',label:'6) Personality & Prompt'},
     {key:'summary',    label:'7) Summary & Export'}
   ];
+
   let currentStep = 0;
 
   function renderNav(){
@@ -441,19 +447,22 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       b.onclick=()=>{currentStep=idx; renderPanels();};
       nav.appendChild(b);
     });
+    const badge=document.getElementById('cfgBadge');
+    const errs=validateConfig();
+    badge.textContent = errs.length? `⚠️ ${errs.length} config issue${errs.length>1?'s':''}` : '✅ config OK';
   }
 
   function renderPanels(){
     const el = document.getElementById('panels');
     el.innerHTML='';
     const step = STEPS[currentStep].key;
-    if(step==='intro') el.appendChild(panelIntro());
-    if(step==='sessions') el.appendChild(panelSessions());
     if(step==='core') el.appendChild(panelCore());
     if(step==='university') el.appendChild(panelUniversity());
     if(step==='extras') el.appendChild(panelExtras());
+    if(step==='sessions') el.appendChild(panelSessions());
     if(step==='personality') el.appendChild(panelPersonality());
     if(step==='summary') el.appendChild(panelSummary());
+    if(step==='intro') el.appendChild(panelIntro());
   }
 
   /* =======================
@@ -464,10 +473,10 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     p.innerHTML = `
       <h2>Oracle Trials — Winter One-Shot Tournament</h2>
       <div class="card">
-        <p>Welcome to the Oracle Trials! Players from different academies compete in a series of festive one-shots leading to a New Year’s Day finale. Expect cozy vibes, clever play, and a little friendly rivalry.</p>
+        <p>Welcome! Players from different academies compete in a series of festive one-shots leading to a New Year’s Day finale. Cozy vibes, clever play, friendly rivalry.</p>
         <ul>
           <li><strong>When:</strong> Dec 21–29, Finale Jan 1</li>
-          <li><strong>What to bring:</strong> dice, pencil, character idea, snack to share (potluck encouraged!)</li>
+          <li><strong>Bring:</strong> dice, pencil, character idea, snack to share (potluck encouraged)</li>
           <li><strong>Level:</strong> DM will confirm (likely 3)</li>
         </ul>
         <p class="muted">Tip: Go to “Sessions & Signup” first to mark availability and claim a seat. Then finish your character.</p>
@@ -494,7 +503,7 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
               <thead>
                 <tr>
                   <th>Name</th>
-                  ${AVAIL_DATES.map(d=>`<th title="${d}">${d.slice(5)}</th>`).join('')}
+                  ${AVAIL_DATES.map(d=>`<th title="${d}">${labelDate(d)}</th>`).join('')}
                 </tr>
               </thead>
               <tbody id="roster_tbody"></tbody>
@@ -512,7 +521,7 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       </div>
     `;
 
-    /* --- Availability grid --- */
+    /* Availability grid */
     const avail = AvailabilityStore.read();
     const rbody = p.querySelector('#roster_tbody');
     rbody.innerHTML = DATA.roster.map(r=>{
@@ -534,10 +543,9 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       AvailabilityStore.write(avail);
     });
 
-    /* --- Sessions list (read-only dates) --- */
+    /* Sessions list (read-only dates) */
     const wrap=p.querySelector('#session_list');
     function drawSessions(){
-      const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
       wrap.innerHTML='';
       State.sessions.sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
         const filled = (s.players||[]).length;
@@ -571,19 +579,6 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       });
     }
 
-    function canJoinSession(session){
-      // Enforce unique university per session
-      const uniName = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
-      if(!uniName) return {ok:false, msg:'Pick a University (step 4) first.'};
-      for(const n of (session.players||[])){
-        const b = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}')[n];
-        if(b && b.university === uniName){
-          return {ok:false, msg:`Another ${uniName} student is already in this session.`};
-        }
-      }
-      return {ok:true};
-    }
-
     wrap.addEventListener('click', (ev)=>{
       const addBtn = ev.target.closest('button.primary[data-id]');
       if(addBtn){
@@ -591,11 +586,13 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
         const s = State.sessions.find(x=>x.id===id);
         const name = getCurrentCharacterName();
         if(!name){ alert('Give your character a name (Step 3) before joining.'); return; }
+        if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
+        if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
         s.players = s.players||[];
         if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
         if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
         saveBuildCard();
-        const ok = canJoinSession(s);
+        const ok = canJoinSession(s, name);
         if(!ok.ok){ alert(ok.msg); return; }
         s.players.push(name);
         State.saveSessions();
@@ -686,11 +683,6 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     p.querySelector('#equipment').value = s.equipment;
     drawAbilityInputs();
 
-    // keep name in state live to avoid "no name" bug elsewhere
-    p.querySelector('#core_name').addEventListener('input', (e)=>{
-      State.data.core.name = e.target.value.trim();
-    });
-
     p.querySelector('#next_core').onclick = ()=>{
       const abilities = ['STR','DEX','CON','INT','WIS','CHA'];
       const abObj = {};
@@ -754,7 +746,7 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
             <table class="table"><thead><tr><th>Level</th><th>Spells</th></tr></thead><tbody>${spellRows}</tbody></table>
           </div>
         </div>
-        <div class="callout" style="margin-top:8px"><strong>Feat:</strong> Strixhaven Initiate — Choose college, 2 cantrips + one 1st-level spell (cast 1/day free; choose Int/Wis/Cha).</div>
+        <div class="callout" style="margin-top:8px"><strong>Feat:</strong> ${DATA.feats.strixhavenInitiate.name} — ${DATA.feats.strixhavenInitiate.text}</div>
       `;
     }
     sel.addEventListener('change', drawInfo);
@@ -770,7 +762,8 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       } else {
         State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
       }
-      currentStep = STEPS.findIndex(s=>s.key==='extras'); renderAll();
+      currentStep = STEPS.findIndex(s=>s.key==='extras');
+      renderAll();
     };
     return p;
   }
@@ -837,7 +830,8 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
       const {job, clubs} = readExtras();
       State.data.extras.job = job;
       State.data.extras.clubs = clubs;
-      currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll();
+      currentStep = STEPS.findIndex(s=>s.key==='personality');
+      renderAll();
     };
     return p;
   }
@@ -891,7 +885,8 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
         goal: p.querySelector('#goal').value.trim(),
         prompt: State.data.personality.prompt||''
       };
-      currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll();
+      currentStep = STEPS.findIndex(s=>s.key==='summary');
+      renderAll();
     };
     return p;
   }
@@ -963,24 +958,27 @@ DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
     }
   }
   function bindHeaderActions(){
-    document.getElementById('btnSave').onclick=()=>State.save();
-    document.getElementById('btnLoad').onclick=()=>State.load();
-    document.getElementById('btnExport').onclick=()=>State.export();
-    const clr = document.getElementById('btnClear');
-    if(clr){
-      clr.onclick = ()=>{
-        if(confirm('Clear all local data for this app?')){
-          localStorage.removeItem('oracleSessions');
-          localStorage.removeItem('oracleAvailability');
-          localStorage.removeItem('oracleBuildCards');
-          localStorage.removeItem('oracleTrialsSave');
-          alert('Local data cleared. Reloading…');
-          location.reload();
-        }
-      };
-    }
+    const s = document.getElementById('btnSave'); if(s) s.onclick=()=>State.save();
+    const l = document.getElementById('btnLoad'); if(l) l.onclick=()=>State.load();
+    const e = document.getElementById('btnExport'); if(e) e.onclick=()=>State.export();
+    const clr=document.getElementById('btnClear');
+    if(clr){ clr.onclick=()=>{
+      if(confirm('Clear all local data for this app?')){
+        localStorage.removeItem('oracleSessions');
+        localStorage.removeItem('oracleAvailability');
+        localStorage.removeItem('oracleBuildCards');
+        localStorage.removeItem('oracleTrialsSave');
+        alert('Local data cleared. Reloading…');
+        location.reload();
+      }
+    }}
   }
-  renderAll();
+
+  (function(){
+    const errs = validateConfig();
+    if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
+    renderAll();
+  })();
   </script>
 </body>
 </html>
