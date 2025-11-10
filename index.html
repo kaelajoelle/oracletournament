@@ -216,7 +216,10 @@
       {id:'s4', date:'2025-12-28', title:'Oracle Heat D', dm:'Tory',  capacity:6, players:[]},
       {id:'s5', date:'2025-12-29', title:'Oracle Heat E', dm:'Kaela', capacity:6, players:[]},
       {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
-    ]
+    ],
+    // Always show roster alphabetically by name (without changing your source list)
+DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
+
   };
 
   /* =======================
