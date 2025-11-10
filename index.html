@@ -97,7 +97,7 @@
      CONSTANTS & STORES
   ======================= */
   const AVAIL_DATES = [
-    'Dec 21','Dec 22','Dec 23', 'Dec 26','Dec 27','Dec 28','Dec 29','2026-01-01'
+    'Dec 21','Dec 22','Dec 23', 'Dec 26','Dec 27','Dec 28','Dec 29','Jan 01'
   ];
   const AvailabilityStore = {
     key: 'oracleAvailability',
@@ -190,30 +190,42 @@
       {key:'labs', name:'Magic Labs', skills:['Arcana','Investigation']},
       {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
     ],
-    roster:[
-      {name:'Mike', status:'Maybe'},{name:'Megan', status:'Maybe'},{name:'Jocelyn', status:'Maybe'},{name:'Emory', status:'Maybe'},
-      {name:'Snack Erin', status:'Yes', notes:'Schedule Dependant'},
-      {name:'Erin', status:'Preferred', notes:'26/27'},
-      {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'},
-      {name:'Amy', status:'Yes'},{name:'Bela', status:'Unknown'},
-      {name:'Nicole', status:'Yes', notes:'26-27'},{name:'Spencer', status:'Yes', notes:'26-27'},
-      {name:'Marvin', status:'Unknown'},{name:'Megan E.', status:'Unknown'},{name:'Jordan', status:'Unknown'},
-      {name:'Becca', status:'Preferred', notes:'27, 28'},
-      {name:'Evan', status:'Preferred', notes:'27, 28'},
-      {name:'Lyric', status:'Unknown'},
-      {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
-      {name:'Aramis', status:'Unknown'},{name:'James', status:'Unknown'},{name:'David', status:'Unknown'},
-      {name:'Nova', status:'Yes', notes:'Checking Schedule'},
-      {name:'Link', status:'No'},
-      {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'}
+roster:[
+  {name:'Amy', status:'Yes'},
+  {name:'Aramis', status:'Unknown'},
+  {name:'Becca', status:'Preferred', notes:'27, 28'},
+  {name:'Bela', status:'Unknown'},
+  {name:'David', status:'Unknown'},
+  {name:'Emory', status:'Maybe'},
+  {name:'Erin', status:'Yes', notes:'Schedule Dependant'},
+  {name:'Erin Warner', status:'Preferred', notes:'26/27'},
+  {name:'Evan', status:'Preferred', notes:'27, 28'},
+  {name:'James', status:'Unknown'},
+  {name:'Jocelyn', status:'Maybe'},
+  {name:'Jordan', status:'Unknown'},
+  {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
+  {name:'Link', status:'No'},
+  {name:'Lyric', status:'Unknown'},
+  {name:'Marvin', status:'Unknown'},
+  {name:'Megan', status:'Maybe'},
+  {name:'Megan E.', status:'Unknown'},
+  {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'},
+  {name:'Mike', status:'Maybe'},
+  {name:'Nicole', status:'Yes', notes:'26-27'},
+  {name:'Nova', status:'Yes', notes:'Checking Schedule'},
+  {name:'Spencer', status:'Yes', notes:'26-27'},
+  {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'}
+]
+
     ],
     sessions:[
-      {id:'s1', date:'2025-12-22', title:'Oracle Heat A', dm:'Kaela', capacity:6, players:[]},
-      {id:'s2', date:'2025-12-26', title:'Oracle Heat B', dm:'Tory',  capacity:6, players:[]},
-      {id:'s3', date:'2025-12-27', title:'Oracle Heat C', dm:'Kaela', capacity:6, players:[]},
-      {id:'s4', date:'2025-12-28', title:'Oracle Heat D', dm:'Tory',  capacity:6, players:[]},
-      {id:'s5', date:'2025-12-29', title:'Oracle Heat E', dm:'Kaela', capacity:6, players:[]},
-      {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+      {id:'s1', date:'Dec 21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s2', date:'Dec 21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s3', date:'Dec 26', title:'Session 02', dm:'Kaela & Tory',  capacity:6, players:[]},
+      {id:'s4', date:'Dec 27', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'s5', date:'Dec 28', title:'Session 04', dm:'Kaela & Tory',  capacity:6, players:[]},
+      {id:'s6', date:'Dec 29', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
+      {id:'finale', date:'Jan 01', title:'Grand Finale', dm:'Kaela & Tory', capacity:6, players:[], finale:true}
     ]
   };
 
