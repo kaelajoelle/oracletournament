@@ -149,6 +149,212 @@
 
 /* Wrap any wide table in this to get the scroll behavior */
 .table-wrap{ overflow: visible; } /* desktop default */
+    
+    /* =============== FORM & TABLE SPACING TUNE-UP =============== */
+
+/* Labels and input alignment */
+label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--ink);
+}
+
+/* Inputs and selects */
+input, select, textarea {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fcf8e8;
+  box-sizing: border-box;
+}
+
+/* Ability score cards spacing */
+#ability_box .card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+}
+
+/* Keep the dropdown smaller so the label has room */
+#ability_box select,
+#ability_box input[type="number"] {
+  width: 70px;
+  text-align: center;
+}
+
+/* Grid spacing fixes for the Core Setup panel */
+.grid.cols-2 > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Panel padding and internal spacing */
+.panel {
+  padding: 1.2rem;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  margin-bottom: 12px;
+}
+
+/* Better button alignment */
+.controls {
+  margin-top: 16px;
+}
+.controls .right {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Table cleanup */
+.table th, .table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.table th {
+  background: rgba(179,139,70,0.1);
+  font-weight: 600;
+  text-align: center;
+}
+.table td {
+  text-align: center;
+}
+
+/* === Step nav spacing & readability === */
+.nav { padding: 14px; }
+#stepNav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;               /* more space between buttons */
+}
+.stepbtn{
+  padding: 12px 14px;      /* larger tap target */
+  border-radius: 10px;
+  line-height: 1.1;
+  font-weight: 600;
+  box-shadow: 0 1px 0 rgba(0,0,0,.06) inset;
+}
+.stepbtn.active{
+  outline: 2px solid rgba(179,139,70,.35);
+  background: linear-gradient(180deg, #fff8df, #f4e8bf);
+}
+
+/* quick action buttons spacing */
+.nav .callout { margin-top: 14px; }
+.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+
+button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
+
+/* Availability table wrapper */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Keep the card’s border/rounding intact */
+.card { overflow: hidden; }
+
+/* Make the availability table behave */
+.table.avail {
+  min-width: 760px;              /* so columns don’t crush */
+  border-collapse: separate;     /* avoid weird collapsed borders while scrolling */
+  border-spacing: 0;
+}
+
+.table.avail th, .table.avail td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+/* Optional: tighter first column */
+.table.avail th:first-child, .table.avail td:first-child {
+  width: 160px;
+}
+
+    /* ---- Utility grids used in panels ---- */
+.two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Callout styling used across panels */
+.callout {
+  background: #fff8df;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+/* Availability card tidy */
+.avail-card {
+  padding: 0;          /* let the table edge align to the card */
+  border-radius: 12px;
+  overflow: hidden;    /* keep rounded corners while scrolling */
+}
+
+/* Match your intent (you used .table-scroll in HTML) */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+  background: var(--panel);
+  padding: 8px;        /* small breathing room around the table */
+}
+
+/* Subtle fade at the right edge on mobile */
+.table-scroll::after{
+  content:"";
+  position:absolute; top:0; right:0; width:24px; height:100%;
+  pointer-events:none;
+  background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
+}
+
+/* Availability table specifics */
+.table.avail {
+  min-width: 760px;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.table.avail thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(179,139,70,0.12);
+  backdrop-filter: blur(2px);
+}
+
+/* Keep the name column visible while you scroll horizontally */
+.table.avail th:first-child,
+.table.avail td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--panel);
+  text-align: left;
+  font-weight: 600;
+  width: 160px;
+}
+
+/* Row separators and cell spacing */
+.table.avail th, .table.avail td {
+  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
+/* Step buttons: a touch more breathing room */
+#stepNav { gap: 12px; }
+.stepbtn { padding: 12px 16px; }
+
 
   </style>
 </head>
@@ -450,6 +656,75 @@
   /* =======================
      HELPERS
   ======================= */
+    
+function buildReady() {
+  const c = State.data.core || {};
+  const uni = State.data.university || {};
+  return Boolean(
+    (c.name && c.name.trim().length >= 2) &&
+    (c.class && c.class.trim()) &&
+    (c.level && Number.isFinite(+c.level)) &&
+    (uni.key && uni.key.trim())
+  );
+}
+
+
+// Reusable card list
+function renderSessionCards(container, opts={readOnly:false}){
+  const {readOnly=false} = opts;
+  container.innerHTML = '';
+  const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+
+  State.sessions
+    .slice()
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .forEach(s=>{
+      const filled = (s.players||[]).length;
+      const full = filled>=s.capacity;
+      const roster = filled
+        ? s.players.map(name=>{
+            const b = builds[name];
+            const extra = b ? ` — <span class="muted">${b.class||'?'} • ${b.university||'?'}</span>` : '';
+            return `<div class="pill"><span>${name}</span>${extra}</div>`;
+          }).join('')
+        : '<span class="muted">No players yet</span>';
+
+      const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
+      const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
+
+      const card = document.createElement('div'); card.className='card';
+      card.innerHTML = `
+        <div class="flex" style="justify-content:space-between">
+          <div>
+            <strong>${s.title}</strong>
+            <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
+            <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
+            ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
+            ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
+          </div>
+          <div class="flex">
+            ${joinBtn}
+            <button data-ics="${s.id}">.ics</button>
+          </div>
+        </div>
+        <div style="margin-top:8px" class="flex">${roster}</div>
+      `;
+      container.appendChild(card);
+    });
+}
+
+    function buildReady() {
+  const c = State.data.core || {};
+  const uni = State.data.university || {};
+  // tweak the requirements to your taste
+  return Boolean(
+    (c.name && c.name.trim().length >= 2) &&
+    (c.class && c.class.trim()) &&
+    (c.level && Number.isFinite(+c.level)) &&
+    (uni.key && uni.key.trim())
+  );
+}
+
   // Build-card cache: minimal public info per player for session rosters
   const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
 
@@ -483,49 +758,50 @@
     return {ok:true};
   }
 
-  function downloadSessionsCSV(){
-    const avail = AvailabilityStore.read();
-    const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+function downloadAvailabilityCSV() {
+  const avail = AvailabilityStore.read();
+  const dates = AVAIL_DATES.slice();                 // ISO strings
+  const header = ["name", ...dates.map(labelDate)];  // labelDate → "Dec 21" etc.
 
-    const header1 = ["id","date","title","dm","capacity","players"];
-    const header2 = ["name","class","university","signed_sessions","available_dates"];
+  const rows = [header];
 
-    const rows = [];
-    rows.push(header1);
-    State.sessions.forEach(s=>{
-      rows.push([s.id, s.date, s.title, s.dm, s.capacity, (s.players||[]).join(" | ")]);
+  DATA.roster.forEach(r => {
+    const line = [r.name];
+    dates.forEach(d => {
+      line.push(avail[r.name]?.[d] ? "Y" : "");      // "Y" if available, blank if not
     });
+    rows.push(line);
+  });
 
-    rows.push([]);
-    rows.push(header2);
-    DATA.roster.forEach(r=>{
-      const b = builds[r.name]||{};
-      const signed = State.sessions.filter(s=>(s.players||[]).includes(r.name)).map(s=>`${s.title} (${s.date})`).join(' | ');
-      const a = Object.entries(avail[r.name]||{}).filter(([_,v])=>v).map(([d])=>labelDate(d)).join(' ');
-      rows.push([r.name, b.class||'', b.university||'', signed, a]);
-    });
+  const csv = rows.map(r => r.map(x =>
+    `"${String(x ?? "").replaceAll('"','""')}"`
+  ).join(",")).join("\n");
 
-    const csv = rows.map(r=>r.map(x=>`"${String(x??'').replaceAll('"','""')}"`).join(",")).join("\n");
-    const blob = new Blob([csv], {type:"text/csv"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "oracle-sessions-and-availability.csv";
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `oracle-availability-${stamp}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 
   /* =======================
      STEPS
   ======================= */
-  const STEPS = [
-    {key:'intro',      label:'1) Welcome'},
-    {key:'sessions',   label:'2) Sessions & Signup'},
-    {key:'core',       label:'3) Core 5e Setup'},
-    {key:'university', label:'4) University & Feat'},
-    {key:'extras',     label:'5) Job & Extracurriculars'},
-    {key:'personality',label:'6) Personality & Prompt'},
-    {key:'summary',    label:'7) Summary & Export'}
-  ];
+const STEPS = [
+  {key:'intro',      label:'1) Welcome'},
+  {key:'sessions', label:'2) Availability'},
+  {key:'core',       label:'3) Core 5e Setup'},
+  {key:'university', label:'4) University & Feat'},
+  {key:'extras',     label:'5) Job & Extracurriculars'},
+  {key:'personality',label:'6) Personality & Prompt'},
+  {key:'join',       label:'7) Join a Session'},          // NEW step
+  {key:'summary',    label:'8) Summary & Export'}
+];
+
+
 
   let currentStep = 0;
 
@@ -555,159 +831,107 @@
     if(step==='personality') el.appendChild(panelPersonality());
     if(step==='summary') el.appendChild(panelSummary());
     if(step==='intro') el.appendChild(panelIntro());
+    if(step==='join') el.appendChild(panelJoin());
+
   }
 
   /* =======================
      PANELS
   ======================= */
   function panelIntro(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML = `
-      <h2>Oracle Trials — Winter One-Shot Tournament</h2>
-      <div class="card">
-        <p>Welcome! Players from different academies compete in a series of festive one-shots leading to a New Year’s Day finale. Cozy vibes, clever play, friendly rivalry.</p>
-        <ul>
-          <li><strong>When:</strong> Dec 21–29, Finale Jan 1</li>
-          <li><strong>Bring:</strong> dice, pencil, character idea, snack to share (potluck encouraged)</li>
-          <li><strong>Level:</strong> DM will confirm (likely 3)</li>
-        </ul>
-        <p class="muted">Tip: Go to “Sessions & Signup” first to mark availability and claim a seat. Then finish your character.</p>
-      </div>
-      <div class="controls"><div></div><div><button class="primary" id="next_intro">Go to Sessions →</button></div></div>
-    `;
-    p.querySelector('#next_intro').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='sessions'); renderAll(); };
-    return p;
-  }
+  const p=document.createElement('div'); p.className='panel';
+  p.innerHTML = `
+    <h2>Oracle Trials — Winter One-Shot Tournament</h2>
+    <div class="card">
+      <p>Welcome! Browse the schedule below to see who’s playing where, then build your character and join a session.</p>
+      <ul>
+        <li><strong>When:</strong> Dec 21–29, Finale Jan 1</li>
+        <li><strong>Bring:</strong> dice, pencil, character idea, snack to share</li>
+        <li><strong>Level:</strong> DM will confirm (likely 3)</li>
+      </ul>
+      <p class="muted">Tip: Mark your availability in <em>Schedule & Availability</em> after this.</p>
+    </div>
 
-  function panelSessions(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML = `
-      <h2>Sessions & Signup</h2>
-      <div class="grid cols-2">
-        <div>
-          <div class="kicker">Schedule</div>
-          <div id="session_list" class="grid"></div>
-        </div>
-        <div>
-          <div class="kicker">Player Roster & Availability</div>
-          <div class="card">
-  <div class="table-wrap">
-    <table class="table" id="avail_table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  ${AVAIL_DATES.map(d=>`<th title="${d}">${labelDate(d)}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody id="roster_tbody"></tbody>
-            </table>
-            <div class="muted" style="margin-top:6px">Tick when someone is available. Saves automatically.</div>
-          </div>
-        </div>
-      </div>
-      <div class="controls">
-        <div class="left"><button id="back_sessions">← Back</button></div>
-        <div class="right">
-          <button id="csv_export">Export CSV</button>
-          <button id="next_sessions" class="primary">Next →</button>
-        </div>
-      </div>
-    `;
+    <h3 style="margin-top:14px">Upcoming Sessions (preview)</h3>
+    <div id="intro_sessions" class="grid"></div>
 
-    /* Availability grid */
-    const avail = AvailabilityStore.read();
-    const rbody = p.querySelector('#roster_tbody');
-    rbody.innerHTML = DATA.roster.map(r=>{
-      const row = [`<td>${r.name}</td>`]
-      AVAIL_DATES.forEach(d=>{
-        const checked = (avail[r.name]?.[d]) ? 'checked' : '';
-        row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
-      });
-      return `<tr>${row.join('')}</tr>`;
-    }).join('');
+    <div class="controls"><div></div>
+      <div>
+        <button id="to_avail">Mark Availability →</button>
+        <button class="primary" id="to_core">Start Character →</button>
+      </div>
+    </div>
+  `;
+  // render read-only cards
+  renderSessionCards(p.querySelector('#intro_sessions'), {readOnly:true});
+  p.querySelector('#to_avail').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='sessions'); renderAll(); };
+  p.querySelector('#to_core').onclick   = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll(); };
+  return p;
+}
 
-    rbody.addEventListener('change', (e)=>{
-      const cb = e.target.closest('input[type="checkbox"][data-name]');
-      if(!cb) return;
-      const name = cb.getAttribute('data-name');
-      const date = cb.getAttribute('data-date');
-      avail[name] = avail[name] || {};
-      avail[name][date] = cb.checked;
-      AvailabilityStore.write(avail);
+
+function panelSessions(){
+  const p = document.createElement('div'); 
+  p.className = 'panel';
+  p.innerHTML = `
+    <h2>Availability</h2>
+    <div class="card avail-card">
+      <div class="table-scroll">
+        <table class="table avail" id="avail_table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              ${AVAIL_DATES.map(d => `<th title="${d}">${labelDate(d)}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody id="roster_tbody"></tbody>
+        </table>
+      </div>
+      <div class="muted" style="margin-top:6px">
+        Tick when someone is available. Saves automatically.
+      </div>
+    </div>
+    <div class="controls">
+      <div class="left">
+        <button id="back_sessions">← Back</button>
+      </div>
+      <div class="right">
+        <button id="csv_export">Export Availability CSV</button>
+        <button id="next_sessions" class="primary">Next →</button>
+      </div>
+    </div>
+  `;
+
+  // Build availability grid
+  const avail = AvailabilityStore.read();
+  const rbody = p.querySelector('#roster_tbody');
+  rbody.innerHTML = DATA.roster.map(r => {
+    const row = [`<td>${r.name}</td>`];
+    AVAIL_DATES.forEach(d => {
+      const checked = (avail[r.name]?.[d]) ? 'checked' : '';
+      row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
     });
+    return `<tr>${row.join('')}</tr>`;
+  }).join('');
 
-    /* Sessions list (read-only dates) */
-    const wrap=p.querySelector('#session_list');
-    function drawSessions(){
-      wrap.innerHTML='';
-      State.sessions.sort((a,b)=>a.date.localeCompare(b.date)).forEach(s=>{
-        const filled = (s.players||[]).length;
-        const full = filled>=s.capacity;
-        const rosterChips = (s.players||[]).length
-          ? s.players.map(name=>{
-              const build = SignedUpBuilds[name];
-              const extra = build ? ` — <span class="muted">${build.class||'?'} • ${build.university||'?'}</span>` : '';
-              return `<div class="pill"><span>${name}</span>${extra}</div>`;
-            }).join('')
-          : '<span class="muted">No players yet</span>';
+  // Save on change
+  rbody.addEventListener('change', (e) => {
+    const cb = e.target.closest('input[type="checkbox"][data-name]');
+    if(!cb) return;
+    const name = cb.getAttribute('data-name');
+    const date = cb.getAttribute('data-date');
+    avail[name] = avail[name] || {};
+    avail[name][date] = cb.checked;
+    AvailabilityStore.write(avail);
+  });
 
-        const hintUni = `<div class="muted" style="margin-top:4px">No duplicate universities allowed. Pick a unique college.</div>`;
+  p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
+  p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
+  p.querySelector('#next_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'core'); renderAll(); };
 
-        const card = document.createElement('div'); card.className='card';
-        card.innerHTML = `
-          <div class="flex" style="justify-content:space-between">
-            <div>
-              <strong>${s.title}</strong>
-              <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
-              ${hintUni}
-            </div>
-            <div class="flex">
-              <button data-id="${s.id}" class="primary"${full?' disabled':''}>Add my character</button>
-              <button data-ics="${s.id}">.ics</button>
-            </div>
-          </div>
-          <div style="margin-top:8px" class="flex">${rosterChips}</div>
-        `;
-        wrap.appendChild(card);
-      });
-    }
+  return p;
+}
 
-    wrap.addEventListener('click', (ev)=>{
-      const addBtn = ev.target.closest('button.primary[data-id]');
-      if(addBtn){
-        const id = addBtn.getAttribute('data-id');
-        const s = State.sessions.find(x=>x.id===id);
-        const name = getCurrentCharacterName();
-        if(!name){ alert('Give your character a name (Step 3) before joining.'); return; }
-        if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
-        if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
-        s.players = s.players||[];
-        if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
-        if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
-        saveBuildCard();
-        const ok = canJoinSession(s, name);
-        if(!ok.ok){ alert(ok.msg); return; }
-        s.players.push(name);
-        State.saveSessions();
-        drawSessions();
-        alert(`Added ${name} to ${s.title}.`);
-        return;
-      }
-      const icsBtn = ev.target.closest('button[data-ics]');
-      if(icsBtn){
-        const id = icsBtn.getAttribute('data-ics');
-        const s = State.sessions.find(x=>x.id===id);
-        downloadICS(s);
-        return;
-      }
-    });
-
-    drawSessions();
-    p.querySelector('#csv_export').onclick = downloadSessionsCSV;
-    p.querySelector('#back_sessions').onclick=()=>{ currentStep = STEPS.findIndex(s=>s.key==='intro'); renderAll(); };
-    p.querySelector('#next_sessions').onclick=()=>{ currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll(); };
-    return p;
-  }
 
   function panelCore(){
     const p = document.createElement('div'); p.className='panel';
@@ -983,6 +1207,72 @@
     };
     return p;
   }
+    function panelJoin(){
+  const p=document.createElement('div'); p.className='panel';
+  p.innerHTML = `
+    <h2>Join a Session</h2>
+    <div class="card">
+      <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
+    </div>
+    <div id="join_list" class="grid"></div>
+    <div class="controls">
+      <div class="left"><button id="back_join">← Back</button></div>
+      <div class="right"><button class="primary" id="to_summary">Next →</button></div>
+    </div>
+  `;
+
+  const wrap = p.querySelector('#join_list');
+  renderSessionCards(wrap, {readOnly:false}); // shows real “Add my character” button
+
+  // click handlers for join + ics
+  wrap.addEventListener('click', (ev)=>{
+    const addBtn = ev.target.closest('button.primary[data-id]');
+    if(addBtn){
+      const id = addBtn.getAttribute('data-id');
+      const s = State.sessions.find(x=>x.id===id);
+      const name = (State.data.core.name||'').trim();
+      if(!name){ alert('Give your character a name (Core 5e).'); return; }
+      if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
+      if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
+      s.players = s.players||[];
+      if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
+      if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
+      // enforce unique university
+      const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
+      const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+      if(uniName){
+        for(const n of s.players){
+          const b = builds[n];
+          if(b && b.university === uniName){
+            alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
+            return;
+          }
+        }
+      }
+      // save mini build card
+      const klass = State.data.core.class || '';
+      const cards = builds; cards[name] = {class:klass, university:uniName};
+      localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
+
+      s.players.push(name);
+      State.saveSessions();
+      renderSessionCards(wrap, {readOnly:false});
+      alert(`Added ${name} to ${s.title}.`);
+      return;
+    }
+    const icsBtn = ev.target.closest('button[data-ics]');
+    if(icsBtn){
+      const id = icsBtn.getAttribute('data-ics');
+      const s = State.sessions.find(x=>x.id===id);
+      downloadICS(s);
+    }
+  });
+
+  p.querySelector('#back_join').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll(); };
+  p.querySelector('#to_summary').onclick= ()=>{ currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll(); };
+  return p;
+}
+
 
   function panelSummary(){
     const p=document.createElement('div'); p.className='panel';
