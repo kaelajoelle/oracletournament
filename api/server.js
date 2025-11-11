@@ -8,6 +8,16 @@ const DATA_PATH = process.env.DATA_PATH
   ? path.resolve(process.env.DATA_PATH)
   : path.join(__dirname, 'state.json');
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'oracle_state';
+const SUPABASE_ROW_ID = process.env.SUPABASE_ROW_ID || 'shared';
+
+const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const SUPABASE_REST_URL = hasSupabase
+  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${SUPABASE_TABLE}`
+  : null;
+
 const AVAIL_DATES = [
   '2025-12-21','2025-12-22','2025-12-23',
   '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
@@ -164,6 +174,23 @@ function normaliseState(state){
 }
 
 async function loadState(){
+  if(hasSupabase){
+    return loadStateFromSupabase();
+  }
+  return loadStateFromFile();
+}
+
+async function saveState(state){
+  const normalised = normaliseState(state);
+  if(hasSupabase){
+    await saveStateToSupabase(normalised);
+  }else{
+    await fs.writeFile(DATA_PATH, JSON.stringify(normalised, null, 2));
+  }
+  return normalised;
+}
+
+async function loadStateFromFile(){
   try{
     const raw = await fs.readFile(DATA_PATH, 'utf8');
     const parsed = JSON.parse(raw);
@@ -171,17 +198,118 @@ async function loadState(){
   }catch(err){
     if(err && err.code === 'ENOENT'){
       const initial = normaliseState(DEFAULT_STATE);
-      await saveState(initial);
+      await fs.writeFile(DATA_PATH, JSON.stringify(initial, null, 2));
       return initial;
     }
     throw err;
   }
 }
 
-async function saveState(state){
-  const normalised = normaliseState(state);
-  await fs.writeFile(DATA_PATH, JSON.stringify(normalised, null, 2));
-  return normalised;
+async function loadStateFromSupabase(){
+  const url = `${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}&select=state`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      Accept: 'application/json'
+    }
+  });
+
+  if(!res.ok){
+    const body = await res.text();
+    throw new Error(`Supabase select failed (${res.status}): ${body}`);
+  }
+
+  const rows = await res.json();
+  const record = Array.isArray(rows) ? rows[0] : null;
+
+  if(!record || !record.state){
+    const initial = normaliseState(DEFAULT_STATE);
+    await insertStateToSupabase(initial);
+    return initial;
+  }
+
+  return normaliseState(record.state);
+}
+
+async function saveStateToSupabase(state){
+  const payload = {
+    state,
+    updated_at: new Date().toISOString()
+  };
+
+  const res = await fetch(`${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Prefer: 'return=representation'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if(res.status === 200){
+    const bodyText = await res.text();
+    if(bodyText){
+      try{
+        const parsed = JSON.parse(bodyText);
+        if(Array.isArray(parsed) && parsed.length === 0){
+          await insertStateToSupabase(state);
+        }
+      }catch(parseErr){
+        console.warn('Supabase update parse warning:', parseErr);
+      }
+    }else{
+      await insertStateToSupabase(state);
+    }
+    return;
+  }
+
+  if(res.status === 204){
+    const range = res.headers.get('content-range');
+    if(range && /\b0\/?0?$/.test(range.split('/').pop() || '')){
+      await insertStateToSupabase(state);
+      return;
+    }
+    return;
+  }
+
+  if(res.status === 404){
+    await insertStateToSupabase(state);
+    return;
+  }
+
+  if(!res.ok){
+    const body = await res.text();
+    throw new Error(`Supabase update failed (${res.status}): ${body}`);
+  }
+}
+
+async function insertStateToSupabase(state){
+  const payload = {
+    id: SUPABASE_ROW_ID,
+    state,
+    updated_at: new Date().toISOString()
+  };
+
+  const res = await fetch(SUPABASE_REST_URL, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Prefer: 'return=minimal,resolution=merge-duplicates'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if(!res.ok){
+    const body = await res.text();
+    throw new Error(`Supabase insert failed (${res.status}): ${body}`);
+  }
 }
 
 function httpError(status, message){

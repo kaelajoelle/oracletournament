@@ -7,3 +7,5 @@
 # Local data exports
 /data/*.sqlite
 /site/data/*.sqlite
+# Node dependencies
+/node_modules/
