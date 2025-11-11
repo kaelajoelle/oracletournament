@@ -1557,39 +1557,6 @@ function panelSessions(){
     renderAll();
   })();
   
-  (function buildCollegeAccordion(){
-  const table = document.querySelector('.intro-college-table');
-  const mount = document.getElementById('colleges-accordion');
-  if(!table || !mount) return;
-
-  // Expecting structure: thead with "College" and "Field of Study"; tbody with rows.
-  const rows = Array.from(table.querySelectorAll('tbody tr'));
-  const items = rows.map(tr=>{
-    const cells = tr.querySelectorAll('td, th');
-    const college = (cells[0]?.textContent || '').trim();
-    const field   = (cells[1]?.textContent || '').trim();
-
-    // You can enrich this later with founder dragon, blurb, art, etc.
-    const el = document.createElement('details');
-    el.className = 'acc-item';
-    el.innerHTML = `
-      <summary>
-        <span>${college}</span>
-        <span class="muted">tap to expand</span>
-      </summary>
-      <div class="acc-body">
-        <div class="acc-kicker">Field of Study</div>
-        <div>${field || '—'}</div>
-      </div>
-    `;
-    return el;
-  });
-
-  mount.innerHTML = '';
-  items.forEach(i => mount.appendChild(i));
-})();
-  
-  
   </script>
 </body>
 </html>
