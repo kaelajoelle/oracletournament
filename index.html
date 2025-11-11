@@ -378,6 +378,41 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   white-space: nowrap;
 }
 
+.avail-name {
+  min-width: 200px;
+}
+
+.avail-name strong {
+  display: block;
+}
+
+.name-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: .85rem;
+}
+
+.name-actions {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: .85rem;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.link-button.danger {
+  color: #b24a3a;
+}
+
 /* Optional: tighter first column */
 .table.avail th:first-child, .table.avail td:first-child {
   width: 160px;
@@ -766,6 +801,200 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     }
   };
 
+  const HTML_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
+
+  function sanitizeName(value){
+    return String(value ?? '').trim();
+  }
+
+  function sanitizeOptional(value){
+    return String(value ?? '').trim();
+  }
+
+  function rosterKey(name){
+    return sanitizeName(name).toLowerCase();
+  }
+
+  function escapeHTML(value){
+    return String(value ?? '').replace(/[&<>"']/g, (ch)=>HTML_ESCAPE[ch]||ch);
+  }
+
+  function escapeAttr(value){
+    return escapeHTML(value);
+  }
+
+  const RosterExtrasStore = {
+    key:'oracleRosterExtras',
+    read(){
+      try{
+        const raw = localStorage.getItem(this.key);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        if(!Array.isArray(parsed)) return [];
+        return parsed.map((item)=>{
+          if(!item || typeof item !== 'object') return null;
+          const name = sanitizeName(item.name);
+          if(!name) return null;
+          const key = item.key ? rosterKey(item.key) : rosterKey(name);
+          return {
+            key,
+            name,
+            status: sanitizeOptional(item.status),
+            notes: sanitizeOptional(item.notes)
+          };
+        }).filter(Boolean);
+      }catch{
+        return [];
+      }
+    },
+    write(list){
+      try{
+        const serialisable = Array.isArray(list) ? list.map((item)=>({
+          key: rosterKey(item.key || item.name),
+          name: sanitizeName(item.name),
+          status: sanitizeOptional(item.status),
+          notes: sanitizeOptional(item.notes)
+        })).filter(item=>item.name) : [];
+        localStorage.setItem(this.key, JSON.stringify(serialisable));
+      }catch{
+        /* ignore quota */
+      }
+    }
+  };
+
+  const RosterMetaStore = {
+    key:'oracleRosterMeta',
+    read(){
+      try{
+        const raw = localStorage.getItem(this.key);
+        if(!raw) return {};
+        const parsed = JSON.parse(raw);
+        if(!parsed || typeof parsed !== 'object') return {};
+        const cleaned = {};
+        Object.entries(parsed).forEach(([k,v])=>{
+          const key = rosterKey(k);
+          if(!key) return;
+          const status = sanitizeOptional(v && v.status);
+          const notes = sanitizeOptional(v && v.notes);
+          if(status || notes){
+            cleaned[key] = {status, notes};
+          }
+        });
+        return cleaned;
+      }catch{
+        return {};
+      }
+    },
+    write(map){
+      try{
+        const out = {};
+        if(map && typeof map === 'object'){
+          Object.entries(map).forEach(([k,v])=>{
+            const key = rosterKey(k);
+            if(!key) return;
+            const status = sanitizeOptional(v && v.status);
+            const notes = sanitizeOptional(v && v.notes);
+            if(status || notes){
+              out[key] = {status, notes};
+            }
+          });
+        }
+        localStorage.setItem(this.key, JSON.stringify(out));
+      }catch{
+        /* ignore quota */
+      }
+    }
+  };
+
+  let BASE_ROSTER_KEYS = new Set();
+
+  function rosterHasKey(key){
+    const normalised = rosterKey(key);
+    if(!normalised) return false;
+    if(BASE_ROSTER_KEYS.has(normalised)) return true;
+    return RosterExtrasStore.read().some(entry => entry.key === normalised);
+  }
+
+  function addRosterExtra(name, status='', notes=''){
+    const cleanName = sanitizeName(name);
+    if(!cleanName) return {ok:false, msg:'Name is required.'};
+    const key = rosterKey(cleanName);
+    if(rosterHasKey(key)) return {ok:false, msg:`${cleanName} is already on the roster.`};
+    const cleanStatus = sanitizeOptional(status);
+    const cleanNotes = sanitizeOptional(notes);
+    const extras = RosterExtrasStore.read();
+    extras.push({key, name: cleanName, status: cleanStatus, notes: cleanNotes});
+    RosterExtrasStore.write(extras);
+    const meta = RosterMetaStore.read();
+    if(cleanStatus || cleanNotes){
+      meta[key] = {status: cleanStatus, notes: cleanNotes};
+    }
+    RosterMetaStore.write(meta);
+    return {ok:true, key, name: cleanName};
+  }
+
+  function updateRosterDetails(key, entry, status, notes){
+    const cleanKey = rosterKey(key);
+    if(!cleanKey) return;
+    const cleanStatus = sanitizeOptional(status);
+    const cleanNotes = sanitizeOptional(notes);
+    const meta = RosterMetaStore.read();
+    if(cleanStatus || cleanNotes){
+      meta[cleanKey] = {status: cleanStatus, notes: cleanNotes};
+    } else {
+      delete meta[cleanKey];
+    }
+    RosterMetaStore.write(meta);
+    if(entry && entry.custom){
+      const extras = RosterExtrasStore.read();
+      const idx = extras.findIndex(e=>e.key===cleanKey);
+      if(idx>=0){
+        extras[idx] = {...extras[idx], status: cleanStatus, notes: cleanNotes};
+        RosterExtrasStore.write(extras);
+      }
+    }
+  }
+
+  function removeRosterExtra(key){
+    const cleanKey = rosterKey(key);
+    if(!cleanKey) return;
+    const extras = RosterExtrasStore.read().filter(e=>e.key!==cleanKey);
+    RosterExtrasStore.write(extras);
+    const meta = RosterMetaStore.read();
+    if(meta[cleanKey]){
+      delete meta[cleanKey];
+      RosterMetaStore.write(meta);
+    }
+  }
+
+  function getRosterList(){
+    const extras = RosterExtrasStore.read();
+    const meta = RosterMetaStore.read();
+    const list = DATA.roster.map((r)=>{
+      const key = rosterKey(r.name);
+      const override = meta[key] || {};
+      return {
+        name: r.name,
+        key,
+        status: override.status || sanitizeOptional(r.status),
+        notes: override.notes || sanitizeOptional(r.notes),
+        custom: false
+      };
+    });
+    extras.forEach((item)=>{
+      const key = item.key || rosterKey(item.name);
+      const override = meta[key] || {};
+      list.push({
+        name: item.name,
+        key,
+        status: override.status || sanitizeOptional(item.status),
+        notes: override.notes || sanitizeOptional(item.notes),
+        custom: true
+      });
+    });
+    return list.sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
+  }
+
   function labelDate(iso){
     try{
       const dt = new Date(iso + 'T00:00:00');
@@ -925,6 +1154,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   // Always render roster A→Z without risk to source order
   DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
+  BASE_ROSTER_KEYS = new Set(DATA.roster.map(r=>rosterKey(r.name)));
 
   // Optional quick rule examples
   const ELIGIBILITY = {
@@ -1255,7 +1485,7 @@ function downloadAvailabilityCSV() {
 
   const rows = [header];
 
-  DATA.roster.forEach(r => {
+  getRosterList().forEach(r => {
     const line = [r.name];
     dates.forEach(d => {
       line.push(avail[r.name]?.[d] ? "Y" : "");      // "Y" if available, blank if not
@@ -1468,7 +1698,7 @@ function panelIntro(){
 
 
 function panelSessions(){
-  const p = document.createElement('div'); 
+  const p = document.createElement('div');
   p.className = 'panel';
   p.innerHTML = `
     <h2>Availability</h2>
@@ -1485,11 +1715,12 @@ function panelSessions(){
         </table>
       </div>
       <div class="muted" style="margin-top:6px">
-        Tick when someone is available. Saves automatically.
+        Tick when someone is available. Saves automatically. Use <strong>Add Person</strong> for new players; everything stays on this device.
       </div>
     </div>
     <div class="controls">
       <div class="left">
+        <button id="add_person">+ Add Person</button>
         <button id="back_sessions">← Back</button>
       </div>
       <div class="right">
@@ -1502,14 +1733,32 @@ function panelSessions(){
   // Build availability grid
   const avail = AvailabilityStore.read();
   const rbody = p.querySelector('#roster_tbody');
-  rbody.innerHTML = DATA.roster.map(r => {
-    const row = [`<td>${r.name}</td>`];
-    AVAIL_DATES.forEach(d => {
-      const checked = (avail[r.name]?.[d]) ? 'checked' : '';
-      row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
-    });
-    return `<tr>${row.join('')}</tr>`;
-  }).join('');
+  function renderAvailabilityTable(){
+    const roster = getRosterList();
+    if(!roster.length){
+      rbody.innerHTML = `<tr><td colspan="${AVAIL_DATES.length + 1}" class="muted" style="text-align:center">Add people with the <em>Add Person</em> button to start tracking schedules.</td></tr>`;
+      return;
+    }
+    const rows = roster.map((entry)=>{
+      avail[entry.name] = avail[entry.name] || {};
+      const metaBits = [];
+      if(entry.status) metaBits.push(`Status: ${escapeHTML(entry.status)}`);
+      if(entry.notes) metaBits.push(escapeHTML(entry.notes));
+      const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' • ')}</div>` : '';
+      const actions = `<div class="name-actions">
+        <button type="button" class="link-button" data-edit="${entry.key}" data-name="${escapeAttr(entry.name)}">Edit</button>
+        ${entry.custom ? `<button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}">Remove</button>` : ''}
+      </div>`;
+      const cells = AVAIL_DATES.map((d)=>{
+        const checked = avail[entry.name]?.[d] ? ' checked' : '';
+        return `<td><input data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}></td>`;
+      }).join('');
+      return `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
+    }).join('');
+    rbody.innerHTML = rows;
+  }
+
+  renderAvailabilityTable();
 
   // Save on change
   rbody.addEventListener('change', (e) => {
@@ -1521,6 +1770,61 @@ function panelSessions(){
     avail[name][date] = cb.checked;
     AvailabilityStore.write(avail);
   });
+
+  rbody.addEventListener('click', (e) => {
+    const editBtn = e.target.closest('button[data-edit]');
+    if(editBtn){
+      const key = editBtn.getAttribute('data-edit');
+      const display = editBtn.getAttribute('data-name') || '';
+      const roster = getRosterList();
+      const entry = roster.find(r=>r.key===key);
+      if(!entry) return;
+      const status = prompt(`Status for ${display}?`, entry.status || '');
+      if(status === null) return;
+      const notes = prompt(`Notes for ${display}?`, entry.notes || '');
+      if(notes === null) return;
+      updateRosterDetails(key, entry, status, notes);
+      renderAvailabilityTable();
+      return;
+    }
+    const removeBtn = e.target.closest('button[data-remove]');
+    if(removeBtn){
+      const key = removeBtn.getAttribute('data-remove');
+      const display = removeBtn.getAttribute('data-name') || '';
+      if(!confirm(`Remove ${display} from this roster?`)) return;
+      removeRosterExtra(key);
+      if(display && avail[display]){
+        delete avail[display];
+        AvailabilityStore.write(avail);
+      }
+      renderAvailabilityTable();
+    }
+  });
+
+  const addBtn = p.querySelector('#add_person');
+  if(addBtn){
+    addBtn.onclick = () => {
+      const nameInput = prompt('Name to add to the roster?');
+      if(nameInput === null) return;
+      const cleanName = sanitizeName(nameInput);
+      if(!cleanName){ alert('Name cannot be blank.'); return; }
+      const key = rosterKey(cleanName);
+      if(rosterHasKey(key)){
+        alert(`${cleanName} is already on the roster.`);
+        return;
+      }
+      const statusInput = prompt('Status (optional — e.g., Yes / Maybe / No):', '');
+      const notesInput = prompt('Notes to remember (optional):', '');
+      const result = addRosterExtra(cleanName, statusInput ?? '', notesInput ?? '');
+      if(!result.ok){
+        alert(result.msg);
+        return;
+      }
+      avail[cleanName] = avail[cleanName] || {};
+      AvailabilityStore.write(avail);
+      renderAvailabilityTable();
+    };
+  }
 
   p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
   p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
@@ -1911,6 +2215,7 @@ function panelSessions(){
       <div class="controls">
         <div class="left"><button id="back_s">← Back</button></div>
         <div class="right">
+          <button id="publish_roster">Add to Availability Roster</button>
           <button id="save_s">Save Draft</button>
           <button id="export_s" class="primary">Export JSON</button>
           <button id="pdf_s" class="success">Print / PDF</button>
@@ -1921,6 +2226,33 @@ function panelSessions(){
     p.querySelector('#save_s').onclick=()=>State.save();
     p.querySelector('#export_s').onclick=()=>State.export();
     p.querySelector('#pdf_s').onclick=()=>window.print();
+    const publishBtn = p.querySelector('#publish_roster');
+    if(publishBtn){
+      publishBtn.onclick = ()=>{
+        const name = sanitizeName(State.data?.core?.name);
+        if(!name){ alert('Give your character a name in Core Setup first.'); return; }
+        const key = rosterKey(name);
+        const noteParts = [];
+        if(State.data?.core?.class) noteParts.push(State.data.core.class);
+        const uniName = uni ? uni.name : (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name || '');
+        if(uniName) noteParts.push(uniName);
+        const notes = noteParts.join(' • ');
+        const status = 'Interested';
+        if(rosterHasKey(key)){
+          const roster = getRosterList();
+          const entry = roster.find(r=>r.key===key) || {name, custom:false};
+          updateRosterDetails(key, entry, status, notes);
+          alert(`${name} is already on the roster. Updated their status and notes.`);
+        } else {
+          const result = addRosterExtra(name, status, notes);
+          if(!result.ok){ alert(result.msg); return; }
+          const avail = AvailabilityStore.read();
+          avail[name] = avail[name] || {};
+          AvailabilityStore.write(avail);
+          alert(`${name} added to the availability roster.`);
+        }
+      };
+    }
     return p;
   }
 
