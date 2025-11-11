@@ -255,1029 +255,276 @@
     </div>
   </main>
 
-  <script>
-  /* =======================
-     CONSTANTS & STORES
-  ======================= */
-  const AVAIL_DATES = [
-    '2025-12-21','2025-12-22','2025-12-23',
-    '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
-    '2026-01-01'
-  ];
-
-  const AvailabilityStore = {
-    key: 'oracleAvailability',
-    read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
-    write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
-  };
-
-  function labelDate(iso){
-    try{
-      const dt = new Date(iso + 'T00:00:00');
-      return dt.toLocaleDateString('en-CA',{month:'short', day:'2-digit'});
-    }catch{ return iso; }
-  }
-
-  function toLocalICS(dt){
-    const pad = n => String(n).padStart(2,'0');
-    return dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+'T'+pad(dt.getHours())+pad(dt.getMinutes())+pad(dt.getSeconds());
-  }
-
-  function downloadICS(session){
-    const tz = 'America/Edmonton';
-    const start = new Date(session.date + 'T19:00:00');
-    const end   = new Date(session.date + 'T21:00:00');
-    const uid = `${session.id}@oracletrials`;
-    const ics = [
-      'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OracleTrials//Scheduler//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
-      `UID:${uid}`,
-      `SUMMARY:${session.title}`,
-      `DESCRIPTION:DM: ${session.dm} | Capacity: ${session.capacity}`,
-      `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
-      `DTEND;TZID=${tz}:${toLocalICS(end)}`,
-      'END:VEVENT','END:VCALENDAR'
-    ].join('\\r\\n');
-    const blob = new Blob([ics], {type:'text/calendar'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${session.title.replace(/\\s+/g,'-')}.ics`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  /* =======================
-     DATA
-  ======================= */
-  const DATA = {
-    levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
-    abilityArrays:{ standard:[15,14,13,12,10,8] },
-    universities:[
-      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', spells:{
-          1:['Comprehend Languages','Identify'],
-          2:['Borrowed Knowledge','Locate Object'],
-          3:['Speak with Dead','Spirit Guardians'],
-          4:['Arcane Eye','Stone Shape'],
-          5:['Flame Strike','Legend Lore']
-      }},
-      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', spells:{
-          1:['Chromatic Orb','Thunderwave'],
-          2:['Flaming Sphere','Kinetic Jaunt'],
-          3:['Haste','Water Walk'],
-          4:['Freedom of Movement','Wall of Fire'],
-          5:['Cone of Cold','Conjure Elemental']
-      }},
-      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', spells:{
-          1:['Entangle','Guiding Bolt'],
-          2:['Enlarge/Reduce','Vortex Warp'],
-          3:['Aura of Vitality','Haste'],
-          4:['Control Water','Freedom of Movement'],
-          5:['Circle of Power','Passwall']
-      }},
-      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', spells:{
-          1:['Dissonant Whispers','Silvery Barbs'],
-          2:['Calm Emotions','Darkness'],
-          3:['Beacon of Hope','Daylight'],
-          4:['Compulsion','Confusion'],
-          5:['Dominate Person','Rary’s Telepathic Bond']
-      }},
-      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', spells:{
-          1:['Cure Wounds','Inflict Wounds'],
-          2:['Lesser Restoration','Wither and Bloom'],
-          3:['Revivify','Vampiric Touch'],
-          4:['Blight','Death Ward'],
-          5:['Antilife Shell','Greater Restoration']
-      }}
-    ],
-    backgrounds:[
-      {key:'lorehold-student', name:'Lorehold Student', skills:['History','Religion'], tools:[], languages:'2 of choice', gear:['Ink/pen','Hammer','Lantern','History tome','Uniform'], feat:'Strixhaven Initiate (Lorehold)'},
-      {key:'prismari-student', name:'Prismari Student', skills:['Acrobatics','Performance'], tools:['+1 instrument/tool'], languages:'1', gear:['Ink/pen','Artisan tools or Instrument','Uniform'], feat:'Strixhaven Initiate (Prismari)'},
-      {key:'quandrix-student', name:'Quandrix Student', skills:['Arcana','Nature'], tools:['+1 artisan tool'], languages:'1', gear:['Ink/pen','Abacus','Arcane theory book','Uniform'], feat:'Strixhaven Initiite (Silverquill)'},
-      {key:'silverquill-student', name:'Silverquill Student', skills:['Intimidation','Persuasion'], tools:[], languages:'2', gear:['Ink/pen','Poetry book','Uniform'], feat:'Strixhaven Initiite (Silverquill)'},
-      {key:'witherbloom-student', name:'Witherbloom Student', skills:['Nature','Survival'], tools:['Herbalism Kit'], languages:'1', gear:['Plant ID book','Iron pot','Herbalism kit','Uniform'], feat:'Strixhaven Initiate (Witherbloom)'}
-    ],
-    feats:{
-      strixhavenInitiate:{
-        name:'Strixhaven Initiate',
-        text:'Choose your college; learn 2 cantrips from its list + one 1st-level spell. Cast the 1st-level spell once per long rest without a slot; also with slots. Choose Int/Wis/Cha as spellcasting ability for these.'
-      }
-    },
-    extracurriculars:[
-      {key:'dead-languages', name:'Dead Languages Society', skills:['Athletics','History']},
-      {key:'fine-artists', name:'Distinguished Society of Fine Artists', skills:['Performance','Sleight of Hand']},
-      {key:'dragonchess', name:'Dragonchess Club', skills:['Deception','Investigation']},
-      {key:'historical-soc', name:'Dragonsguard Historical Society', skills:['Arcana','History']},
-      {key:'horticulture', name:'Fantastical Horticulture Club', skills:['Nature','Survival']},
-      {key:'entrepreneurs', name:'Future Entrepreneurs of Strixhaven', skills:['Insight','Persuasion']},
-      {key:'gymnastics', name:'Intramural Gymnastics', skills:['Acrobatics','Performance']},
-      {key:'silkball', name:'Silkball Club', skills:['Athletics','Intimidation']},
-      {key:'water-dance', name:'Water-Dancing Club', skills:['Athletics','Performance']},
-      {key:'larp', name:'LARP Guild', skills:['Animal Handling','Performance']},
-      {key:'cheer', name:'Mage Tower Cheer', skills:['Perception','Persuasion']},
-      {key:'drama', name:'Playactors Drama Guild', skills:['Arcana','Deception']},
-      {key:'iron-lifters', name:'Iron-Lifters', skills:['Athletics','Medicine']},
-      {key:'show-band', name:'Show Band', skills:['Sleight of Hand','Performance']},
-      {key:'newspaper', name:'Strixhaven Star (Newspaper)', skills:['Investigation','Insight']},
-      {key:'faith', name:'Student-Mages of Faith', skills:['Insight','Religion']}
-    ],
-    jobs:[
-      {key:'biblioplex', name:'Biblioplex', skills:['Arcana','History']},
-      {key:'firejolt', name:'Firejolt Café', skills:['Insight','Persuasion']},
-      {key:'bowsend', name:"Bow's End Tavern", skills:['Performance','Deception']},
-      {key:'stadium', name:'Stadium', skills:['Athletics','Intimidation']},
-      {key:'performing-arts', name:'Performing Arts Society', skills:['Performance','Deception']},
-      {key:'dorms', name:'Dormitories', skills:['Persuasion','Perception']},
-      {key:'grounds', name:'Campus Grounds', skills:['Nature','Survival']},
-      {key:'labs', name:'Magic Labs', skills:['Arcana','Investigation']},
-      {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
-    ],
-    roster:[
-      {name:'Amy', status:'Yes'},
-      {name:'Aramis', status:'Unknown'},
-      {name:'Becca', status:'Preferred', notes:'27, 28'},
-      {name:'Bela', status:'Unknown'},
-      {name:'David', status:'Unknown'},
-      {name:'Emory', status:'Maybe'},
-      {name:'Erin', status:'Yes', notes:'Schedule Dependant'},
-      {name:'Erin Warner', status:'Preferred', notes:'26/27'},
-      {name:'Evan', status:'Preferred', notes:'27, 28'},
-      {name:'James', status:'Unknown'},
-      {name:'Jocelyn', status:'Maybe'},
-      {name:'Jordan', status:'Unknown'},
-      {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
-      {name:'Link', status:'No'},
-      {name:'Lyric', status:'Unknown'},
-      {name:'Marvin', status:'Unknown'},
-      {name:'Megan', status:'Maybe'},
-      {name:'Megan E.', status:'Unknown'},
-      {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'},
-      {name:'Mike', status:'Maybe'},
-      {name:'Nicole', status:'Yes', notes:'26-27'},
-      {name:'Nova', status:'Yes', notes:'Checking Schedule'},
-      {name:'Spencer', status:'Yes', notes:'26-27'},
-      {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'}
-    ],
-    sessions:[
-      {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
-    ]
-  };
-
-  DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
-
-  const ELIGIBILITY = {
-    hardNo: [ 'Link' ],
-    blockedDates: { 'Melissa': ['2025-12-28'] }
-  };
-
-  /* =======================
-     VALIDATION & ERROR HANDLING
-  ======================= */
-  function validateConfig(){
-    const errors=[];
-    try{
-      if(!Array.isArray(AVAIL_DATES)) errors.push('AVAIL_DATES is missing or not an array.');
-      else AVAIL_DATES.forEach((d,i)=>{ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be YYYY-MM-DD (got "${d}")`); });
-    }catch{ errors.push('AVAIL_DATES could not be read.'); }
-
-    try{
-      if(!Array.isArray(DATA.sessions)) errors.push('DATA.sessions is missing or not an array.');
-      else{
-        const ids=new Set();
-        DATA.sessions.forEach((s,idx)=>{
-          if(!s || typeof s!=='object'){ errors.push(`sessions[${idx}] is not an object`); return; }
-          if(!s.id) errors.push(`sessions[${idx}] is missing an id`);
-          if(s.id){ if(ids.has(s.id)) errors.push(`Duplicate session id: ${s.id}`); else ids.add(s.id); }
-          if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has non-ISO date "${s.date}"`);
-          if(typeof s.capacity !== 'number') errors.push(`${s.title||s.id||('session#'+idx)} capacity must be a number`);
-        });
-      }
-    }catch{ errors.push('DATA.sessions could not be validated.'); }
-
-    try{ if(!Array.isArray(DATA.roster)) errors.push('DATA.roster is missing or not an array.'); }
-    catch{ errors.push('DATA.roster could not be validated.'); }
-
-    return errors;
-  }
-
-  function showErrors(errors){
-    if(!errors || !errors.length) return;
-    const main=document.querySelector('main');
-    const box=document.createElement('div');
-    box.className='panel';
-    box.style.border='1px solid #f14a3b';
-    box.style.background='#1d1111';
-    box.innerHTML = `
-      <h2>Configuration issues</h2>
-      <p>Fix the items below, then refresh. If you changed dates/IDs recently, hit <strong>Clear Local Data</strong> in the sidebar.</p>
-      <ul>${errors.map(e=>`<li>${e.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}</ul>
-    `;
-    main.prepend(box);
-  }
-
-  window.addEventListener('error', (e)=>{
-    const main=document.querySelector('main');
-    if(!main) return;
-    const box=document.createElement('div');
-    box.className='panel';
-    box.style.border='1px solid #f14a3b';
-    box.style.background='#1d1111';
-    box.innerHTML=`<strong>Runtime error:</strong> ${String(e.message||'Unknown error')}`;
-    main.prepend(box);
-  });
-
-  /* =======================
-     STATE
-  ======================= */
-  const State = {
-    data:{
-      meta:{version:'0.5-stable'},
-      core:{ name:'', race:'', class:'', background:'', level:3, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
-      university:{ key:'', spellAbility:'INT' },
-      feats:[],
-      extras:{ job:null, clubs:[], studentDice:[] },
-      personality:{ traits:'', ideal:'', bond:'', rival:'', goal:'', prompt:'' },
-      exams:{ notes:'', studyRerolls:0, results:[] }
-    },
-    sessions: (function(){
-      const saved = JSON.parse(localStorage.getItem('oracleSessions')||'null');
-      if(saved) return saved;
-      return DATA.sessions.map(x=>({...x}));
-    })(),
-    save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
-    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
-    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
-    saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
-  };
-
-  /* =======================
-     HELPERS
-  ======================= */
-
-  // Build-card cache for roster display
-  const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-
-  function saveBuildCard(){
-    const name = getCurrentCharacterName();
-    if(!name) return;
-    const uniKey = State.data?.university?.key || '';
-    const uniName = (DATA.universities.find(u=>u.key===uniKey)?.name) || '';
-    const klass = State.data?.core?.class || '';
-    SignedUpBuilds[name] = { class: klass, university: uniName };
-    localStorage.setItem('oracleBuildCards', JSON.stringify(SignedUpBuilds));
-  }
-
-  function getCurrentCharacterName(){
-    const fromState = (State.data?.core?.name||'').trim();
-    if(fromState) return fromState;
-    const input = document.querySelector('#core_name');
-    return (input?.value||'').trim();
-  }
-
-  function canJoinSession(session, name){
-    const thisUni = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
-    if(!thisUni) return {ok:false, msg:'Pick a University in step 4 first.'};
-    const players = session.players||[];
-    for(const n of players){
-      const b = SignedUpBuilds[n];
-      if(b && b.university && b.university === thisUni){
-        return {ok:false, msg:`Another ${thisUni} student is already in this session. Choose a different session or college.`};
-      }
-    }
-    return {ok:true};
-  }
-
-  function downloadAvailabilityCSV() {
-    const avail = AvailabilityStore.read();
-    const dates = AVAIL_DATES.slice();
-    const header = ["name", ...dates.map(labelDate)];
-    const rows = [header];
-
-    DATA.roster.forEach(r => {
-      const line = [r.name];
-      dates.forEach(d => { line.push(avail[r.name]?.[d] ? "Y" : ""); });
-      rows.push(line);
-    });
-
-    const csv = rows.map(r => r.map(x =>
-      `"${String(x ?? "").replaceAll('"','""')}"`
-    ).join(",")).join("\\n");
-
-    const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `oracle-availability-${stamp}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
-
-  function buildReady() {
-    const c = State.data.core || {};
-    const uni = State.data.university || {};
-    return Boolean(
-      (c.name && c.name.trim().length >= 2) &&
-      (c.class && c.class.trim()) &&
-      (c.level && Number.isFinite(+c.level)) &&
-      (uni.key && uni.key.trim())
-    );
-  }
-
-  // Build college accordion from the table (mobile view)
-  function buildCollegeAccordionFromTable(){
-    const table = document.querySelector('#college_table table');
-    const mount = document.getElementById('colleges-accordion');
-    if(!table || !mount) return;
-
-    const rows = Array.from(table.tBodies[0].rows);
-    mount.innerHTML = '';
-    rows.forEach(tr=>{
-      const [collegeCell, fieldCell, founderCell] = Array.from(tr.cells);
-      const college = (collegeCell?.textContent || '').trim();
-      const field   = (fieldCell?.textContent || '').trim();
-      const founder = (founderCell?.textContent || '').trim();
-
-      const details = document.createElement('details');
-      details.className = 'acc-item';
-      details.innerHTML = `
-        <summary>${college} <span class="muted" style="font-weight:400">— ${field}</span></summary>
-        <div class="acc-body">
-          <div class="acc-kicker">Founder Dragon</div>
-          <div>${founder}</div>
-        </div>`;
-      mount.appendChild(details);
-    });
-
-    document.body.classList.add('has-accordion');
-  }
-
-  // Reusable session card list
-  function renderSessionCards(container, opts={readOnly:false}){
-    const {readOnly=false} = opts;
-    container.innerHTML = '';
-    const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-
-    State.sessions
-      .slice()
-      .sort((a,b)=>a.date.localeCompare(b.date))
-      .forEach(s=>{
-        const filled = (s.players||[]).length;
-        const full = filled>=s.capacity;
-        const roster = filled
-          ? s.players.map(name=>{
-              const b = builds[name];
-              const extra = b ? ` — <span class="muted">${b.class||'?'} • ${b.university||'?'}</span>` : '';
-              return `<div class="pill"><span>${name}</span>${extra}</div>`;
-            }).join('')
-          : '<span class="muted">No players yet</span>';
-
-        const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
-        const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
-
-        const card = document.createElement('div'); card.className='card';
-        card.innerHTML = `
-          <div class="flex" style="justify-content:space-between">
-            <div>
-              <strong>${s.title}</strong>
-              <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
-              <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
-              ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
-              ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
-            </div>
-            <div class="flex">
-              ${joinBtn}
-              <button data-ics="${s.id}">.ics</button>
-            </div>
-          </div>
-          <div style="margin-top:8px" class="flex">${roster}</div>
-        `;
-        container.appendChild(card);
-      });
-  }
-
-  /* =======================
-     STEPS
-  ======================= */
-  const STEPS = [
-    {key:'intro',      label:'1) Welcome'},
-    {key:'sessions',   label:'2) Availability'},
-    {key:'core',       label:'3) Core 5e Setup'},
-    {key:'university', label:'4) University & Feat'},
-    {key:'extras',     label:'5) Job & Extracurriculars'},
-    {key:'personality',label:'6) Personality & Prompt'},
-    {key:'join',       label:'7) Join a Session'},
-    {key:'summary',    label:'8) Summary & Export'}
-  ];
-
-  let currentStep = 0;
-
-  function renderNav(){
-    const nav = document.getElementById('stepNav');
-    nav.innerHTML = '';
-    STEPS.forEach((s,idx)=>{
-      const b=document.createElement('button');
-      b.className='stepbtn'+(idx===currentStep?' active':'');
-      b.textContent=s.label;
-      b.onclick=()=>{currentStep=idx; renderPanels();};
-      nav.appendChild(b);
-    });
-    const badge=document.getElementById('cfgBadge');
-    const errs=validateConfig();
-    badge.textContent = errs.length? `⚠️ ${errs.length} config issue${errs.length>1?'s':''}` : '✅ config OK';
-  }
-
-  function renderPanels(){
-    const el = document.getElementById('panels');
-    el.innerHTML='';
-    const step = STEPS[currentStep].key;
-    if(step==='core') el.appendChild(panelCore());
-    if(step==='university') el.appendChild(panelUniversity());
-    if(step==='extras') el.appendChild(panelExtras());
-    if(step==='sessions') el.appendChild(panelSessions());
-    if(step==='personality') el.appendChild(panelPersonality());
-    if(step==='summary') el.appendChild(panelSummary());
-    if(step==='join') el.appendChild(panelJoin());
-    if(step==='intro'){
-      const node = panelIntro();
-      el.appendChild(node);
-      // Build mobile accordion once the table exists
-      buildCollegeAccordionFromTable();
-    }
-  }
-
-  /* =======================
-     PANELS
-  ======================= */
-  function panelIntro(){
-    const p = document.createElement('div');
-    p.className = 'panel';
-    p.innerHTML = `
-<details class="scroll-letter" open>
-  <summary>
-    <span class="seal">✶</span>
-    Official Correspondence: Invitation to the Oracle Trials
-    <span class="chev">▶</span>
-  </summary>
-
-  <div class="scroll-content">
-    <div style="text-align:center; font-style:italic; color:var(--muted); margin-bottom:1rem;">
-      From the Office of the Dean of Arcane Affairs<br>
-      Strixhaven University — The Premier Institution of Magical Learning in the World<br>
-      <small>Founded by the Five Dragons — Velomachus, Galazeth, Tanazir, Shadrix, and Beledros</small>
-    </div>
-
-    <hr style="border:none;border-top:1px dotted var(--border);margin:1rem 0;">
-
-    <p><strong>Winter Term • Year 739 of Archavios</strong></p>
-    <p><em>To the Esteemed Prospective Student,</em></p>
-
-    <p>It is our great pleasure to inform you that you have been provisionally accepted to participate in this winter’s <strong>Oracle Trials</strong>, an extraordinary academic and magical tournament hosted by the distinguished faculty of Strixhaven University.</p>
-
-    <p>The Oracle Trials are a seasonal celebration of magical discovery and friendly rivalry — an opportunity for students from across the Five Colleges to demonstrate excellence, creativity, and courage in the pursuit of knowledge.</p>
-
-    <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
-
-    <div id="college_table" class="intro-college-table college-table">
-      <table class="table">
-        <thead>
-          <tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
-          <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
-          <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
-          <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
-          <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Mobile accordion gets built from the table -->
-    <div id="colleges-accordion" class="colleges-accordion" aria-live="polite"></div>
-
-    <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
-
-    <p><strong>Academic Calendar</strong><br>
-      Preliminary College Quests: December 26–29<br>
-      Grand Oracle Trial: January 1<br>
-      <em>(Trials hosted in the mortal realm by Professors Kaela and Tory. Potluck encouraged.)</em>
-    </p>
-
-    <p><strong>Student Expectations</strong><br>
-      Arrive prepared for adventure, study, and a modest amount of chaos.<br>
-      Dice, imagination, and one’s best festive attire recommended.<br>
-      Non-finalists may appear as professors, spirits, or helpful onlookers via “Supporter Cards.”<br>
-      Cooperation, roleplay, and good humour will be rewarded; detentions will be minimal.
-    </p>
-
-    <p>Should you accept, watch for the Sign-Up Scroll to confirm attendance and college preference. Positions are limited, and the Founders favour the punctual.</p>
-
-    <p style="margin-top:1.1rem;">
-      <strong>With warm regards and arcane esteem,</strong><br>
-      <em>Professor Kaela of House Glissandiants</em><br>
-      <em>Department of Druidic Studies</em><br>
-      <em>Professor Tory of House Wittatude</em><br>
-      <em>School of Bardic Applications</em><br>
-      <strong>Strixhaven University of Magic and Mystery</strong>
-    </p>
-
-    <p style="text-align:center; font-style:italic; margin-top:1rem;">“To discover, preserve, and share the boundless wonders of magic.”</p>
-  </div>
-</details>
-  `;
-    return p;
-  }
-
-  function panelSessions(){
-    const p = document.createElement('div'); 
-    p.className = 'panel';
-    p.innerHTML = `
-      <h2>Availability</h2>
-      <div class="card avail-card">
-        <div class="table-scroll">
-          <table class="table avail" id="avail_table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                ${AVAIL_DATES.map(d => `<th title="${d}">${labelDate(d)}</th>`).join('')}
-              </tr>
-            </thead>
-            <tbody id="roster_tbody"></tbody>
-          </table>
-        </div>
-        <div class="muted" style="margin-top:6px">
-          Tick when someone is available. Saves automatically.
-        </div>
-      </div>
-      <div class="controls">
-        <div class="left">
-          <button id="back_sessions">← Back</button>
-        </div>
-        <div class="right">
-          <button id="csv_export">Export Availability CSV</button>
-          <button id="next_sessions" class="primary">Next →</button>
-        </div>
-      </div>
-    `;
-
-    const avail = AvailabilityStore.read();
-    const rbody = p.querySelector('#roster_tbody');
-    rbody.innerHTML = DATA.roster.map(r => {
-      const row = [`<td>${r.name}</td>`];
-      AVAIL_DATES.forEach(d => {
-        const checked = (avail[r.name]?.[d]) ? 'checked' : '';
-        row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
-      });
-      return `<tr>${row.join('')}</tr>`;
-    }).join('');
-
-    rbody.addEventListener('change', (e) => {
-      const cb = e.target.closest('input[type="checkbox"][data-name]');
-      if(!cb) return;
-      const name = cb.getAttribute('data-name');
-      const date = cb.getAttribute('data-date');
-      avail[name] = avail[name] || {};
-      avail[name][date] = cb.checked;
-      AvailabilityStore.write(avail);
-    });
-
-    p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
-    p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
-    p.querySelector('#next_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'core'); renderAll(); };
-
-    return p;
-  }
-
-  function panelCore(){
-    const p = document.createElement('div'); p.className='panel';
-    p.innerHTML = `
-      <h2>Core 5e Setup</h2>
-      <div class="grid cols-2">
-        <div><label>Name</label><input id="core_name" placeholder="e.g., Aria Winterborn" /></div>
-        <div><label>Level</label><select id="core_level"></select></div>
-        <div><label>Race</label><input id="core_race" placeholder="Any 5e race" /></div>
-        <div><label>Class</label><input id="core_class" placeholder="Any 5e class" /></div>
-        <div><label>Background</label><input id="core_background" placeholder="PHB/Custom" /></div>
-        <div>
-          <label>Ability Scores</label>
-          <div class="row">
-            <select id="ability_method">
-              <option value="standard">Standard Array (15,14,13,12,10,8)</option>
-              <option value="manual">Manual Entry</option>
-            </select>
-            <select id="equipment">
-              <option value="class">Class Starting Equipment</option>
-              <option value="50gp">50 gp</option>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div id="ability_box" class="two" style="margin-top:10px"></div>
-      <div class="controls">
-        <div class="left"></div>
-        <div class="right"><button class="primary" id="next_core">Next →</button></div>
-      </div>
-    `;
-
-    const levelSel = p.querySelector('#core_level');
-    DATA.levels.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; levelSel.appendChild(o); });
-
-    const box = p.querySelector('#ability_box');
-    function drawAbilityInputs(){
-      box.innerHTML='';
-      const m = p.querySelector('#ability_method').value;
-      const abilities = ['STR','DEX','CON','INT','WIS','CHA'];
-      if(m==='standard'){
-        const arr = DATA.abilityArrays.standard.slice();
-        abilities.forEach((ab)=>{
-          const d=document.createElement('div'); d.className='card';
-          d.innerHTML=`<label>${ab}</label><select data-ab="${ab}">${arr.map(v=>`<option value="${v}">${v}</option>`).join('')}</select>`;
-          box.appendChild(d);
-        });
-      } else {
-        abilities.forEach(ab=>{
-          const d=document.createElement('div'); d.className='card';
-          d.innerHTML=`<label>${ab}</label><input type="number" min="3" max="18" value="10" data-ab="${ab}" />`;
-          box.appendChild(d);
-        });
-      }
-    }
-    p.querySelector('#ability_method').addEventListener('change', drawAbilityInputs);
-    drawAbilityInputs();
-
-    const s = State.data.core;
-    p.querySelector('#core_name').value = s.name;
-    p.querySelector('#core_race').value = s.race;
-    p.querySelector('#core_class').value = s.class;
-    p.querySelector('#core_background').value = s.background;
-    p.querySelector('#core_level').value = s.level;
-    p.querySelector('#ability_method').value = s.abilityMethod;
-    p.querySelector('#equipment').value = s.equipment;
-    drawAbilityInputs();
-
-    p.querySelector('#next_core').onclick = ()=>{
-      const abilities = ['STR','DEX','CON','INT','WIS','CHA'];
-      const abObj = {};
-      abilities.forEach(ab=>{
-        const el = box.querySelector(`[data-ab="${ab}"]`);
-        abObj[ab] = parseInt(el.value,10);
-      });
-      State.data.core = {
-        name: p.querySelector('#core_name').value.trim(),
-        race: p.querySelector('#core_race').value.trim(),
-        class: p.querySelector('#core_class').value.trim(),
-        background: p.querySelector('#core_background').value.trim(),
-        level: parseInt(p.querySelector('#core_level').value,10),
-        abilityMethod: p.querySelector('#ability_method').value,
-        abilities: abObj,
-        equipment: p.querySelector('#equipment').value
-      };
-      currentStep = STEPS.findIndex(s=>s.key==='university');
-      renderAll();
-    };
-    return p;
-  }
-
-  function panelUniversity(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>University & Feat</h2>
-      <div class="grid cols-2">
-        <div>
-          <label>Choose University</label>
-          <select id="uni"></select>
-        </div>
-        <div>
-          <label>Strixhaven Initiate — Spellcasting Ability</label>
-          <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-        </div>
-      </div>
-      <div id="uni_info" class="card" style="margin-top:10px"></div>
-      <div class="controls">
-        <div class="left"><button id="back_u">← Back</button></div>
-        <div class="right"><button class="primary" id="next_u">Next →</button></div>
-      </div>
-    `;
-    const sel=p.querySelector('#uni');
-    sel.innerHTML = `<option value="">— Select —</option>`+DATA.universities.map(u=>`<option value="${u.key}">${u.name}</option>`).join('');
-    function drawInfo(){
-      const key = sel.value; const out=p.querySelector('#uni_info');
-      if(!key){ out.innerHTML='<span class="muted">Select a university to view theme & bonus spells.</span>'; return; }
-      const u = DATA.universities.find(x=>x.key===key);
-      const spellRows = Object.entries(u.spells).map(([lvl,list])=>`<tr><td>${lvl}</td><td>${list.join(', ')}</td></tr>`).join('');
-      out.innerHTML = `
-        <div class="two">
-          <div>
-            <div class="kicker">Theme</div><div>${u.theme}</div>
-            <div class="kicker" style="margin-top:6px">Focus</div><div>${u.focus}</div>
-            <div class="kicker" style="margin-top:6px">Colours</div><div>${u.colours}</div>
-            <div class="kicker" style="margin-top:6px">Playstyle</div><div>${u.playstyle}</div>
-          </div>
-          <div>
-            <div class="kicker">Bonus Spells</div>
-            <table class="table"><thead><tr><th>Level</th><th>Spells</th></tr></thead><tbody>${spellRows}</tbody></table>
-          </div>
-        </div>
-        <div class="callout" style="margin-top:8px"><strong>Feat:</strong> ${DATA.feats.strixhavenInitiate.name} — ${DATA.feats.strixhavenInitiate.text}</div>
-      `;
-    }
-    sel.addEventListener('change', drawInfo);
-    sel.value = State.data.university.key || '';
-    p.querySelector('#spell_ability').value = State.data.university.spellAbility || 'INT';
-    drawInfo();
-    p.querySelector('#back_u').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll();};
-    p.querySelector('#next_u').onclick=()=>{
-      State.data.university={ key: sel.value, spellAbility: p.querySelector('#spell_ability').value };
-      if(!State.data.university.key){ alert('Pick a university to continue.'); return; }
-      if(!State.data.feats.find(f=>f.name==='Strixhaven Initiate')){
-        State.data.feats.push({name:'Strixhaven Initiate', ability: State.data.university.spellAbility });
-      } else {
-        State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
-      }
-      currentStep = STEPS.findIndex(s=>s.key==='extras');
-      renderAll();
-    };
-    return p;
-  }
-
-  function panelExtras(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>Job & Extracurriculars</h2>
-      <div class="grid cols-2">
-        <div>
-          <label>Job (optional, 5 gp/week)</label>
-          <select id="job"><option value="">— None —</option>${DATA.jobs.map(j=>`<option value="${j.key}">${j.name}</option>`).join('')}</select>
-        </div>
-        <div>
-          <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
-          <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
-        </div>
-      </div>
-      <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
-      <div class="controls">
-        <div class="left"><button id="back_e">← Back</button></div>
-        <div class="right"><button class="primary" id="next_e">Next →</button></div>
-      </div>
-    `;
-    const clubWrap = p.querySelector('#clublist');
-    function drawClubs(){
-      clubWrap.innerHTML='';
-      DATA.extracurriculars.forEach(c=>{
-        const id=`club_${c.key}`;
-        const d=document.createElement('label'); d.className='card'; d.style.cursor='pointer';
-        d.innerHTML=`<div class="flex"><input type="checkbox" id="${id}" data-key="${c.key}" /> <div><strong>${c.name}</strong><div class="muted">Student Die (d4): ${c.skills.join(' / ')}</div></div></div>`;
-        clubWrap.appendChild(d);
-      });
-    }
-    drawClubs();
-
-    const jobSel = p.querySelector('#job');
-    jobSel.value = State.data.extras.job || '';
-    (State.data.extras.clubs||[]).forEach(k=>{ const el = clubWrap.querySelector(`[data-key="${k}"]`); if(el) el.checked=true; });
-
-    function readExtras(){
-      const jobKey = jobSel.value || null;
-      const pickedClubs = [...clubWrap.querySelectorAll('input[type="checkbox"]:checked')].map(x=>x.dataset.key);
-      const maxClubs = jobKey?1:2;
-      if(pickedClubs.length>maxClubs){
-        const last = pickedClubs.pop();
-        clubWrap.querySelector(`[data-key="${last}"]`).checked=false;
-      }
-      const job = DATA.jobs.find(j=>j.key===jobKey);
-      const clubs = DATA.extracurriculars.filter(c=>pickedClubs.includes(c.key));
-      const parts=[];
-      if(job) parts.push(`<span class="tag">Job: ${job.name} — d4: ${job.skills.join(' / ')}</span>`);
-      clubs.forEach(c=>parts.push(`<span class="tag">Club: ${c.name} — d4: ${c.skills.join(' / ')}</span>`));
-      p.querySelector('#bonus_readout').innerHTML = parts.length? parts.join(' '): '<span class="muted">Pick a job and/or clubs to see Student Dice bonuses.</span>';
-      return { job: jobKey, clubs: pickedClubs };
-    }
-
-    jobSel.addEventListener('change', readExtras);
-    clubWrap.addEventListener('change', readExtras);
-    readExtras();
-
-    p.querySelector('#back_e').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='university'); renderAll();};
-    p.querySelector('#next_e').onclick=()=>{
-      const {job, clubs} = readExtras();
-      State.data.extras.job = job;
-      State.data.extras.clubs = clubs;
-      currentStep = STEPS.findIndex(s=>s.key==='personality');
-      renderAll();
-    };
-    return p;
-  }
-
-  function panelPersonality(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>Personality & Prompt</h2>
-      <div class="grid cols-2">
-        <div><label>Traits (1–2)</label><textarea id="traits" rows="3" placeholder="e.g., Curious, dry humour"></textarea></div>
-        <div><label>Ideal</label><textarea id="ideal" rows="3" placeholder="e.g., Knowledge must be shared."></textarea></div>
-        <div><label>Bond / Friend / Rival</label><textarea id="bond" rows="3" placeholder="Name someone you’re tied to (or opposed to)"></textarea></div>
-        <div><label>Goal</label><textarea id="goal" rows="3" placeholder="What do you want from the Oracle Trials?"></textarea></div>
-      </div>
-      <div class="card" style="margin-top:10px">
-        <div class="kicker">Quick-Start Character Prompt</div>
-        <div id="prompt_box" class="flex" style="margin-top:6px"></div>
-      </div>
-      <div class="controls">
-        <div class="left"><button id="back_p">← Back</button></div>
-        <div class="right"><button class="primary" id="next_p">Next →</button></div>
-      </div>
-    `;
-    const quickPrompts = [
-      {u:'Lorehold', text:'A cheerful necro-historian who argues with ghosts about footnotes.'},
-      {u:'Prismari', text:'A kinetic dancer who keeps leaving frost footprints after cantrips.'},
-      {u:'Quandrix', text:'A fractal botanist who names houseplants after famous equations.'},
-      {u:'Silverquill', text:'A sunny orator who spotlights corruption with literal light.'},
-      {u:'Witherbloom', text:'A swamp witch medic who collects bones “for research.”'}
-    ];
-    const box=p.querySelector('#prompt_box');
-    quickPrompts.forEach(q=>{
-      const b=document.createElement('button'); b.className='pill'; b.type='button';
-      b.innerHTML = `<span>${q.u}</span><span>•</span><span>${q.text}</span>`;
-      b.onclick=()=>{ State.data.personality.prompt = q.text; Array.from(box.children).forEach(x=>x.classList.remove('success')); b.classList.add('success'); };
-      box.appendChild(b);
-      if(State.data.personality.prompt===q.text) b.classList.add('success');
-    });
-
-    p.querySelector('#traits').value = State.data.personality.traits||'';
-    p.querySelector('#ideal').value = State.data.personality.ideal||'';
-    p.querySelector('#bond').value = State.data.personality.bond||'';
-    p.querySelector('#goal').value = State.data.personality.goal||'';
-
-    p.querySelector('#back_p').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='extras'); renderAll();};
-    p.querySelector('#next_p').onclick=()=>{
-      State.data.personality={
-        traits: p.querySelector('#traits').value.trim(),
-        ideal: p.querySelector('#ideal').value.trim(),
-        bond: p.querySelector('#bond').value.trim(),
-        goal: p.querySelector('#goal').value.trim(),
-        prompt: State.data.personality.prompt||''
-      };
-      currentStep = STEPS.findIndex(s=>s.key==='summary');
-      renderAll();
-    };
-    return p;
-  }
-
-  function panelJoin(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML = `
-      <h2>Join a Session</h2>
-      <div class="card">
-        <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
-      </div>
-      <div id="join_list" class="grid"></div>
-      <div class="controls">
-        <div class="left"><button id="back_join">← Back</button></div>
-        <div class="right"><button class="primary" id="to_summary">Next →</button></div>
-      </div>
-    `;
-
-    const wrap = p.querySelector('#join_list');
-    renderSessionCards(wrap, {readOnly:false});
-
-    wrap.addEventListener('click', (ev)=>{
-      const addBtn = ev.target.closest('button.primary[data-id]');
-      if(addBtn){
-        const id = addBtn.getAttribute('data-id');
-        const s = State.sessions.find(x=>x.id===id);
-        const name = (State.data.core.name||'').trim();
-        if(!name){ alert('Give your character a name (Core 5e).'); return; }
-        if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
-        if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
-        s.players = s.players||[];
-        if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
-        if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
-        const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
-        const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-        if(uniName){
-          for(const n of s.players){
-            const b = builds[n];
-            if(b && b.university === uniName){
-              alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
-              return;
-            }
-          }
-        }
-        const klass = State.data.core.class || '';
-        const cards = builds; cards[name] = {class:klass, university:uniName};
-        localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
-
-        s.players.push(name);
-        State.saveSessions();
-        renderSessionCards(wrap, {readOnly:false});
-        alert(`Added ${name} to ${s.title}.`);
-        return;
-      }
-      const icsBtn = ev.target.closest('button[data-ics]');
-      if(icsBtn){
-        const id = icsBtn.getAttribute('data-ics');
-        const s = State.sessions.find(x=>x.id===id);
-        downloadICS(s);
-      }
-    });
-
-    p.querySelector('#back_join').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll(); };
-    p.querySelector('#to_summary').onclick= ()=>{ currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll(); };
-    return p;
-  }
-
-  function panelSummary(){
-    const p=document.createElement('div'); p.className='panel';
-    const s=State.data;
-    const uni = DATA.universities.find(u=>u.key===s.university.key);
-    const abilityList = Object.entries(s.core.abilities||{}).map(([k,v])=>`<span class="tag">${k}: ${v}</span>`).join(' ');
-    const clubs = (s.extras.clubs||[]).map(k=> DATA.extracurriculars.find(c=>c.key===k)?.name).filter(Boolean);
-    const jobName = DATA.jobs.find(j=>j.key===s.extras.job)?.name || '—';
-
-    p.innerHTML = `
-      <h2>Summary</h2>
-      <div class="grid cols-2">
-        <div class="card">
-          <div class="kicker">Character</div>
-          <div><strong>${s.core.name||'Unnamed'}</strong></div>
-          <div class="muted">${s.core.race||'Race?'} • ${s.core.class||'Class?'} • Level ${s.core.level||3}</div>
-          <div style="margin-top:8px">${abilityList}</div>
-          <div style="margin-top:8px" class="muted">Background: ${s.core.background||'—'} • Equipment: ${s.core.equipment==='50gp'?'50 gp':'Class kit'}</div>
-        </div>
-        <div class="card">
-          <div class="kicker">University & Feat</div>
-          <div><strong>${uni?uni.name:'—'}</strong> <span class="muted">(${uni?uni.colours:'—'})</span></div>
-          <div class="muted">Spellcasting Ability for Initiate: ${s.university.spellAbility||'INT'}</div>
-        </div>
-        <div class="card">
-          <div class="kicker">Job & Clubs</div>
-          <div>Job: <strong>${jobName}</strong></div>
-          <div>Clubs: ${clubs.length? clubs.join(', '): '—'}</div>
-        </div>
-        <div class="card">
-          <div class="kicker">Personality</div>
-          <div>${s.personality.traits||''}</div>
-          <div class="muted">Ideal: ${s.personality.ideal||''}</div>
-          <div class="muted">Bond/Rival/Friend: ${s.personality.bond||''}</div>
-          <div class="muted">Goal: ${s.personality.goal||''}</div>
-          <div class="muted" style="margin-top:6px">Prompt: ${s.personality.prompt||'—'}</div>
-        </div>
-      </div>
-      <div class="controls">
-        <div class="left"><button id="back_s">← Back</button></div>
-        <div class="right">
-          <button id="save_s">Save Draft</button>
-          <button id="export_s" class="primary">Export JSON</button>
-          <button id="pdf_s" class="success">Print / PDF</button>
-        </div>
-      </div>
-    `;
-    p.querySelector('#back_s').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll();};
-    p.querySelector('#save_s').onclick=()=>State.save();
-    p.querySelector('#export_s').onclick=()=>State.export();
-    p.querySelector('#pdf_s').onclick=()=>window.print();
-    return p;
-  }
-
-  /* =======================
-     BOOT
-  ======================= */
-  function renderAll(){
-    try{
-      renderNav();
-      renderPanels();
-      bindHeaderActions();
-    } catch(err){
-      showErrors([`Render failed: ${String(err && err.message || err)}`]);
-      console.error(err);
-    }
-  }
-  function bindHeaderActions(){
-    const s = document.getElementById('btnSave'); if(s) s.onclick=()=>State.save();
-    const l = document.getElementById('btnLoad'); if(l) l.onclick=()=>State.load();
-    const e = document.getElementById('btnExport'); if(e) e.onclick=()=>State.export();
-    const clr=document.getElementById('btnClear');
-    if(clr){ clr.onclick=()=>{
-      if(confirm('Clear all local data for this app?')){
-        localStorage.removeItem('oracleSessions');
-        localStorage.removeItem('oracleAvailability');
-        localStorage.removeItem('oracleBuildCards');
-        localStorage.removeItem('oracleTrialsSave');
-        alert('Local data cleared. Reloading…');
-        location.reload();
-      }
+<script>
+/* =======================
+   CONSTANTS & STORES
+======================= */
+const AVAIL_DATES = [
+  '2025-12-21','2025-12-22','2025-12-23',
+  '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
+  '2026-01-01'
+];
+
+const AvailabilityStore = {
+  key: 'oracleAvailability',
+  read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
+  write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
+};
+
+function labelDate(iso){
+  try{
+    const dt = new Date(iso + 'T00:00:00');
+    return dt.toLocaleDateString('en-CA',{month:'short', day:'2-digit'});
+  }catch{ return iso; }
+}
+
+function toLocalICS(dt){
+  const pad = n => String(n).padStart(2,'0');
+  return dt.getFullYear()+pad(dt.getMonth()+1)+pad(dt.getDate())+'T'+pad(dt.getHours())+pad(dt.getMinutes())+pad(dt.getSeconds());
+}
+
+function downloadICS(session){
+  const tz = 'America/Edmonton';
+  const start = new Date(session.date + 'T19:00:00');
+  const end   = new Date(session.date + 'T21:00:00');
+  const uid = `${session.id}@oracletrials`;
+  const ics = [
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//OracleTrials//Scheduler//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT',
+    `UID:${uid}`,
+    `SUMMARY:${session.title}`,
+    `DESCRIPTION:DM: ${session.dm} | Capacity: ${session.capacity}`,
+    `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
+    `DTEND;TZID=${tz}:${toLocalICS(end)}`,
+    'END:VEVENT','END:VCALENDAR'
+  ].join('\r\n');
+  const blob = new Blob([ics], {type:'text/calendar'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${session.title.replace(/\s+/g,'-')}.ics`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* =======================
+   DATA
+======================= */
+const DATA = {
+  levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+  abilityArrays:{ standard:[15,14,13,12,10,8] },
+  universities:[
+    { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', spells:{
+        1:['Comprehend Languages','Identify'],
+        2:['Borrowed Knowledge','Locate Object'],
+        3:['Speak with Dead','Spirit Guardians'],
+        4:['Arcane Eye','Stone Shape'],
+        5:['Flame Strike','Legend Lore']
+    }},
+    { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', spells:{
+        1:['Chromatic Orb','Thunderwave'],
+        2:['Flaming Sphere','Kinetic Jaunt'],
+        3:['Haste','Water Walk'],
+        4:['Freedom of Movement','Wall of Fire'],
+        5:['Cone of Cold','Conjure Elemental']
+    }},
+    { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', spells:{
+        1:['Entangle','Guiding Bolt'],
+        2:['Enlarge/Reduce','Vortex Warp'],
+        3:['Aura of Vitality','Haste'],
+        4:['Control Water','Freedom of Movement'],
+        5:['Circle of Power','Passwall']
+    }},
+    { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', spells:{
+        1:['Dissonant Whispers','Silvery Barbs'],
+        2:['Calm Emotions','Darkness'],
+        3:['Beacon of Hope','Daylight'],
+        4:['Compulsion','Confusion'],
+        5:['Dominate Person','Rary’s Telepathic Bond']
+    }},
+    { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', spells:{
+        1:['Cure Wounds','Inflict Wounds'],
+        2:['Lesser Restoration','Wither and Bloom'],
+        3:['Revivify','Vampiric Touch'],
+        4:['Blight','Death Ward'],
+        5:['Antilife Shell','Greater Restoration']
     }}
-  }
+  ],
+  roster:[
+    {name:'Amy', status:'Yes'},
+    {name:'Aramis', status:'Unknown'},
+    {name:'Becca', status:'Preferred', notes:'27, 28'},
+    {name:'Bela', status:'Unknown'},
+    {name:'David', status:'Unknown'},
+    {name:'Emory', status:'Maybe'},
+    {name:'Erin', status:'Yes', notes:'Schedule Dependant'},
+    {name:'Erin Warner', status:'Preferred', notes:'26/27'},
+    {name:'Evan', status:'Preferred', notes:'27, 28'},
+    {name:'James', status:'Unknown'},
+    {name:'Jocelyn', status:'Maybe'},
+    {name:'Jordan', status:'Unknown'},
+    {name:'Lazarus', status:'KidsTable', notes:'extra kids table prior to other games'},
+    {name:'Link', status:'No'},
+    {name:'Lyric', status:'Unknown'},
+    {name:'Marvin', status:'Unknown'},
+    {name:'Megan', status:'Maybe'},
+    {name:'Megan E.', status:'Unknown'},
+    {name:'Melissa', status:'Yes', notes:'Cannot do Dec 28'},
+    {name:'Mike', status:'Maybe'},
+    {name:'Nicole', status:'Yes', notes:'26-27'},
+    {name:'Nova', status:'Yes', notes:'Checking Schedule'},
+    {name:'Spencer', status:'Yes', notes:'26-27'},
+    {name:'Trevor', status:'Preferred', notes:'22, 27, and 28/29 of December'}
+  ],
+  sessions:[
+    {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
+    {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+  ]
+};
 
-  (function(){
-    const errs = validateConfig();
-    if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
-    renderAll();
-  })();
-  </script>
+/* =======================
+   VALIDATION & ERROR HANDLING
+======================= */
+function validateConfig(){
+  const errors=[];
+  try{
+    if(!Array.isArray(AVAIL_DATES)) errors.push('AVAIL_DATES is missing or not an array.');
+    else AVAIL_DATES.forEach((d,i)=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be YYYY-MM-DD (got "${d}")`); });
+  }catch{ errors.push('AVAIL_DATES could not be read.'); }
+
+  try{
+    if(!Array.isArray(DATA.sessions)) errors.push('DATA.sessions is missing or not an array.');
+    else{
+      const ids=new Set();
+      DATA.sessions.forEach((s,idx)=>{
+        if(!s || typeof s!=='object'){ errors.push(`sessions[${idx}] is not an object`); return; }
+        if(!s.id) errors.push(`sessions[${idx}] is missing an id`);
+        if(s.id){ if(ids.has(s.id)) errors.push(`Duplicate session id: ${s.id}`); else ids.add(s.id); }
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has non-ISO date "${s.date}"`);
+        if(typeof s.capacity !== 'number') errors.push(`${s.title||s.id||('session#'+idx)} capacity must be a number`);
+      });
+    }
+  }catch{ errors.push('DATA.sessions could not be validated.'); }
+
+  try{ if(!Array.isArray(DATA.roster)) errors.push('DATA.roster is missing or not an array.'); }
+  catch{ errors.push('DATA.roster could not be validated.'); }
+
+  return errors;
+}
+
+function showErrors(errors){
+  if(!errors || !errors.length) return;
+  const main=document.querySelector('main');
+  const box=document.createElement('div');
+  box.className='panel';
+  box.style.border='1px solid #f14a3b';
+  box.style.background='#1d1111';
+  box.innerHTML = `
+    <h2>Configuration issues</h2>
+    <p>Fix the items below, then refresh. If you changed dates/IDs recently, hit <strong>Clear Local Data</strong> in the sidebar.</p>
+    <ul>${errors.map(e=>`<li>${e.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</li>`).join('')}</ul>
+  `;
+  main.prepend(box);
+}
+
+window.addEventListener('error', (e)=>{
+  const main=document.querySelector('main');
+  if(!main) return;
+  const box=document.createElement('div');
+  box.className='panel';
+  box.style.border='1px solid #f14a3b';
+  box.style.background='#1d1111';
+  box.innerHTML=`<strong>Runtime error:</strong> ${String(e.message||'Unknown error')}`;
+  main.prepend(box);
+});
+
+/* =======================
+   STATE
+======================= */
+const State = {
+  data:{
+    meta:{version:'0.5-stable'},
+    core:{ name:'', race:'', class:'', background:'', level:3, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
+    university:{ key:'', spellAbility:'INT' },
+    feats:[],
+    extras:{ job:null, clubs:[], studentDice:[] },
+    personality:{ traits:'', ideal:'', bond:'', rival:'', goal:'', prompt:'' },
+    exams:{ notes:'', studyRerolls:0, results:[] }
+  },
+  sessions: (function(){
+    const saved = JSON.parse(localStorage.getItem('oracleSessions')||'null');
+    if(saved) return saved;
+    return DATA.sessions.map(x=>({...x}));
+  })(),
+  save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
+  load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
+  export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
+  saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
+};
+
+/* =======================
+   CSV EXPORT
+======================= */
+function downloadAvailabilityCSV() {
+  const avail = AvailabilityStore.read();
+  const dates = AVAIL_DATES.slice();
+  const header = ["name", ...dates.map(labelDate)];
+  const rows = [header];
+  DATA.roster.forEach(r => {
+    const line = [r.name];
+    dates.forEach(d => { line.push(avail[r.name]?.[d] ? "Y" : ""); });
+    rows.push(line);
+  });
+  const csv = rows.map(r => r.map(x => `"${String(x ?? "").replaceAll('"','""')}"`).join(",")).join('\n');
+  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `oracle-availability-${stamp}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* =======================
+   BOOT
+======================= */
+function renderAll(){
+  try{
+    renderNav();
+    renderPanels();
+    bindHeaderActions();
+  } catch(err){
+    showErrors([`Render failed: ${String(err && err.message || err)}`]);
+    console.error(err);
+  }
+}
+
+function bindHeaderActions(){
+  const s = document.getElementById('btnSave'); if(s) s.onclick=()=>State.save();
+  const l = document.getElementById('btnLoad'); if(l) l.onclick=()=>State.load();
+  const e = document.getElementById('btnExport'); if(e) e.onclick=()=>State.export();
+  const clr=document.getElementById('btnClear');
+  if(clr){ clr.onclick=()=>{
+    if(confirm('Clear all local data for this app?')){
+      localStorage.removeItem('oracleSessions');
+      localStorage.removeItem('oracleAvailability');
+      localStorage.removeItem('oracleBuildCards');
+      localStorage.removeItem('oracleTrialsSave');
+      alert('Local data cleared. Reloading…');
+      location.reload();
+    }
+  }}
+}
+
+(function(){
+  const errs = validateConfig();
+  if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
+  renderAll();
+})();
+</script>
+      
 </body>
 </html>
