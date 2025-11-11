@@ -75,6 +75,15 @@ All routes return the full state payload on success so the client can refresh it
 
 If you would rather keep the shared state in Supabase instead of the local JSON file, follow these steps:
 
+1. Run the bundled bootstrap script once to create and seed the table:
+
+   ```bash
+   SUPABASE_URL="https://your-project.supabase.co" \\
+   SUPABASE_SERVICE_ROLE_KEY="service-role-key" \\
+   npm run supabase:bootstrap
+   ```
+
+   The script uses [`supabase/oracle_state.sql`](supabase/oracle_state.sql) under the hood, so you can also copy/paste that file into the Supabase **SQL Editor** or push it with the Supabase CLI (`supabase db push supabase/oracle_state.sql`) if you would rather run it manually. The SQL will:
 1. Open the Supabase dashboard for your project and launch the **SQL Editor**. Paste the contents of [`supabase/oracle_state.sql`](supabase/oracle_state.sql) and run it once. The script will:
    * create the `oracle_state` table (if needed),
    * seed the default `shared` row the API expects, and
