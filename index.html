@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -53,7 +52,6 @@
     box-shadow:0 2px 6px rgba(0,0,0,.08);
   } 
 
-  /* minimal UI styles so it looks sane */
   .grid{ display:grid; gap:12px; }
   .grid.cols-2{ grid-template-columns:repeat(2,minmax(0,1fr)); }
   .panel,.card{
@@ -72,416 +70,159 @@
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
   
-    /* =============== MOBILE PATCH =============== */
-@media (max-width: 900px){
-  /* Background: avoid jank on mobile */
-  body{
-    background-attachment: scroll;
-    background-size: 120% auto;
+  /* =============== MOBILE PATCH =============== */
+  @media (max-width: 900px){
+    body{
+      background-attachment: scroll;
+      background-size: 120% auto;
+    }
+    header{ padding: 1rem .75rem .75rem; }
+    h1{ font-size: 1.6rem; }
+    .subtitle{ font-size: .95rem; }
+    .wizard{ grid-template-columns: 1fr; gap: 12px; padding: .75rem; }
+    .nav{ padding: .75rem; }
+    .nav .stepbtn{ padding: 10px; font-size: .95rem; }
+
+    #stepNav{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 8px;
+    }
+
+    button{ padding: 12px 14px; min-height: 44px; width: 100%; }
+    .controls{ flex-direction: column; gap: 8px; }
+    .controls .left, .controls .right{ width: 100%; gap: 8px; }
+    .controls .right button{ width: 100%; }
+
+    .panel, .card{ padding: 12px; border-radius: 10px; }
+    input, select, textarea{ font-size: 16px; }
+    .grid.cols-2{ grid-template-columns: 1fr; }
+    .two{ grid-template-columns: 1fr; }
+    .pill{ padding: 6px 10px; }
+
+    .table{ width: max(640px, 100%); }
+    .table-wrap{
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+    }
+    .table-wrap::after{
+      content:""; position:absolute; top:0; right:0; width:24px; height:100%;
+      pointer-events:none; background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
+    }
+    .kicker{ font-size: .85rem; }
+    .muted{ font-size: .9rem; }
   }
 
-  header{ padding: 1rem .75rem .75rem; }
-  h1{ font-size: 1.6rem; }
-  .subtitle{ font-size: .95rem; }
+  .table-wrap{ overflow: visible; } /* desktop default */
 
-  /* Stack layout */
-  .wizard{
-    grid-template-columns: 1fr;
-    gap: 12px;
-    padding: .75rem;
+  /* =============== FORM & TABLE SPACING TUNE-UP =============== */
+  label { display: block; font-weight: 600; margin-bottom: 4px; color: var(--ink); }
+  input, select, textarea {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--border);
+    border-radius: 6px; background: #fcf8e8; box-sizing: border-box;
+  }
+  #ability_box .card { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; margin-bottom: 6px; }
+  #ability_box select, #ability_box input[type="number"] { width: 70px; text-align: center; }
+  .grid.cols-2 > div { display: flex; flex-direction: column; gap: 4px; }
+  .panel { padding: 1.2rem; border-radius: 12px; border: 2px solid var(--border); background: var(--panel); margin-bottom: 12px; }
+  .controls { margin-top: 16px; }
+  .controls .right { display: flex; justify-content: flex-end; gap: 8px; }
+  .table th, .table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .table th { background: rgba(179,139,70,0.1); font-weight: 600; text-align: center; }
+  .table td { text-align: center; }
+
+  .nav { padding: 14px; }
+  #stepNav { display: flex; flex-direction: column; gap: 10px; }
+  .stepbtn{ padding: 12px 14px; border-radius: 10px; line-height: 1.1; font-weight: 600; box-shadow: 0 1px 0 rgba(0,0,0,.06) inset; }
+  .stepbtn.active{ outline: 2px solid rgba(179,139,70,.35); background: linear-gradient(180deg, #fff8df, #f4e8bf); }
+
+  .nav .callout { margin-top: 14px; }
+  .nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+  button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .card { overflow: hidden; }
+
+  .table.avail { min-width: 760px; border-collapse: separate; border-spacing: 0; }
+  .table.avail th, .table.avail td { border-bottom: 1px solid var(--border); padding: 6px 8px; white-space: nowrap; }
+  .table.avail th:first-child, .table.avail td:first-child { width: 160px; }
+
+  .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .callout { background: #fff8df; border: 2px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+
+  .avail-card { padding: 0; border-radius: 12px; overflow: hidden; }
+  .table-scroll { position: relative; background: var(--panel); padding: 8px; }
+  .table-scroll::after{ content:""; position:absolute; top:0; right:0; width:24px; height:100%; pointer-events:none; background: linear-gradient(to left, rgba(0,0,0,.06), transparent); }
+
+  .table.avail thead th {
+    position: sticky; top: 0; z-index: 2; background: rgba(179,139,70,0.12); backdrop-filter: blur(2px);
+  }
+  .table.avail th:first-child, .table.avail td:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--panel); text-align: left; font-weight: 600;
   }
 
-  /* Nav collapses into a toggle */
-  .nav{
-    padding: .75rem;
+  #stepNav { gap: 12px; }
+  .stepbtn { padding: 12px 16px; }
+
+  /* --- Arcane accordion --- */
+  details.scroll-letter {
+    border: 2px solid var(--border); border-radius: 12px; background: rgba(245,238,213,0.95);
+    box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden;
   }
-  .nav .stepbtn{ padding: 10px; }
-  .nav .stepbtn{ font-size: .95rem; }
-
-  /* Turn step list into a 2-col pill grid for quicker taps */
-  #stepNav{
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0,1fr));
-    gap: 8px;
+  details.scroll-letter > summary {
+    list-style: none; cursor: pointer; padding: 0.9rem 1.1rem;
+    font-family: 'IM Fell English SC', serif; font-size: 1.15rem;
+    display: flex; align-items: center; gap: .6rem;
+    background: linear-gradient(180deg, #fff8df, #f4e8bf); border-bottom: 1px solid var(--border); user-select: none;
   }
+  details.scroll-letter > summary::-webkit-details-marker { display: none; }
+  details.scroll-letter > summary .chev { margin-left: auto; transition: transform .2s ease; }
+  details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
+  .seal { display:inline-flex; align-items:center; justify-content:center; width: 26px; height: 26px; border-radius: 50%; background: #b38b46; color: #f7f2dd; font-weight: 700; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); font-family: 'IM Fell English SC', serif; }
+  .scroll-content { padding: 1.1rem 1.25rem 1.25rem; font-family: 'IM Fell English SC', serif; line-height: 1.6; }
 
-  /* Buttons: bigger tap targets */
-  button{
-    padding: 12px 14px;
-    min-height: 44px;
-    width: 100%;
+  .scroll-content .table th { text-align:center; }
+  .scroll-content .table { margin: .8rem 0; }
+
+  .college-table table { width:100%; border-collapse: collapse; table-layout: fixed; }
+  .college-table th, .college-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+  .college-table th { background: rgba(179,139,70,0.12); }
+
+  .college-accordion details {
+    border: 2px solid var(--border); border-radius: 12px; background: var(--panel); margin: 8px 0; overflow: hidden;
   }
-  .controls{ flex-direction: column; gap: 8px; }
-  .controls .left, .controls .right{ width: 100%; gap: 8px; }
-  .controls .right button{ width: 100%; }
-
-  /* Cards & panels */
-  .panel, .card{
-    padding: 12px;
-    border-radius: 10px;
+  .college-accordion summary {
+    cursor: pointer; list-style: none; padding: 12px 14px; font-weight: 700; display: flex; align-items: center; justify-content: space-between;
   }
-
-  /* Forms */
-  input, select, textarea{ font-size: 16px; } /* iOS zoom fix */
-  .grid.cols-2{ grid-template-columns: 1fr; }
-  .two{ grid-template-columns: 1fr; }
-
-  /* Pills wrap nicely */
-  .pill{ padding: 6px 10px; }
-
-  /* Tables: make scrollable with a shadow hint */
-  .table{ width: max(640px, 100%); } /* keep columns readable */
-  .table-wrap{
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    position: relative;
+  .college-accordion summary::after {
+    content: "▸"; transform: rotate(0deg); transition: transform .15s ease; color: var(--muted); margin-left: 10px; font-weight: 400;
   }
-  .table-wrap::after{
-    content:"";
-    position:absolute; top:0; right:0; width:24px; height:100%;
-    pointer-events:none;
-    background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
+  .college-accordion details[open] summary::after { transform: rotate(90deg); }
+  .college-accordion .panel { border: 0; border-top: 1px solid var(--border); border-radius: 0; margin: 0; padding: 12px 14px; }
+  .college-accordion .kicker { color: var(--muted); margin-top: 6px; }
+
+  /* Swap: table on desktop, accordion on mobile */
+  @media (max-width: 680px){
+    .intro-college-table { display:none !important; }
+    .colleges-accordion{ display:block; }
+    .acc-item{
+      border:2px solid var(--border); border-radius:12px; background:var(--panel);
+      margin:10px 0; overflow:hidden;
+    }
+    .acc-item summary{
+      list-style:none; cursor:pointer; padding:12px 14px;
+      font-family: "IM Fell English SC", serif; font-size:1.1rem;
+      display:flex; justify-content:space-between; align-items:center;
+    }
+    .acc-item summary::-webkit-details-marker{ display:none; }
+    .acc-item .acc-body{ padding:0 14px 12px; }
+    .acc-kicker{ color:var(--muted); font-size:.95rem; margin:8px 0 4px; }
   }
-
-  /* Typography trims */
-  .kicker{ font-size: .85rem; }
-  .muted{ font-size: .9rem; }
-}
-
-/* Wrap any wide table in this to get the scroll behavior */
-.table-wrap{ overflow: visible; } /* desktop default */
-    
-    /* =============== FORM & TABLE SPACING TUNE-UP =============== */
-
-/* Labels and input alignment */
-label {
-  display: block;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: var(--ink);
-}
-
-/* Inputs and selects */
-input, select, textarea {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: #fcf8e8;
-  box-sizing: border-box;
-}
-
-/* Ability score cards spacing */
-#ability_box .card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  margin-bottom: 6px;
-}
-
-/* Keep the dropdown smaller so the label has room */
-#ability_box select,
-#ability_box input[type="number"] {
-  width: 70px;
-  text-align: center;
-}
-
-/* Grid spacing fixes for the Core Setup panel */
-.grid.cols-2 > div {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Panel padding and internal spacing */
-.panel {
-  padding: 1.2rem;
-  border-radius: 12px;
-  border: 2px solid var(--border);
-  background: var(--panel);
-  margin-bottom: 12px;
-}
-
-/* Better button alignment */
-.controls {
-  margin-top: 16px;
-}
-.controls .right {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Table cleanup */
-.table th, .table td {
-  padding: 8px 10px;
-  border-bottom: 1px solid var(--border);
-}
-.table th {
-  background: rgba(179,139,70,0.1);
-  font-weight: 600;
-  text-align: center;
-}
-.table td {
-  text-align: center;
-}
-
-/* === Step nav spacing & readability === */
-.nav { padding: 14px; }
-#stepNav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;               /* more space between buttons */
-}
-.stepbtn{
-  padding: 12px 14px;      /* larger tap target */
-  border-radius: 10px;
-  line-height: 1.1;
-  font-weight: 600;
-  box-shadow: 0 1px 0 rgba(0,0,0,.06) inset;
-}
-.stepbtn.active{
-  outline: 2px solid rgba(179,139,70,.35);
-  background: linear-gradient(180deg, #fff8df, #f4e8bf);
-}
-
-/* quick action buttons spacing */
-.nav .callout { margin-top: 14px; }
-.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
-
-button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
-
-/* Availability table wrapper */
-.table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Keep the card’s border/rounding intact */
-.card { overflow: hidden; }
-
-/* Make the availability table behave */
-.table.avail {
-  min-width: 760px;              /* so columns don’t crush */
-  border-collapse: separate;     /* avoid weird collapsed borders while scrolling */
-  border-spacing: 0;
-}
-
-.table.avail th, .table.avail td {
-  border-bottom: 1px solid var(--border);
-  padding: 6px 8px;
-  white-space: nowrap;
-}
-
-/* Optional: tighter first column */
-.table.avail th:first-child, .table.avail td:first-child {
-  width: 160px;
-}
-
-    /* ---- Utility grids used in panels ---- */
-.two {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-/* Callout styling used across panels */
-.callout {
-  background: #fff8df;
-  border: 2px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
-}
-
-/* Availability card tidy */
-.avail-card {
-  padding: 0;          /* let the table edge align to the card */
-  border-radius: 12px;
-  overflow: hidden;    /* keep rounded corners while scrolling */
-}
-
-/* Match your intent (you used .table-scroll in HTML) */
-.table-scroll {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  position: relative;
-  background: var(--panel);
-  padding: 8px;        /* small breathing room around the table */
-}
-
-/* Subtle fade at the right edge on mobile */
-.table-scroll::after{
-  content:"";
-  position:absolute; top:0; right:0; width:24px; height:100%;
-  pointer-events:none;
-  background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
-}
-
-/* Availability table specifics */
-.table.avail {
-  min-width: 760px;
-  border-collapse: separate;
-  border-spacing: 0;
-}
-
-.table.avail thead th {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: rgba(179,139,70,0.12);
-  backdrop-filter: blur(2px);
-}
-
-/* Keep the name column visible while you scroll horizontally */
-.table.avail th:first-child,
-.table.avail td:first-child {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--panel);
-  text-align: left;
-  font-weight: 600;
-  width: 160px;
-}
-
-/* Row separators and cell spacing */
-.table.avail th, .table.avail td {
-  border-bottom: 1px solid var(--border);
-  padding: 6px 8px;
-  white-space: nowrap;
-}
-
-/* Step buttons: a touch more breathing room */
-#stepNav { gap: 12px; }
-.stepbtn { padding: 12px 16px; }
-
-    /* --- Arcane accordion --- */
-details.scroll-letter {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  background: rgba(245,238,213,0.95);
-  box-shadow: 0 2px 8px rgba(0,0,0,.06);
-  overflow: hidden;
-}
-
-details.scroll-letter > summary {
-  list-style: none; /* hide default marker */
-  cursor: pointer;
-  padding: 0.9rem 1.1rem;
-  font-family: 'IM Fell English SC', serif;
-  font-size: 1.15rem;
-  display: flex; align-items: center; gap: .6rem;
-  background: linear-gradient(180deg, #fff8df, #f4e8bf);
-  border-bottom: 1px solid var(--border);
-  user-select: none;
-}
-details.scroll-letter > summary::-webkit-details-marker { display: none; }
-
-details.scroll-letter > summary .chev {
-  margin-left: auto;
-  transition: transform .2s ease;
-}
-details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
-
-.seal {
-  display:inline-flex; align-items:center; justify-content:center;
-  width: 26px; height: 26px; border-radius: 50%;
-  background: #b38b46; color: #f7f2dd; font-weight: 700;
-  box-shadow: inset 0 -2px 0 rgba(0,0,0,.15);
-  font-family: 'IM Fell English SC', serif;
-}
-
-.scroll-content {
-  padding: 1.1rem 1.25rem 1.25rem;
-  font-family: 'IM Fell English SC', serif;
-  line-height: 1.6;
-}
-
-/* table inside the letter */
-.scroll-content .table th { text-align:center; }
-.scroll-content .table { margin: .8rem 0; }
-
-/* Table behaves normally on desktop */
-.college-table table { width:100%; border-collapse: collapse; table-layout: fixed; }
-.college-table th, .college-table td { padding: 10px; border-bottom: 1px solid var(--border); }
-.college-table th { background: rgba(179,139,70,0.12); }
-
-/* Accordion look */
-.college-accordion details {
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel);
-  margin: 8px 0;
-  overflow: hidden;
-}
-.college-accordion summary {
-  cursor: pointer;
-  list-style: none;
-  padding: 12px 14px;
-  font-weight: 700;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.college-accordion summary::after {
-  content: "▸";
-  transform: rotate(0deg);
-  transition: transform .15s ease;
-  color: var(--muted);
-  margin-left: 10px;
-  font-weight: 400;
-}
-.college-accordion details[open] summary::after { transform: rotate(90deg); }
-.college-accordion .panel {
-  border: 0; border-top: 1px solid var(--border);
-  border-radius: 0; margin: 0; padding: 12px 14px;
-}
-.college-accordion .kicker { color: var(--muted); margin-top: 6px; }
-
-/* Swap: table on desktop, accordion on mobile */
-@media (max-width: 700px){
-  body.has-accordion
-  .college-table { display: none; }
-  body.has-accordion
-  .college-accordion { display: block; }
-}
-@media (min-width: 701px){
-  .college-accordion { display: none; }
-}
-
-/* Desktop shows the table; mobile shows the accordion */
-.colleges-accordion{ display:none; }
-
-/* Table already styled by you; leave it alone on desktop */
-@media (max-width: 680px){
-  /* Hide the wide table on phones */
-  .intro-college-table { display:none !important; } /* add this class to your table element */
-  /* Show the accordion */
-  .colleges-accordion{ display:block; }
-
-  .acc-item{
-    border:2px solid var(--border);
-    border-radius:12px;
-    background:var(--panel);
-    margin:10px 0;
-    overflow:hidden;
-  }
-  .acc-item summary{
-    list-style:none;
-    cursor:pointer;
-    padding:12px 14px;
-    font-family: "IM Fell English SC", serif;
-    font-size:1.1rem;
-    display:flex; justify-content:space-between; align-items:center;
-  }
-  .acc-item summary::-webkit-details-marker{ display:none; }
-  .acc-item .acc-body{ padding:0 14px 12px; }
-  .acc-kicker{ color:var(--muted); font-size:.95rem; margin:8px 0 4px; }
-}
-
   </style>
 </head>
   
-  <body>
+<body>
   <!-- Header + Disclaimer Section -->
   <header>
     <h1>Oracle Trials — Character Builder</h1>
@@ -490,28 +231,29 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
 
   <div class="disclaimer">
     <strong>Disclaimer:</strong> A degree from the Oracle Academy does not guarantee immunity from fireballs, charm effects, or divine smiting. The faculty assumes no responsibility for polymorph accidents, summoned imps, or unforeseen time loops. Snacks are encouraged, hubris is not.
-    </div>
-    <main id="app-root">
-  <div class="wizard">
-    <nav class="nav">
-      <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
-      <div id="stepNav"></div>
-
-      <div class="card" style="margin-top:12px">
-        <div class="kicker">Quick actions</div>
-        <div class="flex" style="margin-top:6px">
-          <button id="btnSave">Save Draft</button>
-          <button id="btnLoad">Load Draft</button>
-          <button id="btnExport" class="primary">Export JSON</button>
-          <button id="btnClear" class="danger">Clear Local Data</button>
-        </div>
-      </div>
-    </nav>
-
-    <!-- JS renders each screen here -->
-    <section id="panels" class="grid" style="gap:16px"></section>
   </div>
-</main>
+
+  <main id="app-root">
+    <div class="wizard">
+      <nav class="nav">
+        <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
+        <div id="stepNav"></div>
+
+        <div class="card" style="margin-top:12px">
+          <div class="kicker">Quick actions</div>
+          <div class="flex" style="margin-top:6px">
+            <button id="btnSave">Save Draft</button>
+            <button id="btnLoad">Load Draft</button>
+            <button id="btnExport" class="primary">Export JSON</button>
+            <button id="btnClear" class="danger">Clear Local Data</button>
+          </div>
+        </div>
+      </nav>
+
+      <!-- JS renders each screen here -->
+      <section id="panels" class="grid" style="gap:16px"></section>
+    </div>
+  </main>
 
   <script>
   /* =======================
@@ -532,7 +274,7 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
   function labelDate(iso){
     try{
       const dt = new Date(iso + 'T00:00:00');
-      return dt.toLocaleDateString('en-CA',{month:'short', day:'2-digit'}); // e.g., Dec 21
+      return dt.toLocaleDateString('en-CA',{month:'short', day:'2-digit'});
     }catch{ return iso; }
   }
 
@@ -543,7 +285,6 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
 
   function downloadICS(session){
     const tz = 'America/Edmonton';
-    // default 7–9pm local
     const start = new Date(session.date + 'T19:00:00');
     const end   = new Date(session.date + 'T21:00:00');
     const uid = `${session.id}@oracletrials`;
@@ -555,11 +296,11 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
       `DTSTART;TZID=${tz}:${toLocalICS(start)}`,
       `DTEND;TZID=${tz}:${toLocalICS(end)}`,
       'END:VEVENT','END:VCALENDAR'
-    ].join('\r\n');
+    ].join('\\r\\n');
     const blob = new Blob([ics], {type:'text/calendar'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${session.title.replace(/\s+/g,'-')}.ics`;
+    a.download = `${session.title.replace(/\\s+/g,'-')}.ics`;
     a.click();
     URL.revokeObjectURL(a.href);
   }
@@ -686,10 +427,8 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
     ]
   };
 
-  // Always render roster A→Z without risk to source order
   DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
 
-  // Optional quick rule examples
   const ELIGIBILITY = {
     hardNo: [ 'Link' ],
     blockedDates: { 'Melissa': ['2025-12-28'] }
@@ -702,7 +441,7 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
     const errors=[];
     try{
       if(!Array.isArray(AVAIL_DATES)) errors.push('AVAIL_DATES is missing or not an array.');
-      else AVAIL_DATES.forEach((d,i)=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be YYYY-MM-DD (got "${d}")`); });
+      else AVAIL_DATES.forEach((d,i)=>{ if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(d))) errors.push(`AVAIL_DATES[${i}] must be YYYY-MM-DD (got "${d}")`); });
     }catch{ errors.push('AVAIL_DATES could not be read.'); }
 
     try{
@@ -713,7 +452,7 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
           if(!s || typeof s!=='object'){ errors.push(`sessions[${idx}] is not an object`); return; }
           if(!s.id) errors.push(`sessions[${idx}] is missing an id`);
           if(s.id){ if(ids.has(s.id)) errors.push(`Duplicate session id: ${s.id}`); else ids.add(s.id); }
-          if(!/^\d{4}-\d{2}-\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has non-ISO date "${s.date}"`);
+          if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(String(s.date||''))) errors.push(`${s.title||s.id||('session#'+idx)} has non-ISO date "${s.date}"`);
           if(typeof s.capacity !== 'number') errors.push(`${s.title||s.id||('session#'+idx)} capacity must be a number`);
         });
       }
@@ -771,7 +510,7 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
     })(),
     save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
     load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
-    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
+    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
     saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
   };
 
@@ -779,98 +518,7 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
      HELPERS
   ======================= */
 
-function renderCollegeAccordion(){
-  const wrap = document.getElementById('college_accordion');
-  if(!wrap) return;
-
-  wrap.innerHTML = DATA.universities.map(u=>{
-    const spellRows = Object.entries(u.spells || {})
-      .map(([lvl, list]) => `<div><strong>${lvl}</strong>: ${list.join(', ')}</div>`)
-      .join('');
-    return `
-      <details>
-        <summary>${u.name} <span class="muted" style="font-weight:400">— ${u.theme}</span></summary>
-        <div class="panel">
-          <div><span class="kicker">Field of Study</span><div>${u.focus}</div></div>
-          <div><span class="kicker">Colours</span><div>${u.colours}</div></div>
-          <div><span class="kicker">Playstyle</span><div>${u.playstyle}</div></div>
-          <div style="margin-top:6px"><span class="kicker">Bonus Spells</span>${spellRows || '<div class="muted">See college page</div>'}</div>
-        </div>
-      </details>
-    `;
-    if (wrap.childElementCount) document.body.class;ist.add('has-accordion');
-  }).join('');
-}
-    
-function buildReady() {
-  const c = State.data.core || {};
-  const uni = State.data.university || {};
-  return Boolean(
-    (c.name && c.name.trim().length >= 2) &&
-    (c.class && c.class.trim()) &&
-    (c.level && Number.isFinite(+c.level)) &&
-    (uni.key && uni.key.trim())
-  );
-}
-
-
-// Reusable card list
-function renderSessionCards(container, opts={readOnly:false}){
-  const {readOnly=false} = opts;
-  container.innerHTML = '';
-  const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-
-  State.sessions
-    .slice()
-    .sort((a,b)=>a.date.localeCompare(b.date))
-    .forEach(s=>{
-      const filled = (s.players||[]).length;
-      const full = filled>=s.capacity;
-      const roster = filled
-        ? s.players.map(name=>{
-            const b = builds[name];
-            const extra = b ? ` — <span class="muted">${b.class||'?'} • ${b.university||'?'}</span>` : '';
-            return `<div class="pill"><span>${name}</span>${extra}</div>`;
-          }).join('')
-        : '<span class="muted">No players yet</span>';
-
-      const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
-      const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
-
-      const card = document.createElement('div'); card.className='card';
-      card.innerHTML = `
-        <div class="flex" style="justify-content:space-between">
-          <div>
-            <strong>${s.title}</strong>
-            <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
-            <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
-            ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
-            ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
-          </div>
-          <div class="flex">
-            ${joinBtn}
-            <button data-ics="${s.id}">.ics</button>
-          </div>
-        </div>
-        <div style="margin-top:8px" class="flex">${roster}</div>
-      `;
-      container.appendChild(card);
-    });
-}
-
-    function buildReady() {
-  const c = State.data.core || {};
-  const uni = State.data.university || {};
-  // tweak the requirements to your taste
-  return Boolean(
-    (c.name && c.name.trim().length >= 2) &&
-    (c.class && c.class.trim()) &&
-    (c.level && Number.isFinite(+c.level)) &&
-    (uni.key && uni.key.trim())
-  );
-}
-
-  // Build-card cache: minimal public info per player for session rosters
+  // Build-card cache for roster display
   const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
 
   function saveBuildCard(){
@@ -903,50 +551,127 @@ function renderSessionCards(container, opts={readOnly:false}){
     return {ok:true};
   }
 
-function downloadAvailabilityCSV() {
-  const avail = AvailabilityStore.read();
-  const dates = AVAIL_DATES.slice();                 // ISO strings
-  const header = ["name", ...dates.map(labelDate)];  // labelDate → "Dec 21" etc.
+  function downloadAvailabilityCSV() {
+    const avail = AvailabilityStore.read();
+    const dates = AVAIL_DATES.slice();
+    const header = ["name", ...dates.map(labelDate)];
+    const rows = [header];
 
-  const rows = [header];
-
-  DATA.roster.forEach(r => {
-    const line = [r.name];
-    dates.forEach(d => {
-      line.push(avail[r.name]?.[d] ? "Y" : "");      // "Y" if available, blank if not
+    DATA.roster.forEach(r => {
+      const line = [r.name];
+      dates.forEach(d => { line.push(avail[r.name]?.[d] ? "Y" : ""); });
+      rows.push(line);
     });
-    rows.push(line);
-  });
 
-  const csv = rows.map(r => r.map(x =>
-    `"${String(x ?? "").replaceAll('"','""')}"`
-  ).join(",")).join("\n");
+    const csv = rows.map(r => r.map(x =>
+      `"${String(x ?? "").replaceAll('"','""')}"`
+    ).join(",")).join("\\n");
 
-  const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `oracle-availability-${stamp}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
+    const stamp = new Date().toISOString().slice(0,10).replace(/-/g,"");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `oracle-availability-${stamp}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
 
+  function buildReady() {
+    const c = State.data.core || {};
+    const uni = State.data.university || {};
+    return Boolean(
+      (c.name && c.name.trim().length >= 2) &&
+      (c.class && c.class.trim()) &&
+      (c.level && Number.isFinite(+c.level)) &&
+      (uni.key && uni.key.trim())
+    );
+  }
+
+  // Build college accordion from the table (mobile view)
+  function buildCollegeAccordionFromTable(){
+    const table = document.querySelector('#college_table table');
+    const mount = document.getElementById('colleges-accordion');
+    if(!table || !mount) return;
+
+    const rows = Array.from(table.tBodies[0].rows);
+    mount.innerHTML = '';
+    rows.forEach(tr=>{
+      const [collegeCell, fieldCell, founderCell] = Array.from(tr.cells);
+      const college = (collegeCell?.textContent || '').trim();
+      const field   = (fieldCell?.textContent || '').trim();
+      const founder = (founderCell?.textContent || '').trim();
+
+      const details = document.createElement('details');
+      details.className = 'acc-item';
+      details.innerHTML = `
+        <summary>${college} <span class="muted" style="font-weight:400">— ${field}</span></summary>
+        <div class="acc-body">
+          <div class="acc-kicker">Founder Dragon</div>
+          <div>${founder}</div>
+        </div>`;
+      mount.appendChild(details);
+    });
+
+    document.body.classList.add('has-accordion');
+  }
+
+  // Reusable session card list
+  function renderSessionCards(container, opts={readOnly:false}){
+    const {readOnly=false} = opts;
+    container.innerHTML = '';
+    const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+
+    State.sessions
+      .slice()
+      .sort((a,b)=>a.date.localeCompare(b.date))
+      .forEach(s=>{
+        const filled = (s.players||[]).length;
+        const full = filled>=s.capacity;
+        const roster = filled
+          ? s.players.map(name=>{
+              const b = builds[name];
+              const extra = b ? ` — <span class="muted">${b.class||'?'} • ${b.university||'?'}</span>` : '';
+              return `<div class="pill"><span>${name}</span>${extra}</div>`;
+            }).join('')
+          : '<span class="muted">No players yet</span>';
+
+        const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
+        const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
+
+        const card = document.createElement('div'); card.className='card';
+        card.innerHTML = `
+          <div class="flex" style="justify-content:space-between">
+            <div>
+              <strong>${s.title}</strong>
+              <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
+              <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
+              ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
+              ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
+            </div>
+            <div class="flex">
+              ${joinBtn}
+              <button data-ics="${s.id}">.ics</button>
+            </div>
+          </div>
+          <div style="margin-top:8px" class="flex">${roster}</div>
+        `;
+        container.appendChild(card);
+      });
+  }
 
   /* =======================
      STEPS
   ======================= */
-const STEPS = [
-  {key:'intro',      label:'1) Welcome'},
-  {key:'sessions', label:'2) Availability'},
-  {key:'core',       label:'3) Core 5e Setup'},
-  {key:'university', label:'4) University & Feat'},
-  {key:'extras',     label:'5) Job & Extracurriculars'},
-  {key:'personality',label:'6) Personality & Prompt'},
-  {key:'join',       label:'7) Join a Session'},          // NEW step
-  {key:'summary',    label:'8) Summary & Export'}
-];
-
-
+  const STEPS = [
+    {key:'intro',      label:'1) Welcome'},
+    {key:'sessions',   label:'2) Availability'},
+    {key:'core',       label:'3) Core 5e Setup'},
+    {key:'university', label:'4) University & Feat'},
+    {key:'extras',     label:'5) Job & Extracurriculars'},
+    {key:'personality',label:'6) Personality & Prompt'},
+    {key:'join',       label:'7) Join a Session'},
+    {key:'summary',    label:'8) Summary & Export'}
+  ];
 
   let currentStep = 0;
 
@@ -975,18 +700,22 @@ const STEPS = [
     if(step==='sessions') el.appendChild(panelSessions());
     if(step==='personality') el.appendChild(panelPersonality());
     if(step==='summary') el.appendChild(panelSummary());
-    if(step==='intro') el.appendChild(panelIntro());
     if(step==='join') el.appendChild(panelJoin());
-
+    if(step==='intro'){
+      const node = panelIntro();
+      el.appendChild(node);
+      // Build mobile accordion once the table exists
+      buildCollegeAccordionFromTable();
+    }
   }
 
   /* =======================
      PANELS
   ======================= */
-function panelIntro(){
-  const p = document.createElement('div');
-  p.className = 'panel';
-  p.innerHTML = `
+  function panelIntro(){
+    const p = document.createElement('div');
+    p.className = 'panel';
+    p.innerHTML = `
 <details class="scroll-letter" open>
   <summary>
     <span class="seal">✶</span>
@@ -1011,22 +740,24 @@ function panelIntro(){
     <p>The Oracle Trials are a seasonal celebration of magical discovery and friendly rivalry — an opportunity for students from across the Five Colleges to demonstrate excellence, creativity, and courage in the pursuit of knowledge.</p>
 
     <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
-<div id="college_table"
-class="intro-college-table"
-    <table class="table">
-      <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
-        <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
-        <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
-        <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
-        <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
-      </tbody>
-    </table>
-    <!-- Desktop table stays as-is above -->
-<div id="colleges-accordion" class="colleges-accordion" aria-live="polite"></div>
+
+    <div id="college_table" class="intro-college-table college-table">
+      <table class="table">
+        <thead>
+          <tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
+          <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
+          <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
+          <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
+          <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
+        </tbody>
+      </table>
     </div>
-    
+
+    <!-- Mobile accordion gets built from the table -->
+    <div id="colleges-accordion" class="colleges-accordion" aria-live="polite"></div>
 
     <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
 
@@ -1057,75 +788,69 @@ class="intro-college-table"
     <p style="text-align:center; font-style:italic; margin-top:1rem;">“To discover, preserve, and share the boundless wonders of magic.”</p>
   </div>
 </details>
-
   `;
-  return p;
-}
+    return p;
+  }
 
+  function panelSessions(){
+    const p = document.createElement('div'); 
+    p.className = 'panel';
+    p.innerHTML = `
+      <h2>Availability</h2>
+      <div class="card avail-card">
+        <div class="table-scroll">
+          <table class="table avail" id="avail_table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                ${AVAIL_DATES.map(d => `<th title="${d}">${labelDate(d)}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody id="roster_tbody"></tbody>
+          </table>
+        </div>
+        <div class="muted" style="margin-top:6px">
+          Tick when someone is available. Saves automatically.
+        </div>
+      </div>
+      <div class="controls">
+        <div class="left">
+          <button id="back_sessions">← Back</button>
+        </div>
+        <div class="right">
+          <button id="csv_export">Export Availability CSV</button>
+          <button id="next_sessions" class="primary">Next →</button>
+        </div>
+      </div>
+    `;
 
+    const avail = AvailabilityStore.read();
+    const rbody = p.querySelector('#roster_tbody');
+    rbody.innerHTML = DATA.roster.map(r => {
+      const row = [`<td>${r.name}</td>`];
+      AVAIL_DATES.forEach(d => {
+        const checked = (avail[r.name]?.[d]) ? 'checked' : '';
+        row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
+      });
+      return `<tr>${row.join('')}</tr>`;
+    }).join('');
 
-function panelSessions(){
-  const p = document.createElement('div'); 
-  p.className = 'panel';
-  p.innerHTML = `
-    <h2>Availability</h2>
-    <div class="card avail-card">
-      <div class="table-scroll">
-        <table class="table avail" id="avail_table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              ${AVAIL_DATES.map(d => `<th title="${d}">${labelDate(d)}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody id="roster_tbody"></tbody>
-        </table>
-      </div>
-      <div class="muted" style="margin-top:6px">
-        Tick when someone is available. Saves automatically.
-      </div>
-    </div>
-    <div class="controls">
-      <div class="left">
-        <button id="back_sessions">← Back</button>
-      </div>
-      <div class="right">
-        <button id="csv_export">Export Availability CSV</button>
-        <button id="next_sessions" class="primary">Next →</button>
-      </div>
-    </div>
-  `;
-
-  // Build availability grid
-  const avail = AvailabilityStore.read();
-  const rbody = p.querySelector('#roster_tbody');
-  rbody.innerHTML = DATA.roster.map(r => {
-    const row = [`<td>${r.name}</td>`];
-    AVAIL_DATES.forEach(d => {
-      const checked = (avail[r.name]?.[d]) ? 'checked' : '';
-      row.push(`<td style="text-align:center"><input data-name="${r.name}" data-date="${d}" type="checkbox" ${checked}></td>`);
+    rbody.addEventListener('change', (e) => {
+      const cb = e.target.closest('input[type="checkbox"][data-name]');
+      if(!cb) return;
+      const name = cb.getAttribute('data-name');
+      const date = cb.getAttribute('data-date');
+      avail[name] = avail[name] || {};
+      avail[name][date] = cb.checked;
+      AvailabilityStore.write(avail);
     });
-    return `<tr>${row.join('')}</tr>`;
-  }).join('');
 
-  // Save on change
-  rbody.addEventListener('change', (e) => {
-    const cb = e.target.closest('input[type="checkbox"][data-name]');
-    if(!cb) return;
-    const name = cb.getAttribute('data-name');
-    const date = cb.getAttribute('data-date');
-    avail[name] = avail[name] || {};
-    avail[name][date] = cb.checked;
-    AvailabilityStore.write(avail);
-  });
+    p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
+    p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
+    p.querySelector('#next_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'core'); renderAll(); };
 
-  p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
-  p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
-  p.querySelector('#next_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'core'); renderAll(); };
-
-  return p;
-}
-
+    return p;
+  }
 
   function panelCore(){
     const p = document.createElement('div'); p.className='panel';
@@ -1401,72 +1126,69 @@ function panelSessions(){
     };
     return p;
   }
-    function panelJoin(){
-  const p=document.createElement('div'); p.className='panel';
-  p.innerHTML = `
-    <h2>Join a Session</h2>
-    <div class="card">
-      <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
-    </div>
-    <div id="join_list" class="grid"></div>
-    <div class="controls">
-      <div class="left"><button id="back_join">← Back</button></div>
-      <div class="right"><button class="primary" id="to_summary">Next →</button></div>
-    </div>
-  `;
 
-  const wrap = p.querySelector('#join_list');
-  renderSessionCards(wrap, {readOnly:false}); // shows real “Add my character” button
+  function panelJoin(){
+    const p=document.createElement('div'); p.className='panel';
+    p.innerHTML = `
+      <h2>Join a Session</h2>
+      <div class="card">
+        <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
+      </div>
+      <div id="join_list" class="grid"></div>
+      <div class="controls">
+        <div class="left"><button id="back_join">← Back</button></div>
+        <div class="right"><button class="primary" id="to_summary">Next →</button></div>
+      </div>
+    `;
 
-  // click handlers for join + ics
-  wrap.addEventListener('click', (ev)=>{
-    const addBtn = ev.target.closest('button.primary[data-id]');
-    if(addBtn){
-      const id = addBtn.getAttribute('data-id');
-      const s = State.sessions.find(x=>x.id===id);
-      const name = (State.data.core.name||'').trim();
-      if(!name){ alert('Give your character a name (Core 5e).'); return; }
-      if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
-      if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
-      s.players = s.players||[];
-      if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
-      if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
-      // enforce unique university
-      const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
-      const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-      if(uniName){
-        for(const n of s.players){
-          const b = builds[n];
-          if(b && b.university === uniName){
-            alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
-            return;
+    const wrap = p.querySelector('#join_list');
+    renderSessionCards(wrap, {readOnly:false});
+
+    wrap.addEventListener('click', (ev)=>{
+      const addBtn = ev.target.closest('button.primary[data-id]');
+      if(addBtn){
+        const id = addBtn.getAttribute('data-id');
+        const s = State.sessions.find(x=>x.id===id);
+        const name = (State.data.core.name||'').trim();
+        if(!name){ alert('Give your character a name (Core 5e).'); return; }
+        if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
+        if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
+        s.players = s.players||[];
+        if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
+        if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
+        const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
+        const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+        if(uniName){
+          for(const n of s.players){
+            const b = builds[n];
+            if(b && b.university === uniName){
+              alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
+              return;
+            }
           }
         }
+        const klass = State.data.core.class || '';
+        const cards = builds; cards[name] = {class:klass, university:uniName};
+        localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
+
+        s.players.push(name);
+        State.saveSessions();
+        renderSessionCards(wrap, {readOnly:false});
+        alert(`Added ${name} to ${s.title}.`);
+        return;
       }
-      // save mini build card
-      const klass = State.data.core.class || '';
-      const cards = builds; cards[name] = {class:klass, university:uniName};
-      localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
+      const icsBtn = ev.target.closest('button[data-ics]');
+      if(icsBtn){
+        const id = icsBtn.getAttribute('data-ics');
+        const s = State.sessions.find(x=>x.id===id);
+        downloadICS(s);
+      }
+    });
 
-      s.players.push(name);
-      State.saveSessions();
-      renderSessionCards(wrap, {readOnly:false});
-      alert(`Added ${name} to ${s.title}.`);
-      return;
-    }
-    const icsBtn = ev.target.closest('button[data-ics]');
-    if(icsBtn){
-      const id = icsBtn.getAttribute('data-ics');
-      const s = State.sessions.find(x=>x.id===id);
-      downloadICS(s);
-    }
-  });
-
-  p.querySelector('#back_join').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll(); };
-  p.querySelector('#to_summary').onclick= ()=>{ currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll(); };
-  return p;
-}
-
+    p.querySelector('#back_join').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll(); };
+    p.querySelector('#to_summary').onclick= ()=>{ currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll(); };
+    return p;
+  }
 
   function panelSummary(){
     const p=document.createElement('div'); p.className='panel';
@@ -1556,7 +1278,6 @@ function panelSessions(){
     if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
     renderAll();
   })();
-  
   </script>
 </body>
 </html>
