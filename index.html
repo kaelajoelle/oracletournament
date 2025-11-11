@@ -121,7 +121,7 @@
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
     /* =============== MOBILE PATCH =============== */
-@media (max-width: 900px){
+@media (max-width: 700px){
   /* Background: avoid jank on mobile */
   body{
     background-attachment: scroll;
@@ -129,8 +129,8 @@
   }
 
   header{ padding: 1rem .75rem .75rem; }
-  h1{ font-size: 2rem; }
-  .subtitle{ font-size: 1.5rem; }
+  h1{ font-size: 1.3rem; }
+  .subtitle{ font-size: 1.2rem; }
 
   /* Stack layout */
   .wizard{
@@ -147,12 +147,12 @@
   .nav-toggle{
     width: 100%;
     justify-content: center;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
   .nav-content{ margin-top: 10px; gap: 12px; }
   .nav.collapsed{ padding-bottom: .75rem; }
   .nav .stepbtn{ padding: 10px; }
-  .nav .stepbtn{ font-size: 1.1rem; }
+  .nav .stepbtn{ font-size: 1rem; }
 
   /* Turn step list into a 2-col pill grid for quicker taps */
   #stepNav{
@@ -179,7 +179,7 @@
   }
 
   /* Forms */
-  input, select, textarea{ font-size: 16px; } /* iOS zoom fix */
+  input, select, textarea{ font-size: 1rem; } /* iOS zoom fix */
   .grid.cols-2{ grid-template-columns: 1fr; }
   .two{ grid-template-columns: 1fr; }
 
@@ -1867,7 +1867,7 @@ function panelIntro(){
   const p = document.createElement('div');
   p.className = 'panel';
   p.innerHTML = `
-<details class="scroll-letter" open>
+<details class="scroll-letter" closed>
   <summary>
     <span class="seal">✶</span>
     Official Correspondence: The Oracle Qualification Trials
