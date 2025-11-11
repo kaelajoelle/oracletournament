@@ -401,6 +401,50 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
 .scroll-content .table th { text-align:center; }
 .scroll-content .table { margin: .8rem 0; }
 
+/* Table behaves normally on desktop */
+.college-table table { width:100%; border-collapse: collapse; table-layout: fixed; }
+.college-table th, .college-table td { padding: 10px; border-bottom: 1px solid var(--border); }
+.college-table th { background: rgba(179,139,70,0.12); }
+
+/* Accordion look */
+.college-accordion details {
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  margin: 8px 0;
+  overflow: hidden;
+}
+.college-accordion summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 12px 14px;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.college-accordion summary::after {
+  content: "▸";
+  transform: rotate(0deg);
+  transition: transform .15s ease;
+  color: var(--muted);
+  margin-left: 10px;
+  font-weight: 400;
+}
+.college-accordion details[open] summary::after { transform: rotate(90deg); }
+.college-accordion .panel {
+  border: 0; border-top: 1px solid var(--border);
+  border-radius: 0; margin: 0; padding: 12px 14px;
+}
+.college-accordion .kicker { color: var(--muted); margin-top: 6px; }
+
+/* Swap: table on desktop, accordion on mobile */
+@media (max-width: 700px){
+  .college-table { display: none; }
+  .college-accordion { display: block; }
+}
+@media (min-width: 701px){
+  .college-accordion { display: none; }
+}
+
 
   </style>
 </head>
@@ -702,6 +746,28 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
   /* =======================
      HELPERS
   ======================= */
+
+function renderCollegeAccordion(){
+  const wrap = document.getElementById('college_accordion');
+  if(!wrap) return;
+
+  wrap.innerHTML = DATA.universities.map(u=>{
+    const spellRows = Object.entries(u.spells || {})
+      .map(([lvl, list]) => `<div><strong>${lvl}</strong>: ${list.join(', ')}</div>`)
+      .join('');
+    return `
+      <details>
+        <summary>${u.name} <span class="muted" style="font-weight:400">— ${u.theme}</span></summary>
+        <div class="panel">
+          <div><span class="kicker">Field of Study</span><div>${u.focus}</div></div>
+          <div><span class="kicker">Colours</span><div>${u.colours}</div></div>
+          <div><span class="kicker">Playstyle</span><div>${u.playstyle}</div></div>
+          <div style="margin-top:6px"><span class="kicker">Bonus Spells</span>${spellRows || '<div class="muted">See college page</div>'}</div>
+        </div>
+      </details>
+    `;
+  }).join('');
+}
     
 function buildReady() {
   const c = State.data.core || {};
@@ -912,7 +978,8 @@ function panelIntro(){
     <p>The Oracle Trials are a seasonal celebration of magical discovery and friendly rivalry — an opportunity for students from across the Five Colleges to demonstrate excellence, creativity, and courage in the pursuit of knowledge.</p>
 
     <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
-
+<div id="college_table"
+class="college-table"
     <table class="table">
       <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
       <tbody>
@@ -923,6 +990,8 @@ function panelIntro(){
         <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
       </tbody>
     </table>
+    </div>
+    <div id="college_accordion" class="college-accordion" aria-label="College summaries"></div>
 
     <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
 
