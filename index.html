@@ -448,6 +448,35 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
   .college-accordion { display: none; }
 }
 
+/* Desktop shows the table; mobile shows the accordion */
+.colleges-accordion{ display:none; }
+
+/* Table already styled by you; leave it alone on desktop */
+@media (max-width: 680px){
+  /* Hide the wide table on phones */
+  .intro-college-table { display:none !important; } /* add this class to your table element */
+  /* Show the accordion */
+  .colleges-accordion{ display:block; }
+
+  .acc-item{
+    border:2px solid var(--border);
+    border-radius:12px;
+    background:var(--panel);
+    margin:10px 0;
+    overflow:hidden;
+  }
+  .acc-item summary{
+    list-style:none;
+    cursor:pointer;
+    padding:12px 14px;
+    font-family: "IM Fell English SC", serif;
+    font-size:1.1rem;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .acc-item summary::-webkit-details-marker{ display:none; }
+  .acc-item .acc-body{ padding:0 14px 12px; }
+  .acc-kicker{ color:var(--muted); font-size:.95rem; margin:8px 0 4px; }
+}
 
   </style>
 </head>
@@ -983,7 +1012,7 @@ function panelIntro(){
 
     <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
 <div id="college_table"
-class="college-table"
+class="intro-college-table"
     <table class="table">
       <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
       <tbody>
@@ -994,8 +1023,10 @@ class="college-table"
         <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
       </tbody>
     </table>
+    <!-- Desktop table stays as-is above -->
+<div id="colleges-accordion" class="colleges-accordion" aria-live="polite"></div>
     </div>
-    <div id="college_accordion" class="college-accordion" aria-label="College summaries"></div>
+    
 
     <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
 
@@ -1525,6 +1556,40 @@ function panelSessions(){
     if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
     renderAll();
   })();
+  
+  (function buildCollegeAccordion(){
+  const table = document.querySelector('.intro-college-table');
+  const mount = document.getElementById('colleges-accordion');
+  if(!table || !mount) return;
+
+  // Expecting structure: thead with "College" and "Field of Study"; tbody with rows.
+  const rows = Array.from(table.querySelectorAll('tbody tr'));
+  const items = rows.map(tr=>{
+    const cells = tr.querySelectorAll('td, th');
+    const college = (cells[0]?.textContent || '').trim();
+    const field   = (cells[1]?.textContent || '').trim();
+
+    // You can enrich this later with founder dragon, blurb, art, etc.
+    const el = document.createElement('details');
+    el.className = 'acc-item';
+    el.innerHTML = `
+      <summary>
+        <span>${college}</span>
+        <span class="muted">tap to expand</span>
+      </summary>
+      <div class="acc-body">
+        <div class="acc-kicker">Field of Study</div>
+        <div>${field || '—'}</div>
+      </div>
+    `;
+    return el;
+  });
+
+  mount.innerHTML = '';
+  items.forEach(i => mount.appendChild(i));
+})();
+  
+  
   </script>
 </body>
 </html>
