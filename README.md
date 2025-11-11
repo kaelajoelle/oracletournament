@@ -58,5 +58,15 @@ All routes return the full state payload on success so the client can refresh it
 
 ## Deployment notes
 
-* The API stores its state in `api/state.json`. Back up this file or point the `DATA_PATH` environment variable at another location if you want to keep multiple environments.
+* By default the API stores its state in `api/state.json`. Set `DATA_PATH` to point at another writable location if you want separate environments on the same host.
+* To use Supabase instead of the local JSON file, create a table (default name `oracle_state`) with columns `id text primary key`, `state jsonb not null`, and an optional `updated_at timestamptz`. Then provide these environment variables when starting the server:
+
+  | Variable | Description |
+  |----------|-------------|
+  | `SUPABASE_URL` | The Supabase project URL (e.g. `https://xyzcompany.supabase.co`). |
+  | `SUPABASE_SERVICE_ROLE_KEY` | A service role key with read/write access to the table. Keep this secret on the server only. |
+  | `SUPABASE_TABLE` (optional) | Table name to store the state (`oracle_state` by default). |
+  | `SUPABASE_ROW_ID` (optional) | Row identifier that holds the JSON blob (`shared` by default). |
+
+  The API will automatically seed the row with the default state if it does not exist yet.
 * When deploying to a serverless platform or container host, expose port `8787` (or set `PORT`). Serve the static front-end from the same origin, or configure `window.APP_CONFIG.apiBaseUrl` to point at the API hostname.
