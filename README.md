@@ -27,7 +27,7 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 
 ## Using the web UI
 
-* Open `index.html` in a browser that can reach the API origin. When the page is loaded directly from the file system the client automatically targets `http://localhost:8787`, so you can simply run the API locally on the default port. Otherwise it will call `/api/...` on the same host that served the page.
+* Open `index.html` in a browser that can reach the API origin. By default the front-end will call `/api/...` on the same host that served the page.
 * If the datastore is hosted somewhere else, inject a small configuration snippet before the main script:
 
   ```html
@@ -36,7 +36,7 @@ This project now includes a lightweight Node.js API that keeps shared availabili
   </script>
   ```
 
-* The UI shows a banner while requests are in flight and whenever the network fails. When the API is unreachable the app falls back to the most recent cached state stored in `localStorage` and indicates that it is running in offline mode until a request succeeds.
+* The UI shows a banner while requests are in flight and whenever the network fails. When the API is unreachable the app falls back to the most recent cached state stored in `localStorage`.
 
 ### Offline cache
 

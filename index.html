@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Oracle Trials — Character Builder</title>
+  <title>Welcome To The Oracle Trials</title>
 
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -42,10 +42,10 @@
     border-bottom:2px solid var(--border);
     background:rgba(248,242,223,.9);
     font-family:'IM Fell English SC',serif;
-    font-size: 2rem;
+    font-size: 1.5rem;
   }
 
-  h1{ font-size:3rem; margin:.2rem 0 .3rem; color:var(--ink); }
+  h1{ font-size:2rem; margin:.2rem 0 .3rem; color:var(--ink); }
   .subtitle{ color:var(--muted); font-size:1.5rem; font-style:italic; }
 
   .disclaimer{
@@ -121,7 +121,7 @@
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
     /* =============== MOBILE PATCH =============== */
-@media (max-width: 900px){
+@media (max-width: 700px){
   /* Background: avoid jank on mobile */
   body{
     background-attachment: scroll;
@@ -129,8 +129,8 @@
   }
 
   header{ padding: 1rem .75rem .75rem; }
-  h1{ font-size: 2rem; }
-  .subtitle{ font-size: 1.5rem; }
+  h1{ font-size: 1.3rem; }
+  .subtitle{ font-size: 1.2rem; }
 
   /* Stack layout */
   .wizard{
@@ -147,12 +147,12 @@
   .nav-toggle{
     width: 100%;
     justify-content: center;
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
   .nav-content{ margin-top: 10px; gap: 12px; }
   .nav.collapsed{ padding-bottom: .75rem; }
   .nav .stepbtn{ padding: 10px; }
-  .nav .stepbtn{ font-size: 1.1rem; }
+  .nav .stepbtn{ font-size: 1rem; }
 
   /* Turn step list into a 2-col pill grid for quicker taps */
   #stepNav{
@@ -179,7 +179,7 @@
   }
 
   /* Forms */
-  input, select, textarea{ font-size: 16px; } /* iOS zoom fix */
+  input, select, textarea{ font-size: 1rem; } /* iOS zoom fix */
   .grid.cols-2{ grid-template-columns: 1fr; }
   .two{ grid-template-columns: 1fr; }
 
@@ -228,7 +228,7 @@
   .muted{ font-size: .8rem; }
 }
 
-@media (max-width: 600px){
+@media (max-width: 900px){
   body, p, label, input, select, textarea, button{
     font-size: clamp(1rem, 3.6vw, 1.1rem);
   }
@@ -758,7 +758,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   <div id="networkBanner" class="network-banner" hidden role="status" aria-live="polite"></div>
   <!-- Header + Disclaimer Section -->
   <header>
-    <h1>Oracle Trials — Character Builder</h1>
+    <h1>The Oracle Trials: A Festival of Fate</h1>
     <div class="subtitle">Create your student adventurer for the winter one-shot competition.</div>
   </header>
 
@@ -802,21 +802,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     '2026-01-01'
   ];
 
-  const API_BASE = (function(){
-    if(window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl){
-      return window.APP_CONFIG.apiBaseUrl;
-    }
-    const { protocol, hostname, port } = window.location;
-    if(protocol === 'file:'){
-      return 'http://localhost:8787';
-    }
-    if(hostname === 'localhost' || hostname === '127.0.0.1'){
-      if(port && port !== '8787'){
-        return `${protocol}//${hostname}:8787`;
-      }
-    }
-    return '';
-  })();
+  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl) || '';
 
   const DEFAULT_SHARED_STATE = {
     sessions: [],
@@ -1081,12 +1067,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
         return this.data;
       }catch(err){
         const hadCache = this.loadFallbackFromCache();
-        if(hadCache){
-          NetworkStatus.setError('Connection lost. Working from cached data until we can reach the datastore.');
-          return this.data;
+        if(!hadCache){
+          this.useDefaultFallback();
         }
-        this.useDefaultFallback();
-        NetworkStatus.setError('Unable to reach the shared datastore. Changes will sync once a connection is available.');
         throw err;
       }
     },
@@ -1536,7 +1519,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   const State = {
     data:{
       meta:{version:'0.5-stable'},
-      core:{ name:'', race:'', class:'', background:'', level:3, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
+      core:{ name:'', race:'', class:'', background:'', level:4, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
       university:{ key:'', spellAbility:'INT' },
       feats:[],
       extras:{ job:null, clubs:[], studentDice:[] },
@@ -1884,10 +1867,10 @@ function panelIntro(){
   const p = document.createElement('div');
   p.className = 'panel';
   p.innerHTML = `
-<details class="scroll-letter" open>
+<details class="scroll-letter" closed>
   <summary>
     <span class="seal">✶</span>
-    Official Correspondence: Invitation to the Oracle Trials
+    Official Correspondence: The Oracle Qualification Trials
     <span class="chev">▶</span>
   </summary>
 
@@ -1901,13 +1884,13 @@ function panelIntro(){
     <hr style="border:none;border-top:1px dotted var(--border);margin:1rem 0;">
 
     <p><strong>Winter Term • Year 739 of Archavios</strong></p>
-    <p><em>To the Esteemed Prospective Student,</em></p>
+    <p><em>An Invitation to the Learned and the Brave,</em></p>
 
-    <p>It is our great pleasure to inform you that you have been provisionally accepted to participate in this winter’s <strong>Oracle Trials</strong>, an extraordinary academic and magical tournament hosted by the distinguished faculty of Strixhaven University.</p>
+    <p>In preparation for this century’s selection of the Oracle Apprentice, the University will conduct a series of sanctioned field examinations. Each Trial is designed to assess essential qualities of leadership, wisdom, and magical aptitude expected of one who may one day inherit the Oracle’s mantle. <br><br>
 
-    <p>The Oracle Trials are a seasonal celebration of magical discovery and friendly rivalry — an opportunity for students from across the Five Colleges to demonstrate excellence, creativity, and courage in the pursuit of knowledge.</p>
+    Participants will represent their chosen college and be evaluated by a panel of distinguished faculty and arcane observers. Though each Trial varies in format, all share a single purpose — to illuminate the heart, mind, and will of every contender.<br>
 
-    <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
+    <p>Strixhaven is honoured to welcome distinguished students and faculty from magical academies across the planes for this year’s Oracle Trials. Each institution brings its own traditions, theories, and flavour of chaos to the proceedings — ensuring that no two duels, debates, or dissertations are ever the same.</p>
 
     <div class="table-scroll letter-table">
       <table class="table">
@@ -1922,29 +1905,99 @@ function panelIntro(){
       </table>
     </div>
 
-    <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
-
-    <p><strong>Academic Calendar</strong><br>
-      Preliminary College Quests: December 26–29<br>
-      Grand Oracle Trial: January 1<br>
-      <em>(Trials hosted in the mortal realm by Professors Kaela and Tory. Potluck encouraged.)</em>
-    </p>
-
     <p><strong>Student Expectations</strong><br>
       Arrive prepared for adventure, study, and a modest amount of chaos.<br>
       Dice, imagination, and one’s best festive attire recommended.<br>
       Non-finalists may appear as professors, spirits, or helpful onlookers via “Supporter Cards.”<br>
       Cooperation, roleplay, and good humour will be rewarded; detentions will be minimal.
     </p>
+    
+    <section class="news-board" id="newsBoard">
+  <h3>Games & Trials</h3>
+  <p class="muted">All scholars will compete in select Trials, contributing their unique philosophies to the greater pursuit of magical mastery. Some seek prestige, others enlightenment — a few, simply the catering.</p>
+<p>Dates (Happening in the Mortal World)</p>
+<p><strong>3 Preliminary College Quests: December 21–29<br>
+Grand Oracle Trial: January 1</strong></p>
+<p>(Trials hosted in the mortal realm by Professors Kaela and Tory. Potluck encouraged.)</p>
+  
+  <details class="news-item" closed>
+    <summary>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="news-title-text">Trial I: The Bog Expedition (Date TBD)</span>
+      <span class="chev" aria-hidden="true">▶</span>
+    </summary>
+    <div class="news-body">
+      <ul>
+        <li><strong>Theme:</strong> Resilience & Compassion</li>
+        <li><strong>Focus:</strong> Problem-solving, teamwork, and moral decisions under pressure.</li>
+        <li><strong>Setting:</strong> Witherbloom’s Detention Bog.</li>
+        <li><strong>Premise:</strong> Participants are sent to assist Witherbloom faculty in recovering lost alchemical crates.</li>
+      </ul>
+    </div>
+  </details>
+  
+  <details class="news-item" closed>
+    <summary>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="news-title-text">Trial II: The Masquerade of Mirrors (Date TBD)</span>
+      <span class="chev" aria-hidden="true">▶</span>
+    </summary>
+    <div class="news-body">
+      <ul>
+        <li><strong>Theme:</strong> Wisdom & Integrity</li>
+        <li><strong>Focus:</strong> Deception, charm, and truth-seeking.</li>
+        <li><strong>Setting:</strong> The Winter Masquerade Ball, hosted by Silverquill and Prismari.</li>
+        <li><strong>Premise:</strong> Contestants attend an extravagant gala where faculty and students vie for influence.</li>
+      </ul>
+    </div>
+  </details>
+  
+  <details class="news-item" closed>
+    <summary>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="news-title-text">Trial III: The Trial of the Ruins (Date TBD)</span>
+      <span class="chev" aria-hidden="true">▶</span>
+    </summary>
+    <div class="news-body">
+      <ul>
+        <li><strong>Theme:</strong> Courage & Judgement.</li>
+        <li><strong>Focus:</strong> Exploration, strategy, and moral courage.</li>
+        <li><strong>Setting:</strong> The Fortress Badlands.</li>
+        <li><strong>Premise:</strong> This test appears to be a straightforward recovery mission. Retrieve relics from ancient battlefields.</li>
+      </ul>
+    </div>
+  </details>
+  
+  <details class="news-item" closed>
+    <summary>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="news-title-text">Finale: The Oracle’s Convergence (January 1, 2026)</span>
+      <span class="chev" aria-hidden="true">▶</span>
+    </summary>
+    <div class="news-body">
+      <ul>
+        <li><strong>Focus:</strong> Everyone together — chaos, redemption, and a vote for destiny.</li>
+        <li><strong>Format:</strong> Hybrid roleplay + short “tournament” style mini-games.</li>
+        <li><strong>Structure:</strong> Reunion Scene: All characters (kids & adults) witness the Oracle’s unstable spirit forming.</li>
+        <li><strong>Challenges:</strong> 
+          <li>Puzzle of Insight (Wisdom)</li>
+          <li>Duel of Flames (Power)
+          <li>Debate of Hearts (Charisma)
+          <li><strong>Audience votes or donates coins/tokens to alter results.</strong></li>
+      </ul>
+      <p><strong>Final Choice:</strong> Whoever wins or earns the group’s vote becomes the Oracle Apprentice.</p>
+    </div>
+  </details>
+</section>
 
-    <p>Should you accept, watch for the Sign-Up Scroll to confirm attendance and college preference. Positions are limited, and the Founders favour the punctual.</p>
+    <p>Should you accept, please confirm attendance and college preference. Positions are limited, and the Founders favour the punctual.</p>
 
     <p style="margin-top:1.1rem;">
-      <strong>With warm regards and arcane esteem,</strong><br>
+      <strong>With warm regards and arcane esteem,</strong><br><br>
       <em>Professor Kaela of House Glissandiants</em><br>
-      <em>Department of Druidic Studies</em><br>
+      <em>Department of Druidic Studies</em><br><br>
       <em>Professor Tory of House Wittatude</em><br>
-      <em>School of Bardic Applications</em><br>
+      <em>School of Bardic Applications</em><br><br>
       <strong>Strixhaven University of Magic and Mystery</strong>
     </p>
 
@@ -2613,6 +2666,7 @@ function panelSessions(){
       await SharedState.refresh();
     }catch(err){
       console.warn('Initial sync failed', err);
+      NetworkStatus.setError('Unable to reach the shared datastore. Showing cached data if available.');
     }
     renderAll();
   })();
