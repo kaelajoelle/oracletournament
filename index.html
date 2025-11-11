@@ -63,7 +63,45 @@
     border-radius:12px;
     padding:1rem;
     box-shadow:0 2px 6px rgba(0,0,0,.08);
-  } 
+    width:100%;
+    box-sizing:border-box;
+  }
+
+  .nav-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+
+  .nav-toggle{
+    padding:8px 12px;
+    border-radius:10px;
+    border:1px solid var(--border);
+    background:#efe7c8;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-size:1rem;
+    line-height:1.2;
+    white-space:nowrap;
+  }
+
+  .nav-content{
+    margin-top:14px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .nav.collapsed .nav-content{
+    display:none;
+  }
+
+  .nav.collapsed .nav-toggle{
+    background:#fff8df;
+  }
 
   /* minimal UI styles so it looks sane */
   .grid{ display:grid; gap:12px; }
@@ -106,14 +144,23 @@
   .nav{
     padding: .75rem;
   }
+  .nav-header{ flex-wrap: wrap; gap: 6px; }
+  .nav-toggle{
+    width: 100%;
+    justify-content: center;
+    font-size: 1.05rem;
+  }
+  .nav-content{ margin-top: 10px; gap: 12px; }
+  .nav.collapsed{ padding-bottom: .75rem; }
   .nav .stepbtn{ padding: 10px; }
   .nav .stepbtn{ font-size: 1.1rem; }
 
   /* Turn step list into a 2-col pill grid for quicker taps */
   #stepNav{
     display: grid;
-    grid-template-columns: repeat(2, minmax(0,1fr));
+    grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
     gap: 8px;
+    justify-items: stretch;
   }
 
   /* Buttons: bigger tap targets */
@@ -154,9 +201,54 @@
     background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
   }
 
+  /* Keep sidebar comfy on narrower phones */
+  .nav{ margin:0 auto; }
+  .nav .quick-actions .flex button{ width:100%; }
+
+  details.news-item > summary{
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+  details.news-item > summary .dot{
+    order:1;
+    margin-top:.2rem;
+  }
+  details.news-item > summary .news-title-text{
+    order:2;
+    min-width:0;
+  }
+  details.news-item > summary .chev{
+    order:3;
+    margin-left:auto;
+  }
+  .news-body{ padding:.85rem 1rem 1rem; }
+  .news-board, .comment-board{ padding:1rem; }
+
   /* Typography trims */
   .kicker{ font-size: .8rem; }
   .muted{ font-size: .8rem; }
+}
+
+@media (max-width: 600px){
+  body, p, label, input, select, textarea, button{
+    font-size: clamp(1rem, 3.6vw, 1.1rem);
+  }
+  header{ padding: .85rem .6rem .6rem; }
+  h1{ font-size: clamp(1.6rem, 7vw, 2rem); }
+  .subtitle{ font-size: clamp(1.1rem, 4.8vw, 1.35rem); }
+  .wizard{ padding: clamp(.5rem, 4vw, .75rem); }
+  .nav{ padding: .65rem; }
+  .nav-toggle{ font-size: 1rem; padding: 10px; }
+  .nav-content{ gap: 10px; }
+  .nav .quick-actions .flex{ gap:6px; }
+  .nav .quick-actions .flex button{ flex:1 1 120px; }
+  .panel, .card{ padding: 10px; }
+  .table-scroll{ margin:0 -4px; }
+  .letter-table .table{ min-width: 420px; }
+  .news-board, .comment-board{ padding:.85rem; margin-top:1.1rem; }
+  details.news-item > summary{ gap:.5rem; }
+  .comment-actions{ justify-content:stretch; }
+  .comment-actions button{ flex:1 1 140px; }
 }
 
 /* Wrap any wide table in this to get the scroll behavior */
@@ -258,8 +350,13 @@ input, select, textarea {
 }
 
 /* quick action buttons spacing */
-.nav .callout { margin-top: 14px; }
-.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+  .nav .callout { margin-top: 14px; }
+  .nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+  .nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
+  .nav .quick-actions .flex button{
+    flex:1 1 140px;
+    min-width:0;
+  }
 
 button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
 
@@ -327,6 +424,13 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   position:absolute; top:0; right:0; width:24px; height:100%;
   pointer-events:none;
   background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
+}
+
+.letter-table{
+  padding: 0 6px;
+}
+.letter-table .table{
+  min-width: 520px;
 }
 
 /* Availability table specifics */
@@ -413,6 +517,138 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
 .scroll-content .table th { text-align:center; }
 .scroll-content .table { margin: .8rem 0; }
 
+.news-board{
+  margin-top:1.5rem;
+  padding:1.25rem 1.35rem;
+  border:2px solid var(--border);
+  border-radius:12px;
+  background:rgba(245,238,213,0.9);
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.news-board h3{
+  margin:0 0 .35rem;
+  font-family:'IM Fell English SC',serif;
+  font-size:1.4rem;
+}
+.news-board p{
+  margin:.4rem 0 0;
+}
+details.news-item{
+  margin-top:.9rem;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:rgba(255,248,223,0.7);
+  overflow:hidden;
+}
+details.news-item > summary{
+  list-style:none;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:.65rem;
+  padding:.85rem 1rem;
+  font-weight:600;
+  user-select:none;
+}
+details.news-item > summary::-webkit-details-marker{ display:none; }
+details.news-item > summary .news-title-text{
+  flex:1;
+}
+details.news-item > summary .dot{
+  width:.75rem;
+  height:.75rem;
+  border-radius:50%;
+  background:var(--accent);
+  box-shadow:0 0 0 2px rgba(59,43,26,0.08);
+}
+details.news-item > summary .chev{
+  margin-left:auto;
+  transition:transform .2s ease;
+}
+details.news-item[open] > summary{
+  background:linear-gradient(180deg,#fff8df,#f4e8bf);
+  border-bottom:1px solid var(--border);
+}
+details.news-item[open] > summary .chev{ transform:rotate(90deg); }
+.news-body{
+  padding:.95rem 1.1rem 1.1rem;
+  line-height:1.55;
+}
+.news-body p{
+  margin:0 0 .75rem;
+}
+.news-body ul{
+  margin:.2rem 0 .75rem 1.2rem;
+}
+.news-body li{ margin-bottom:.4rem; }
+
+.comment-board{
+  margin-top:1.5rem;
+  padding:1.25rem 1.35rem;
+  border:2px solid var(--border);
+  border-radius:12px;
+  background:rgba(245,238,213,0.9);
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.comment-board h3{
+  margin:0;
+  font-family:'IM Fell English SC',serif;
+  font-size:1.4rem;
+}
+.comment-board p{
+  margin:.5rem 0 1rem;
+}
+.comment-form{
+  display:flex;
+  flex-direction:column;
+  gap:.75rem;
+}
+.comment-form textarea{
+  resize:vertical;
+  min-height:90px;
+  padding:10px 12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  font-family:'Roboto Serif',serif;
+  background:#fff8df;
+}
+.comment-actions{
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+  flex-wrap:wrap;
+}
+.comment-actions button{ width:auto; }
+.comment-list{
+  margin-top:1rem;
+  display:flex;
+  flex-direction:column;
+  gap:.75rem;
+}
+.comment-item{
+  background:#fff8df;
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:.85rem 1rem;
+  position:relative;
+  box-shadow:0 1px 3px rgba(0,0,0,0.04);
+}
+.comment-item p{ margin:0; }
+.comment-item time{
+  display:block;
+  font-size:.78rem;
+  color:var(--muted);
+  margin-top:.55rem;
+}
+.comment-item button{
+  margin-top:.55rem;
+  width:auto;
+}
+.comment-empty{
+  font-style:italic;
+  color:var(--muted);
+}
+
 
   </style>
 </head>
@@ -430,16 +666,21 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
     <main id="app-root">
   <div class="wizard">
     <nav class="nav">
-      <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
-      <div id="stepNav"></div>
+      <div class="nav-header">
+        <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
+        <button id="navToggle" class="nav-toggle" type="button" aria-expanded="true" aria-controls="navContent">✖ Hide Steps</button>
+      </div>
+      <div id="navContent" class="nav-content">
+        <div id="stepNav"></div>
 
-      <div class="card" style="margin-top:12px">
-        <div class="kicker">Quick actions</div>
-        <div class="flex" style="margin-top:6px">
-          <button id="btnSave">Save Draft</button>
-          <button id="btnLoad">Load Draft</button>
-          <button id="btnExport" class="primary">Export JSON</button>
-          <button id="btnClear" class="danger">Clear Local Data</button>
+        <div class="card quick-actions">
+          <div class="kicker">Quick actions</div>
+          <div class="flex">
+            <button id="btnSave">Save Draft</button>
+            <button id="btnLoad">Load Draft</button>
+            <button id="btnExport" class="primary">Export JSON</button>
+            <button id="btnClear" class="danger">Clear Local Data</button>
+          </div>
         </div>
       </div>
     </nav>
@@ -463,6 +704,27 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
     key: 'oracleAvailability',
     read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
     write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
+  };
+
+  const CommentsStore = {
+    key:'oracleComments',
+    read(){
+      try{
+        const raw = localStorage.getItem(this.key);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      }catch{
+        return [];
+      }
+    },
+    write(list){
+      try{
+        localStorage.setItem(this.key, JSON.stringify(Array.isArray(list)?list:[]));
+      }catch{
+        /* ignore quota errors */
+      }
+    }
   };
 
   function labelDate(iso){
@@ -771,16 +1033,84 @@ function renderSessionCards(container, opts={readOnly:false}){
     });
 }
 
-    function buildReady() {
-  const c = State.data.core || {};
-  const uni = State.data.university || {};
-  // tweak the requirements to your taste
-  return Boolean(
-    (c.name && c.name.trim().length >= 2) &&
-    (c.class && c.class.trim()) &&
-    (c.level && Number.isFinite(+c.level)) &&
-    (uni.key && uni.key.trim())
-  );
+function setupCommentBoard(root){
+  const form = root.querySelector('#commentForm');
+  const textarea = root.querySelector('#commentText');
+  const list = root.querySelector('#commentList');
+  const clearBtn = root.querySelector('#clearComments');
+  if(!form || !textarea || !list) return;
+
+  const formatStamp = (iso)=>{
+    try{
+      const date = new Date(iso);
+      return date.toLocaleString(undefined, {
+        month:'short', day:'numeric',
+        hour:'numeric', minute:'2-digit'
+      });
+    }catch{
+      return iso;
+    }
+  };
+
+  const renderList = ()=>{
+    const comments = CommentsStore.read();
+    if(!comments.length){
+      list.innerHTML = '<p class="comment-empty">No comments yet. Use the form above to add one.</p>';
+      return;
+    }
+    list.innerHTML = '';
+    comments.forEach((entry, idx)=>{
+      const item = document.createElement('div');
+      item.className = 'comment-item';
+
+      const copy = document.createElement('p');
+      copy.textContent = entry?.text || '';
+      item.appendChild(copy);
+
+      const stamp = document.createElement('time');
+      const iso = entry?.stamp || new Date().toISOString();
+      stamp.dateTime = iso;
+      stamp.textContent = formatStamp(iso);
+      item.appendChild(stamp);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'danger';
+      remove.textContent = 'Delete';
+      remove.addEventListener('click', ()=>{
+        const fresh = CommentsStore.read().filter((_,i)=>i!==idx);
+        CommentsStore.write(fresh);
+        renderList();
+      });
+      item.appendChild(remove);
+
+      list.appendChild(item);
+    });
+  };
+
+  form.addEventListener('submit', (event)=>{
+    event.preventDefault();
+    const text = (textarea.value||'').trim();
+    if(!text) return;
+    const comments = CommentsStore.read();
+    comments.push({ text, stamp:new Date().toISOString() });
+    CommentsStore.write(comments);
+    textarea.value = '';
+    renderList();
+  });
+
+  if(clearBtn){
+    clearBtn.addEventListener('click', (event)=>{
+      event.preventDefault();
+      const ok = (typeof confirm === 'function') ? confirm('Clear all comments saved on this device?') : true;
+      if(ok){
+        CommentsStore.write([]);
+        renderList();
+      }
+    });
+  }
+
+  renderList();
 }
 
   // Build-card cache: minimal public info per player for session rosters
@@ -862,17 +1192,34 @@ const STEPS = [
 
 
   let currentStep = 0;
+  let navCollapsed = false;
 
   function renderNav(){
     const nav = document.getElementById('stepNav');
-    nav.innerHTML = '';
-    STEPS.forEach((s,idx)=>{
-      const b=document.createElement('button');
-      b.className='stepbtn'+(idx===currentStep?' active':'');
-      b.textContent=s.label;
-      b.onclick=()=>{currentStep=idx; renderPanels();};
-      nav.appendChild(b);
-    });
+    const navShell = document.querySelector('.nav');
+    const toggle = document.getElementById('navToggle');
+
+    if(navShell){
+      navShell.classList.toggle('collapsed', navCollapsed);
+    }
+    if(toggle){
+      toggle.textContent = navCollapsed ? '☰ Show Steps' : '✖ Hide Steps';
+      toggle.setAttribute('aria-expanded', String(!navCollapsed));
+      toggle.setAttribute('aria-label', navCollapsed ? 'Expand navigation steps' : 'Collapse navigation steps');
+    }
+
+    if(nav){
+      nav.innerHTML = '';
+      if(!navCollapsed){
+        STEPS.forEach((s,idx)=>{
+          const b=document.createElement('button');
+          b.className='stepbtn'+(idx===currentStep?' active':'');
+          b.textContent=s.label;
+          b.onclick=()=>{currentStep=idx; renderPanels(); renderNav();};
+          nav.appendChild(b);
+        });
+      }
+    }
     const badge=document.getElementById('cfgBadge');
     const errs=validateConfig();
     badge.textContent = errs.length? `⚠️ ${errs.length} config issue${errs.length>1?'s':''}` : '✅ config OK';
@@ -925,16 +1272,18 @@ function panelIntro(){
 
     <p>Over the course of several weeks (three days in the mortal realm), participants will undertake a series of academic adventures, each representing one of Strixhaven’s renowned colleges:</p>
 
-    <table class="table">
-      <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
-      <tbody>
-        <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
-        <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
-        <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
-        <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
-        <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
-      </tbody>
-    </table>
+    <div class="table-scroll letter-table">
+      <table class="table">
+        <thead><tr><th>College</th><th>Field of Study</th><th>Founder Dragon</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Lorehold</strong></td><td>History & Archaeomancy</td><td>Velomachus Lorehold</td></tr>
+          <tr><td><strong>Prismari</strong></td><td>Elemental Arts & Expression</td><td>Galazeth Prismari</td></tr>
+          <tr><td><strong>Quandrix</strong></td><td>Numeromancy & Natural Mathematics</td><td>Tanazir Quandrix</td></tr>
+          <tr><td><strong>Silverquill</strong></td><td>Eloquence, Rhetoric, & Word Magic</td><td>Shadrix Silverquill</td></tr>
+          <tr><td><strong>Witherbloom</strong></td><td>Essence Studies: Life & Death</td><td>Beledros Witherbloom</td></tr>
+        </tbody>
+      </table>
+    </div>
 
     <p>Champions from each college will advance to the <strong>Grand Oracle Trial</strong> on New Year’s Day within the Biblioplex’s Hall of Oracles. There, beneath the gleaming star arches, the finalists compete for the title of <strong>Oracle of Strixhaven</strong>.</p>
 
@@ -966,7 +1315,42 @@ function panelIntro(){
   </div>
 </details>
 
+<section class="news-board" id="newsBoard">
+  <h3>Announcements &amp; Updates</h3>
+  <p class="muted">Drop in quick notes for the group. Duplicate the sample dropdown below to add more updates.</p>
+  <details class="news-item" open>
+    <summary>
+      <span class="dot" aria-hidden="true"></span>
+      <span class="news-title-text">Sample Update — Replace Me</span>
+      <span class="chev" aria-hidden="true">▶</span>
+    </summary>
+    <div class="news-body">
+      <p>Share schedule changes, supply lists, or links here. Copy this entire <code>&lt;details class="news-item"&gt;</code> block to post another note.</p>
+      <ul>
+        <li><strong>When:</strong> Example date and time</li>
+        <li><strong>Where:</strong> Library of the Biblioplex</li>
+        <li><strong>Bring:</strong> Dice, pencils, favourite snack</li>
+      </ul>
+    </div>
+  </details>
+</section>
+
+<section class="comment-board" id="commentBoard">
+  <h3>Comments &amp; Notes</h3>
+  <p class="muted">Jot reminders or questions for yourself here. Entries stay on this device; a shared database is needed for group-wide comments.</p>
+  <form id="commentForm" class="comment-form">
+    <label for="commentText">Add a comment</label>
+    <textarea id="commentText" name="commentText" placeholder="Thanks for the invite! I'll bring cocoa." aria-label="Comment text"></textarea>
+    <div class="comment-actions">
+      <button type="button" id="clearComments" class="danger">Clear All</button>
+      <button type="submit" class="primary">Post Comment</button>
+    </div>
+  </form>
+  <div id="commentList" class="comment-list" aria-live="polite"></div>
+</section>
+
   `;
+  setupCommentBoard(p);
   return p;
 }
 
@@ -1443,6 +1827,14 @@ function panelSessions(){
     }
   }
   function bindHeaderActions(){
+    const toggle = document.getElementById('navToggle');
+    if(toggle){
+      toggle.onclick = ()=>{
+        navCollapsed = !navCollapsed;
+        renderNav();
+        renderPanels();
+      };
+    }
     const s = document.getElementById('btnSave'); if(s) s.onclick=()=>State.save();
     const l = document.getElementById('btnLoad'); if(l) l.onclick=()=>State.load();
     const e = document.getElementById('btnExport'); if(e) e.onclick=()=>State.export();
