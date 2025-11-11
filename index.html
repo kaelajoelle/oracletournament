@@ -718,16 +718,44 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   margin-top:.55rem;
   width:auto;
 }
-.comment-empty{
-  font-style:italic;
-  color:var(--muted);
-}
+  .comment-empty{
+    font-style:italic;
+    color:var(--muted);
+  }
+
+  .network-banner{
+    position:sticky;
+    top:0;
+    left:0;
+    right:0;
+    padding:.75rem 1rem;
+    background:rgba(213,199,157,.9);
+    color:var(--ink);
+    text-align:center;
+    font-weight:600;
+    z-index:999;
+    transition:opacity .2s ease;
+  }
+
+  .network-banner[hidden]{
+    display:none !important;
+  }
+
+  .network-banner.loading{
+    background:rgba(213,199,157,.95);
+  }
+
+  .network-banner.error{
+    background:rgba(231,176,169,.95);
+    color:#3b1111;
+  }
 
 
   </style>
 </head>
   
   <body>
+  <div id="networkBanner" class="network-banner" hidden role="status" aria-live="polite"></div>
   <!-- Header + Disclaimer Section -->
   <header>
     <h1>Oracle Trials — Character Builder</h1>
@@ -774,10 +802,392 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     '2026-01-01'
   ];
 
+  const API_BASE = (function(){
+    if(window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl){
+      return window.APP_CONFIG.apiBaseUrl;
+    }
+    const { protocol, hostname, port } = window.location;
+    if(protocol === 'file:'){
+      return 'http://localhost:8787';
+    }
+    if(hostname === 'localhost' || hostname === '127.0.0.1'){
+      if(port && port !== '8787'){
+        return `${protocol}//${hostname}:8787`;
+      }
+    }
+    return '';
+  })();
+
+  const DEFAULT_SHARED_STATE = {
+    sessions: [],
+    rosterExtras: [],
+    rosterMeta: {},
+    availability: {},
+    buildCards: {}
+  };
+
+  function normaliseSession(session){
+    if(!session || typeof session !== 'object') return null;
+    const id = String(session.id || '').trim();
+    const title = sanitizeOptional(session.title) || (id ? `Session ${id}` : 'Session');
+    const dm = sanitizeOptional(session.dm);
+    const date = String(session.date || '').trim();
+    const capacity = Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : 0;
+    const players = Array.isArray(session.players)
+      ? session.players.map(name => sanitizeName(name)).filter(Boolean)
+      : [];
+    return {
+      id,
+      title,
+      dm,
+      date,
+      capacity,
+      finale: Boolean(session.finale),
+      players
+    };
+  }
+
+  function normaliseSharedState(input){
+    const safe = {
+      sessions: [],
+      rosterExtras: [],
+      rosterMeta: {},
+      availability: {},
+      buildCards: {}
+    };
+
+    if(!input || typeof input !== 'object'){
+      return safe;
+    }
+
+    if(Array.isArray(input.sessions)){
+      input.sessions.forEach((session)=>{
+        const clean = normaliseSession(session);
+        if(clean && clean.id){
+          clean.players = Array.isArray(session.players)
+            ? session.players.map(name => sanitizeName(name)).filter(Boolean)
+            : [];
+          safe.sessions.push(clean);
+        }
+      });
+    }
+
+    if(Array.isArray(input.rosterExtras)){
+      input.rosterExtras.forEach((item)=>{
+        if(!item || typeof item !== 'object') return;
+        const name = sanitizeName(item.name);
+        if(!name) return;
+        const key = rosterKey(item.key || name);
+        if(!key) return;
+        safe.rosterExtras.push({
+          key,
+          name,
+          status: sanitizeOptional(item.status),
+          notes: sanitizeOptional(item.notes),
+          custom: true
+        });
+      });
+    }
+
+    if(input.rosterMeta && typeof input.rosterMeta === 'object'){
+      Object.entries(input.rosterMeta).forEach(([rawKey, value])=>{
+        const key = rosterKey(rawKey);
+        if(!key || !value || typeof value !== 'object') return;
+        const status = sanitizeOptional(value.status);
+        const notes = sanitizeOptional(value.notes);
+        if(status || notes){
+          safe.rosterMeta[key] = { status, notes };
+        }
+      });
+    }
+
+    if(input.availability && typeof input.availability === 'object'){
+      Object.entries(input.availability).forEach(([rawName, dates])=>{
+        const name = sanitizeName(rawName);
+        if(!name || !dates || typeof dates !== 'object') return;
+        const row = {};
+        Object.entries(dates).forEach(([date, value])=>{
+          if(AVAIL_DATES.includes(date)){
+            row[date] = Boolean(value);
+          }
+        });
+        safe.availability[name] = row;
+      });
+    }
+
+    if(input.buildCards && typeof input.buildCards === 'object'){
+      Object.entries(input.buildCards).forEach(([rawName, card])=>{
+        const name = sanitizeName(rawName);
+        if(!name || !card || typeof card !== 'object') return;
+        const entry = {};
+        if(card.class) entry.class = sanitizeOptional(card.class);
+        if(card.university) entry.university = sanitizeOptional(card.university);
+        safe.buildCards[name] = entry;
+      });
+    }
+
+    return safe;
+  }
+
+  const OfflineStateStore = {
+    key: 'oracleOfflineState',
+    read(){
+      try{
+        const raw = localStorage.getItem(this.key);
+        if(!raw) return null;
+        const parsed = JSON.parse(raw);
+        if(parsed && typeof parsed === 'object' && parsed.version === 1 && parsed.state){
+          return normaliseSharedState(parsed.state);
+        }
+      }catch(err){
+        console.warn('Offline cache read failed', err);
+      }
+      return null;
+    },
+    write(state){
+      try{
+        localStorage.setItem(this.key, JSON.stringify({version:1, state}));
+      }catch(err){
+        console.warn('Offline cache write failed', err);
+      }
+    },
+    clear(){
+      try{ localStorage.removeItem(this.key); }catch{}
+    }
+  };
+
+  const NetworkStatus = (function(){
+    const banner = document.getElementById('networkBanner');
+    let pending = 0;
+    let lastError = '';
+
+    function update(){
+      if(!banner) return;
+      if(lastError){
+        banner.textContent = `⚠️ ${lastError}`;
+        banner.classList.add('error');
+        banner.classList.remove('loading');
+        banner.hidden = false;
+        return;
+      }
+      if(pending > 0){
+        banner.textContent = 'Syncing with the Oracle Archives…';
+        banner.classList.add('loading');
+        banner.classList.remove('error');
+        banner.hidden = false;
+      } else {
+        banner.hidden = true;
+        banner.classList.remove('error');
+        banner.classList.remove('loading');
+      }
+    }
+
+    return {
+      begin(){ pending++; update(); },
+      end(){ pending = Math.max(0, pending - 1); update(); },
+      setError(message){ lastError = message || 'Network request failed.'; update(); },
+      clearError(){ lastError = ''; update(); }
+    };
+  })();
+
+  function withApiBase(path){
+    if(!API_BASE) return path;
+    if(/^https?:/i.test(path)) return path;
+    try{
+      return new URL(path, API_BASE).toString();
+    }catch{
+      return API_BASE.replace(/\/$/, '') + path;
+    }
+  }
+
+  async function apiFetch(path, options={}){
+    const url = withApiBase(path);
+    const opts = {...options};
+    opts.headers = {...(options.headers||{})};
+    if(opts.body && !(opts.body instanceof FormData) && !opts.headers['Content-Type']){
+      opts.headers['Content-Type'] = 'application/json';
+    }
+
+    NetworkStatus.begin();
+    try{
+      const response = await fetch(url, opts);
+      if(!response.ok){
+        const text = await response.text();
+        throw new Error(text || `Request failed (${response.status})`);
+      }
+      const contentType = response.headers.get('content-type') || '';
+      let payload = null;
+      if(contentType.includes('application/json')){
+        payload = await response.json();
+      } else {
+        payload = await response.text();
+      }
+      NetworkStatus.clearError();
+      return payload;
+    }catch(err){
+      NetworkStatus.setError(err && err.message ? err.message : 'Network request failed.');
+      throw err;
+    }finally{
+      NetworkStatus.end();
+    }
+  }
+
+  const SharedState = {
+    data: normaliseSharedState(DEFAULT_SHARED_STATE),
+    offline: true,
+    fallback: normaliseSharedState(DEFAULT_SHARED_STATE),
+    listeners: new Set(),
+    apply(state, source='remote'){
+      const normalised = normaliseSharedState(state);
+      this.data = normalised;
+      if(source === 'remote'){
+        OfflineStateStore.write(normalised);
+        this.offline = false;
+      } else {
+        this.offline = true;
+        if(source === 'offline-cache'){
+          OfflineStateStore.write(normalised);
+        }
+      }
+      this.notify();
+      return normalised;
+    },
+    useFallbackSessions(list){
+      if(Array.isArray(list)){
+        this.fallback.sessions = list.map((session)=>{
+          const clean = normaliseSession(session);
+          return clean ? {...clean, players: clean.players||[]} : null;
+        }).filter(Boolean);
+      }
+    },
+    useDefaultFallback(){
+      this.apply(this.fallback, 'offline-default');
+    },
+    loadFallbackFromCache(){
+      const cached = OfflineStateStore.read();
+      if(cached){
+        this.apply(cached, 'offline-cache');
+        return true;
+      }
+      return false;
+    },
+    async refresh(){
+      try{
+        const payload = await apiFetch('/api/state', { headers:{'Accept':'application/json'} });
+        if(!payload || typeof payload !== 'object' || !payload.state){
+          throw new Error('Invalid response from datastore.');
+        }
+        this.apply(payload.state, 'remote');
+        return this.data;
+      }catch(err){
+        const hadCache = this.loadFallbackFromCache();
+        if(hadCache){
+          NetworkStatus.setError('Connection lost. Working from cached data until we can reach the datastore.');
+          return this.data;
+        }
+        this.useDefaultFallback();
+        NetworkStatus.setError('Unable to reach the shared datastore. Changes will sync once a connection is available.');
+        throw err;
+      }
+    },
+    subscribe(fn){
+      if(typeof fn === 'function'){
+        this.listeners.add(fn);
+        try{ fn(this.data); }catch(err){ console.error(err); }
+      }
+      return ()=>this.listeners.delete(fn);
+    },
+    notify(){
+      this.listeners.forEach((fn)=>{
+        try{ fn(this.data); }catch(err){ console.error(err); }
+      });
+    },
+    getSessionsCopy(){
+      return this.data.sessions.map((session)=>({
+        ...session,
+        players: Array.isArray(session.players) ? session.players.slice() : []
+      }));
+    }
+  };
+
+  const Backend = {
+    async joinSession(sessionId, payload){
+      const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/join`, {
+        method:'POST',
+        body: JSON.stringify(payload)
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    },
+    async leaveSession(sessionId, payload){
+      const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/leave`, {
+        method:'POST',
+        body: JSON.stringify(payload)
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    },
+    async setAvailability(payload){
+      const res = await apiFetch('/api/availability', {
+        method:'POST',
+        body: JSON.stringify(payload)
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    },
+    async addRosterExtra(payload){
+      const res = await apiFetch('/api/roster/extras', {
+        method:'POST',
+        body: JSON.stringify(payload)
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    },
+    async updateRosterEntry(key, payload){
+      const res = await apiFetch(`/api/roster/${encodeURIComponent(key)}`, {
+        method:'PATCH',
+        body: JSON.stringify(payload)
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    },
+    async removeRosterExtra(key){
+      const res = await apiFetch(`/api/roster/extras/${encodeURIComponent(key)}`, {
+        method:'DELETE'
+      });
+      if(res && res.state){
+        SharedState.apply(res.state, 'remote');
+      }
+      return res;
+    }
+  };
+
   const AvailabilityStore = {
-    key: 'oracleAvailability',
-    read(){ try{return JSON.parse(localStorage.getItem(this.key)||'{}');}catch{ return {}; } },
-    write(obj){ localStorage.setItem(this.key, JSON.stringify(obj)); }
+    read(){
+      return SharedState.data.availability;
+    }
+  };
+
+  const RosterExtrasStore = {
+    read(){
+      return SharedState.data.rosterExtras;
+    }
+  };
+
+  const RosterMetaStore = {
+    read(){
+      return SharedState.data.rosterMeta;
+    }
   };
 
   const CommentsStore = {
@@ -823,89 +1233,6 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     return escapeHTML(value);
   }
 
-  const RosterExtrasStore = {
-    key:'oracleRosterExtras',
-    read(){
-      try{
-        const raw = localStorage.getItem(this.key);
-        if(!raw) return [];
-        const parsed = JSON.parse(raw);
-        if(!Array.isArray(parsed)) return [];
-        return parsed.map((item)=>{
-          if(!item || typeof item !== 'object') return null;
-          const name = sanitizeName(item.name);
-          if(!name) return null;
-          const key = item.key ? rosterKey(item.key) : rosterKey(name);
-          return {
-            key,
-            name,
-            status: sanitizeOptional(item.status),
-            notes: sanitizeOptional(item.notes)
-          };
-        }).filter(Boolean);
-      }catch{
-        return [];
-      }
-    },
-    write(list){
-      try{
-        const serialisable = Array.isArray(list) ? list.map((item)=>({
-          key: rosterKey(item.key || item.name),
-          name: sanitizeName(item.name),
-          status: sanitizeOptional(item.status),
-          notes: sanitizeOptional(item.notes)
-        })).filter(item=>item.name) : [];
-        localStorage.setItem(this.key, JSON.stringify(serialisable));
-      }catch{
-        /* ignore quota */
-      }
-    }
-  };
-
-  const RosterMetaStore = {
-    key:'oracleRosterMeta',
-    read(){
-      try{
-        const raw = localStorage.getItem(this.key);
-        if(!raw) return {};
-        const parsed = JSON.parse(raw);
-        if(!parsed || typeof parsed !== 'object') return {};
-        const cleaned = {};
-        Object.entries(parsed).forEach(([k,v])=>{
-          const key = rosterKey(k);
-          if(!key) return;
-          const status = sanitizeOptional(v && v.status);
-          const notes = sanitizeOptional(v && v.notes);
-          if(status || notes){
-            cleaned[key] = {status, notes};
-          }
-        });
-        return cleaned;
-      }catch{
-        return {};
-      }
-    },
-    write(map){
-      try{
-        const out = {};
-        if(map && typeof map === 'object'){
-          Object.entries(map).forEach(([k,v])=>{
-            const key = rosterKey(k);
-            if(!key) return;
-            const status = sanitizeOptional(v && v.status);
-            const notes = sanitizeOptional(v && v.notes);
-            if(status || notes){
-              out[key] = {status, notes};
-            }
-          });
-        }
-        localStorage.setItem(this.key, JSON.stringify(out));
-      }catch{
-        /* ignore quota */
-      }
-    }
-  };
-
   let BASE_ROSTER_KEYS = new Set();
 
   function rosterHasKey(key){
@@ -915,56 +1242,38 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     return RosterExtrasStore.read().some(entry => entry.key === normalised);
   }
 
-  function addRosterExtra(name, status='', notes=''){
+  async function addRosterExtra(name, status='', notes=''){
     const cleanName = sanitizeName(name);
     if(!cleanName) return {ok:false, msg:'Name is required.'};
     const key = rosterKey(cleanName);
     if(rosterHasKey(key)) return {ok:false, msg:`${cleanName} is already on the roster.`};
     const cleanStatus = sanitizeOptional(status);
     const cleanNotes = sanitizeOptional(notes);
-    const extras = RosterExtrasStore.read();
-    extras.push({key, name: cleanName, status: cleanStatus, notes: cleanNotes});
-    RosterExtrasStore.write(extras);
-    const meta = RosterMetaStore.read();
-    if(cleanStatus || cleanNotes){
-      meta[key] = {status: cleanStatus, notes: cleanNotes};
+    try{
+      await Backend.addRosterExtra({ name: cleanName, status: cleanStatus, notes: cleanNotes });
+      return {ok:true, key, name: cleanName};
+    }catch(err){
+      return {ok:false, msg: err && err.message ? err.message : 'Failed to add roster entry.'};
     }
-    RosterMetaStore.write(meta);
-    return {ok:true, key, name: cleanName};
   }
 
-  function updateRosterDetails(key, entry, status, notes){
+  async function updateRosterDetails(key, entry, status, notes){
     const cleanKey = rosterKey(key);
     if(!cleanKey) return;
     const cleanStatus = sanitizeOptional(status);
     const cleanNotes = sanitizeOptional(notes);
-    const meta = RosterMetaStore.read();
-    if(cleanStatus || cleanNotes){
-      meta[cleanKey] = {status: cleanStatus, notes: cleanNotes};
-    } else {
-      delete meta[cleanKey];
-    }
-    RosterMetaStore.write(meta);
-    if(entry && entry.custom){
-      const extras = RosterExtrasStore.read();
-      const idx = extras.findIndex(e=>e.key===cleanKey);
-      if(idx>=0){
-        extras[idx] = {...extras[idx], status: cleanStatus, notes: cleanNotes};
-        RosterExtrasStore.write(extras);
-      }
-    }
+    await Backend.updateRosterEntry(cleanKey, {
+      status: cleanStatus,
+      notes: cleanNotes,
+      custom: Boolean(entry && entry.custom),
+      name: entry && entry.name ? sanitizeName(entry.name) : ''
+    });
   }
 
-  function removeRosterExtra(key){
+  async function removeRosterExtra(key){
     const cleanKey = rosterKey(key);
     if(!cleanKey) return;
-    const extras = RosterExtrasStore.read().filter(e=>e.key!==cleanKey);
-    RosterExtrasStore.write(extras);
-    const meta = RosterMetaStore.read();
-    if(meta[cleanKey]){
-      delete meta[cleanKey];
-      RosterMetaStore.write(meta);
-    }
+    await Backend.removeRosterExtra(cleanKey);
   }
 
   function getRosterList(){
@@ -1156,6 +1465,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
   BASE_ROSTER_KEYS = new Set(DATA.roster.map(r=>rosterKey(r.name)));
 
+  SharedState.useFallbackSessions(DATA.sessions);
+  SharedState.useDefaultFallback();
+
   // Optional quick rule examples
   const ELIGIBILITY = {
     hardNo: [ 'Link' ],
@@ -1231,16 +1543,15 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       personality:{ traits:'', ideal:'', bond:'', rival:'', goal:'', prompt:'' },
       exams:{ notes:'', studyRerolls:0, results:[] }
     },
-    sessions: (function(){
-      const saved = JSON.parse(localStorage.getItem('oracleSessions')||'null');
-      if(saved) return saved;
-      return DATA.sessions.map(x=>({...x}));
-    })(),
+    sessions: [],
     save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
     load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
-    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); },
-    saveSessions(){ localStorage.setItem('oracleSessions', JSON.stringify(this.sessions)); }
+    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); }
   };
+
+  SharedState.subscribe(()=>{
+    State.sessions = SharedState.getSessionsCopy();
+  });
 
   /* =======================
      HELPERS
@@ -1262,7 +1573,7 @@ function buildReady() {
 function renderSessionCards(container, opts={readOnly:false}){
   const {readOnly=false} = opts;
   container.innerHTML = '';
-  const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+  const builds = SharedState.data.buildCards || {};
 
   State.sessions
     .slice()
@@ -1445,17 +1756,8 @@ async function hydrateQuestBoard(root=document){
   }
 }
 
-  // Build-card cache: minimal public info per player for session rosters
-  const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
-
-  function saveBuildCard(){
-    const name = getCurrentCharacterName();
-    if(!name) return;
-    const uniKey = State.data?.university?.key || '';
-    const uniName = (DATA.universities.find(u=>u.key===uniKey)?.name) || '';
-    const klass = State.data?.core?.class || '';
-    SignedUpBuilds[name] = { class: klass, university: uniName };
-    localStorage.setItem('oracleBuildCards', JSON.stringify(SignedUpBuilds));
+  function getBuildCards(){
+    return SharedState.data.buildCards || {};
   }
 
   function getCurrentCharacterName(){
@@ -1469,8 +1771,10 @@ async function hydrateQuestBoard(root=document){
     const thisUni = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
     if(!thisUni) return {ok:false, msg:'Pick a University in step 4 first.'};
     const players = session.players||[];
+    const cards = getBuildCards();
     for(const n of players){
-      const b = SignedUpBuilds[n];
+      const key = sanitizeName(n);
+      const b = cards[key] || cards[n];
       if(b && b.university && b.university === thisUni){
         return {ok:false, msg:`Another ${thisUni} student is already in this session. Choose a different session or college.`};
       }
@@ -1488,7 +1792,8 @@ function downloadAvailabilityCSV() {
   getRosterList().forEach(r => {
     const line = [r.name];
     dates.forEach(d => {
-      line.push(avail[r.name]?.[d] ? "Y" : "");      // "Y" if available, blank if not
+      const key = sanitizeName(r.name);
+      line.push(avail[key]?.[d] ? "Y" : "");      // "Y" if available, blank if not
     });
     rows.push(line);
   });
@@ -1715,7 +2020,7 @@ function panelSessions(){
         </table>
       </div>
       <div class="muted" style="margin-top:6px">
-        Tick when someone is available. Saves automatically. Use <strong>Add Person</strong> for new players; everything stays on this device.
+        Tick when someone is available. Changes sync to the shared datastore automatically (with an offline cache on this device).
       </div>
     </div>
     <div class="controls">
@@ -1730,17 +2035,17 @@ function panelSessions(){
     </div>
   `;
 
-  // Build availability grid
-  const avail = AvailabilityStore.read();
   const rbody = p.querySelector('#roster_tbody');
   function renderAvailabilityTable(){
+    const avail = AvailabilityStore.read();
     const roster = getRosterList();
     if(!roster.length){
       rbody.innerHTML = `<tr><td colspan="${AVAIL_DATES.length + 1}" class="muted" style="text-align:center">Add people with the <em>Add Person</em> button to start tracking schedules.</td></tr>`;
       return;
     }
     const rows = roster.map((entry)=>{
-      avail[entry.name] = avail[entry.name] || {};
+      const availKey = sanitizeName(entry.name);
+      const rowAvail = avail[availKey] || {};
       const metaBits = [];
       if(entry.status) metaBits.push(`Status: ${escapeHTML(entry.status)}`);
       if(entry.notes) metaBits.push(escapeHTML(entry.notes));
@@ -1750,7 +2055,7 @@ function panelSessions(){
         ${entry.custom ? `<button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}">Remove</button>` : ''}
       </div>`;
       const cells = AVAIL_DATES.map((d)=>{
-        const checked = avail[entry.name]?.[d] ? ' checked' : '';
+        const checked = rowAvail[d] ? ' checked' : '';
         return `<td><input data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}></td>`;
       }).join('');
       return `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
@@ -1761,17 +2066,22 @@ function panelSessions(){
   renderAvailabilityTable();
 
   // Save on change
-  rbody.addEventListener('change', (e) => {
+  rbody.addEventListener('change', async (e) => {
     const cb = e.target.closest('input[type="checkbox"][data-name]');
     if(!cb) return;
     const name = cb.getAttribute('data-name');
     const date = cb.getAttribute('data-date');
-    avail[name] = avail[name] || {};
-    avail[name][date] = cb.checked;
-    AvailabilityStore.write(avail);
+    const newValue = cb.checked;
+    try{
+      await Backend.setAvailability({ name, date, available: newValue });
+      renderAvailabilityTable();
+    }catch(err){
+      cb.checked = !newValue;
+      alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
+    }
   });
 
-  rbody.addEventListener('click', (e) => {
+  rbody.addEventListener('click', async (e) => {
     const editBtn = e.target.closest('button[data-edit]');
     if(editBtn){
       const key = editBtn.getAttribute('data-edit');
@@ -1783,8 +2093,12 @@ function panelSessions(){
       if(status === null) return;
       const notes = prompt(`Notes for ${display}?`, entry.notes || '');
       if(notes === null) return;
-      updateRosterDetails(key, entry, status, notes);
-      renderAvailabilityTable();
+      try{
+        await updateRosterDetails(key, entry, status, notes);
+        renderAvailabilityTable();
+      }catch(err){
+        alert(`Failed to update roster details: ${err && err.message ? err.message : 'Request failed.'}`);
+      }
       return;
     }
     const removeBtn = e.target.closest('button[data-remove]');
@@ -1792,18 +2106,18 @@ function panelSessions(){
       const key = removeBtn.getAttribute('data-remove');
       const display = removeBtn.getAttribute('data-name') || '';
       if(!confirm(`Remove ${display} from this roster?`)) return;
-      removeRosterExtra(key);
-      if(display && avail[display]){
-        delete avail[display];
-        AvailabilityStore.write(avail);
+      try{
+        await removeRosterExtra(key);
+        renderAvailabilityTable();
+      }catch(err){
+        alert(`Failed to remove ${display}: ${err && err.message ? err.message : 'Request failed.'}`);
       }
-      renderAvailabilityTable();
     }
   });
 
   const addBtn = p.querySelector('#add_person');
   if(addBtn){
-    addBtn.onclick = () => {
+    addBtn.onclick = async () => {
       const nameInput = prompt('Name to add to the roster?');
       if(nameInput === null) return;
       const cleanName = sanitizeName(nameInput);
@@ -1815,13 +2129,11 @@ function panelSessions(){
       }
       const statusInput = prompt('Status (optional — e.g., Yes / Maybe / No):', '');
       const notesInput = prompt('Notes to remember (optional):', '');
-      const result = addRosterExtra(cleanName, statusInput ?? '', notesInput ?? '');
+      const result = await addRosterExtra(cleanName, statusInput ?? '', notesInput ?? '');
       if(!result.ok){
         alert(result.msg);
         return;
       }
-      avail[cleanName] = avail[cleanName] || {};
-      AvailabilityStore.write(avail);
       renderAvailabilityTable();
     };
   }
@@ -2130,35 +2442,36 @@ function panelSessions(){
     const addBtn = ev.target.closest('button.primary[data-id]');
     if(addBtn){
       const id = addBtn.getAttribute('data-id');
-      const s = State.sessions.find(x=>x.id===id);
+      const s = (State.sessions||[]).find(x=>x.id===id);
       const name = (State.data.core.name||'').trim();
       if(!name){ alert('Give your character a name (Core 5e).'); return; }
       if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
       if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
-      s.players = s.players||[];
-      if(s.players.includes(name)){ alert('This character is already in that session.'); return; }
-      if(s.players.length>=s.capacity){ alert('That session is full.'); return; }
+      const players = s.players || [];
+      if(players.includes(name)){ alert('This character is already in that session.'); return; }
+      if(players.length>=s.capacity){ alert('That session is full.'); return; }
       // enforce unique university
       const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
-      const builds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
+      const builds = getBuildCards();
       if(uniName){
-        for(const n of s.players){
-          const b = builds[n];
+        for(const n of players){
+          const key = sanitizeName(n);
+          const b = builds[key] || builds[n];
           if(b && b.university === uniName){
             alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
             return;
           }
         }
       }
-      // save mini build card
       const klass = State.data.core.class || '';
-      const cards = builds; cards[name] = {class:klass, university:uniName};
-      localStorage.setItem('oracleBuildCards', JSON.stringify(cards));
-
-      s.players.push(name);
-      State.saveSessions();
-      renderSessionCards(wrap, {readOnly:false});
-      alert(`Added ${name} to ${s.title}.`);
+      Backend.joinSession(id, { name, build:{ class: klass, university: uniName } })
+        .then(()=>{
+          renderSessionCards(wrap, {readOnly:false});
+          alert(`Added ${name} to ${s.title}.`);
+        })
+        .catch((err)=>{
+          alert(`Unable to join ${s.title}: ${err && err.message ? err.message : 'Request failed.'}`);
+        });
       return;
     }
     const icsBtn = ev.target.closest('button[data-ics]');
@@ -2228,7 +2541,7 @@ function panelSessions(){
     p.querySelector('#pdf_s').onclick=()=>window.print();
     const publishBtn = p.querySelector('#publish_roster');
     if(publishBtn){
-      publishBtn.onclick = ()=>{
+      publishBtn.onclick = async ()=>{
         const name = sanitizeName(State.data?.core?.name);
         if(!name){ alert('Give your character a name in Core Setup first.'); return; }
         const key = rosterKey(name);
@@ -2241,14 +2554,15 @@ function panelSessions(){
         if(rosterHasKey(key)){
           const roster = getRosterList();
           const entry = roster.find(r=>r.key===key) || {name, custom:false};
-          updateRosterDetails(key, entry, status, notes);
-          alert(`${name} is already on the roster. Updated their status and notes.`);
+          try{
+            await updateRosterDetails(key, entry, status, notes);
+            alert(`${name} is already on the roster. Updated their status and notes.`);
+          }catch(err){
+            alert(`Failed to update roster entry: ${err && err.message ? err.message : 'Request failed.'}`);
+          }
         } else {
-          const result = addRosterExtra(name, status, notes);
+          const result = await addRosterExtra(name, status, notes);
           if(!result.ok){ alert(result.msg); return; }
-          const avail = AvailabilityStore.read();
-          avail[name] = avail[name] || {};
-          AvailabilityStore.write(avail);
           alert(`${name} added to the availability roster.`);
         }
       };
@@ -2284,19 +2598,22 @@ function panelSessions(){
     const clr=document.getElementById('btnClear');
     if(clr){ clr.onclick=()=>{
       if(confirm('Clear all local data for this app?')){
-        localStorage.removeItem('oracleSessions');
-        localStorage.removeItem('oracleAvailability');
-        localStorage.removeItem('oracleBuildCards');
         localStorage.removeItem('oracleTrialsSave');
+        localStorage.removeItem('oracleOfflineState');
         alert('Local data cleared. Reloading…');
         location.reload();
       }
     }}
   }
 
-  (function(){
+  (async function(){
     const errs = validateConfig();
     if(errs.length){ showErrors(errs); bindHeaderActions(); return; }
+    try{
+      await SharedState.refresh();
+    }catch(err){
+      console.warn('Initial sync failed', err);
+    }
     renderAll();
   })();
     

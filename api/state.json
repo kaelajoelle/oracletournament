@@ -1,0 +1,15 @@
+{
+  "sessions": [
+    {"id":"s1","date":"2025-12-21","title":"Session 01","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"s2","date":"2025-12-22","title":"Session 02","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"s3","date":"2025-12-26","title":"Session 03","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"s4","date":"2025-12-27","title":"Session 04","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"s5","date":"2025-12-28","title":"Session 05","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"s6","date":"2025-12-29","title":"Session 06","dm":"Kaela & Tory","capacity":6,"players":[]},
+    {"id":"finale","date":"2026-01-01","title":"Grand Finale","dm":"Kaela & Tory","capacity":8,"players":[],"finale":true}
+  ],
+  "rosterExtras": [],
+  "rosterMeta": {},
+  "availability": {},
+  "buildCards": {}
+}
