@@ -71,6 +71,7 @@
   .stepbtn.active{ outline:2px solid rgba(179,139,70,.35); }
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
+  
     /* =============== MOBILE PATCH =============== */
 @media (max-width: 900px){
   /* Background: avoid jank on mobile */
@@ -438,7 +439,9 @@ details.scroll-letter[open] > summary .chev { transform: rotate(90deg); }
 
 /* Swap: table on desktop, accordion on mobile */
 @media (max-width: 700px){
+  body.has-accordion
   .college-table { display: none; }
+  body.has-accordion
   .college-accordion { display: block; }
 }
 @media (min-width: 701px){
@@ -766,6 +769,7 @@ function renderCollegeAccordion(){
         </div>
       </details>
     `;
+    if (wrap.childElementCount) document.body.class;ist.add('has-accordion');
   }).join('');
 }
     
