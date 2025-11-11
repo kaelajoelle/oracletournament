@@ -221,7 +221,7 @@
     margin-left:auto;
   }
   .news-body{ padding:.85rem 1rem 1rem; }
-  .news-board, .comment-board{ padding:1rem; }
+  .news-board, .quest-board, .comment-board{ padding:1rem; }
 
   /* Typography trims */
   .kicker{ font-size: .8rem; }
@@ -244,7 +244,7 @@
   .panel, .card{ padding: 10px; }
   .table-scroll{ margin:0 -4px; }
   .letter-table .table{ min-width: 420px; }
-  .news-board, .comment-board{ padding:.85rem; margin-top:1.1rem; }
+  .news-board, .quest-board, .comment-board{ padding:.85rem; margin-top:1.1rem; }
   details.news-item > summary{ gap:.5rem; }
   .comment-actions{ justify-content:stretch; }
   .comment-actions button{ flex:1 1 140px; }
@@ -577,6 +577,49 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   margin:.2rem 0 .75rem 1.2rem;
 }
 .news-body li{ margin-bottom:.4rem; }
+
+.quest-board{
+  margin-top:1.5rem;
+  padding:1.2rem 1.35rem;
+  border:2px solid var(--border);
+  border-radius:12px;
+  background:rgba(245,238,213,0.95);
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
+}
+.quest-board h3{
+  margin:0;
+  font-family:'IM Fell English SC',serif;
+  font-size:1.5rem;
+}
+.quest-board p{
+  margin:.4rem 0;
+}
+.quest-list{
+  margin-top:.85rem;
+  display:grid;
+  gap:.75rem;
+}
+.quest-card{
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:.9rem 1rem;
+  background:#fffdf2;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.quest-card h4{
+  margin:0 0 .3rem;
+  font-size:1.1rem;
+}
+.quest-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.75rem;
+  font-size:.9rem;
+  color:var(--muted);
+}
+.quest-notes{
+  margin-top:.35rem;
+}
 
 .comment-board{
   margin-top:1.5rem;
@@ -1109,6 +1152,69 @@ function setupCommentBoard(root){
   renderList();
 }
 
+async function hydrateQuestBoard(root=document){
+  const container = root?.querySelector?.('#questList');
+  if(!container) return;
+
+  container.innerHTML = '<p class="muted">Loading quests…</p>';
+
+  try{
+    const response = await fetch('./site/data/quests.json', {cache:'no-store'});
+    if(!response.ok) throw new Error(`Request failed: ${response.status}`);
+
+    const quests = await response.json();
+    if(!Array.isArray(quests) || !quests.length){
+      container.innerHTML = '<p class="muted">No quests are published yet. Check back soon.</p>';
+      return;
+    }
+
+    const frag = document.createDocumentFragment();
+    quests.forEach((quest)=>{
+      if(!quest || typeof quest !== 'object') return;
+      const card = document.createElement('article');
+      card.className = 'quest-card';
+
+      const title = document.createElement('h4');
+      title.textContent = quest.title || `Quest #${quest.id ?? '?'}`;
+      card.appendChild(title);
+
+      const meta = document.createElement('div');
+      meta.className = 'quest-meta';
+
+      if(typeof quest.id !== 'undefined'){
+        const idSpan = document.createElement('span');
+        idSpan.textContent = `ID ${quest.id}`;
+        meta.appendChild(idSpan);
+      }
+
+      if(quest.status){
+        const statusSpan = document.createElement('span');
+        statusSpan.textContent = `Status: ${quest.status}`;
+        meta.appendChild(statusSpan);
+      }
+
+      if(meta.childNodes.length){
+        card.appendChild(meta);
+      }
+
+      if(quest.notes){
+        const notes = document.createElement('p');
+        notes.className = 'quest-notes';
+        notes.textContent = quest.notes;
+        card.appendChild(notes);
+      }
+
+      frag.appendChild(card);
+    });
+
+    container.innerHTML = '';
+    container.appendChild(frag);
+  }catch(err){
+    console.error('Quest board failed', err);
+    container.innerHTML = '<p class="muted">Unable to load quests right now. Try refreshing later.</p>';
+  }
+}
+
   // Build-card cache: minimal public info per player for session rosters
   const SignedUpBuilds = JSON.parse(localStorage.getItem('oracleBuildCards')||'{}');
 
@@ -1311,6 +1417,14 @@ function panelIntro(){
   </div>
 </details>
 
+<section class="quest-board" id="questBoard">
+  <h3>Quest Board</h3>
+  <p class="muted">Live adventures pulled from the Oracle Trials database snapshot.</p>
+  <div id="questList" class="quest-list" role="list">
+    <p class="muted">Loading quests…</p>
+  </div>
+</section>
+
 <section class="news-board" id="newsBoard">
   <h3>Announcements &amp; Updates</h3>
   <p class="muted">Drop in quick notes for the group. Duplicate the sample dropdown below to add more updates.</p>
@@ -1347,6 +1461,7 @@ function panelIntro(){
 
   `;
   setupCommentBoard(p);
+  hydrateQuestBoard(p);
   return p;
 }
 
