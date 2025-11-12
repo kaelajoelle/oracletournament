@@ -4,7 +4,8 @@
   "description": "Oracle Trials shared datastore API and front-end",
   "main": "api/server.js",
   "scripts": {
-    "start": "node api/server.js"
+    "start": "node api/server.js",
+    "supabase:bootstrap": "node scripts/bootstrap-supabase.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
