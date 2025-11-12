@@ -5,6 +5,11 @@ const path = require('path');
 async function main(){
   const projectUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const storageMode = (process.env.SUPABASE_STORAGE_MODE || 'json').toLowerCase();
+  const defaultSql = storageMode === 'tables'
+    ? 'oracle_tables.sql'
+    : 'oracle_state.sql';
+  const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', defaultSql);
   const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', 'oracle_state.sql');
 
   if(!projectUrl){
