@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
 const path = require('path');
+const { randomUUID } = require('crypto');
 
 const fetch = global.fetch || require('node-fetch');
 
@@ -9,6 +10,9 @@ const PORT = process.env.PORT || 8787;
 const DATA_PATH = process.env.DATA_PATH
   ? path.resolve(process.env.DATA_PATH)
   : path.join(__dirname, 'state.json');
+const COMMENTS_DATA_PATH = process.env.COMMENTS_DATA_PATH
+  ? path.resolve(process.env.COMMENTS_DATA_PATH)
+  : path.join(path.dirname(DATA_PATH), 'comments.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -25,6 +29,7 @@ const SUPABASE_ROSTER_EXTRAS_TABLE = process.env.SUPABASE_ROSTER_EXTRAS_TABLE ||
 const SUPABASE_ROSTER_META_TABLE = process.env.SUPABASE_ROSTER_META_TABLE || 'roster_meta';
 const SUPABASE_AVAILABILITY_TABLE = process.env.SUPABASE_AVAILABILITY_TABLE || 'availability';
 const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
+const SUPABASE_COMMENTS_TABLE = process.env.SUPABASE_COMMENTS_TABLE || 'comments';
 
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
@@ -349,6 +354,143 @@ async function supabaseMutate(path, options = {}){
   }
 
   return null;
+}
+
+function normaliseComment(row){
+  if(!row || typeof row !== 'object'){
+    return null;
+  }
+
+  const commentText = sanitizeOptional(row.comment ?? row.text);
+  if(!commentText){
+    return null;
+  }
+
+  const createdAtSource = row.created_at || row.createdAt || row.stamp;
+  let createdAt = sanitizeOptional(createdAtSource);
+  if(createdAt){
+    const date = new Date(createdAt);
+    createdAt = Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+  }else{
+    createdAt = new Date().toISOString();
+  }
+
+  const mapped = {
+    id: sanitizeOptional(row.id) || sanitizeOptional(row.comment_id) || randomUUID(),
+    playerName: sanitizeOptional(row.player_name ?? row.playerName),
+    characterName: sanitizeOptional(row.character_name ?? row.characterName),
+    sessionId: sanitizeOptional(row.session_id ?? row.sessionId),
+    comment: commentText,
+    createdAt
+  };
+
+  return mapped;
+}
+
+async function loadCommentsFromFile(){
+  try{
+    const raw = await fs.readFile(COMMENTS_DATA_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    const list = Array.isArray(parsed) ? parsed : [];
+    return list.map(normaliseComment).filter(Boolean);
+  }catch(err){
+    if(err && err.code === 'ENOENT'){
+      return [];
+    }
+    throw err;
+  }
+}
+
+async function writeCommentsToFile(list){
+  const safeList = Array.isArray(list) ? list : [];
+  try{
+    await fs.mkdir(path.dirname(COMMENTS_DATA_PATH), { recursive: true });
+  }catch{}
+  await fs.writeFile(COMMENTS_DATA_PATH, JSON.stringify(safeList, null, 2));
+  return safeList;
+}
+
+function sortCommentsDesc(list){
+  return list.slice().sort((a, b)=>{
+    const aTime = new Date(a.createdAt || 0).getTime();
+    const bTime = new Date(b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+}
+
+async function getComments(){
+  if(useSupabaseTables){
+    const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_COMMENTS_TABLE)}?select=id,player_name,character_name,session_id,comment,created_at&order=created_at.desc`, { fallback: [] });
+    return sortCommentsDesc(rows.map(normaliseComment).filter(Boolean));
+  }
+
+  const list = await loadCommentsFromFile();
+  return sortCommentsDesc(list);
+}
+
+async function addComment(input){
+  const comment = sanitizeOptional(input?.comment);
+  if(!comment){
+    throw httpError(400, 'Comment text is required.');
+  }
+
+  const playerName = sanitizeOptional(input?.playerName);
+  const characterName = sanitizeOptional(input?.characterName);
+  const sessionId = sanitizeOptional(input?.sessionId);
+
+  if(useSupabaseTables){
+    const payload = {
+      player_name: playerName || null,
+      character_name: characterName || null,
+      session_id: sessionId || null,
+      comment
+    };
+
+    const result = await supabaseMutate(`${encodeURIComponent(SUPABASE_COMMENTS_TABLE)}`, {
+      body: payload,
+      headers: { Prefer: 'return=representation' },
+      expectJson: true
+    });
+
+    const rows = Array.isArray(result) ? result : (result ? [result] : []);
+    const record = rows[0];
+    if(!record){
+      throw httpError(500, 'Failed to save comment.');
+    }
+    return normaliseComment(record);
+  }
+
+  const existing = await loadCommentsFromFile();
+  const created = {
+    id: randomUUID(),
+    playerName,
+    characterName,
+    sessionId,
+    comment,
+    createdAt: new Date().toISOString()
+  };
+  existing.push(created);
+  await writeCommentsToFile(existing);
+  return created;
+}
+
+async function removeComment(id){
+  const cleanId = sanitizeOptional(id);
+  if(!cleanId){
+    throw httpError(400, 'Comment id is required.');
+  }
+
+  if(useSupabaseTables){
+    await supabaseMutate(`${encodeURIComponent(SUPABASE_COMMENTS_TABLE)}?id=eq.${encodeURIComponent(cleanId)}`, {
+      method: 'DELETE'
+    });
+    return true;
+  }
+
+  const existing = await loadCommentsFromFile();
+  const filtered = existing.filter((entry)=> sanitizeOptional(entry.id) !== cleanId);
+  await writeCommentsToFile(filtered);
+  return true;
 }
 
 async function loadStateFromSupabaseTables(){
@@ -884,6 +1026,36 @@ function handleError(res, err){
   const message = err.message || 'Unexpected error';
   res.status(status).json({ error: message });
 }
+
+app.get('/api/comments', async (req, res) => {
+  try{
+    const comments = await getComments();
+    res.json({ comments });
+  }catch(err){
+    console.error('fetch comments failed', err);
+    handleError(res, err);
+  }
+});
+
+app.post('/api/comments', async (req, res) => {
+  try{
+    const created = await addComment(req.body || {});
+    res.status(201).json({ comment: created });
+  }catch(err){
+    console.error('create comment failed', err);
+    handleError(res, err);
+  }
+});
+
+app.delete('/api/comments/:id', async (req, res) => {
+  try{
+    await removeComment(req.params.id);
+    res.status(204).end();
+  }catch(err){
+    console.error('delete comment failed', err);
+    handleError(res, err);
+  }
+});
 
 app.get('/api/state', async (req, res) => {
   try{

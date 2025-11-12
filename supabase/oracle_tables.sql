@@ -1,6 +1,8 @@
 -- Supabase schema for the Oracle Tournament normalized tables storage mode
 -- Run via `npm run supabase:bootstrap` with SUPABASE_STORAGE_MODE=tables or execute manually.
 
+create extension if not exists "pgcrypto";
+
 begin;
 
 create table if not exists public.sessions (
@@ -52,6 +54,15 @@ create table if not exists public.build_cards (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  player_name text,
+  character_name text,
+  session_id text,
+  comment text not null,
+  created_at timestamptz not null default timezone('utc', now())
+);
+
 insert into public.sessions (id, title, dm, date, capacity, finale)
 values
   ('s1', 'Session 01', 'Kaela & Tory', '2025-12-21', 6, false),
@@ -75,6 +86,7 @@ alter table public.roster_extras enable row level security;
 alter table public.roster_meta enable row level security;
 alter table public.availability enable row level security;
 alter table public.build_cards enable row level security;
+alter table public.comments enable row level security;
 
 drop policy if exists "service role sessions" on public.sessions;
 create policy "service role sessions" on public.sessions
@@ -108,6 +120,12 @@ create policy "service role availability" on public.availability
 
 drop policy if exists "service role build cards" on public.build_cards;
 create policy "service role build cards" on public.build_cards
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+drop policy if exists "service role comments" on public.comments;
+create policy "service role comments" on public.comments
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
