@@ -124,3 +124,19 @@ If you would rather keep the shared state in Supabase instead of the local JSON 
 3. Deploy the API (Render, Railway, Fly.io, etc.) and set the environment variables above. The server will automatically connect to Supabase, seed the row if it ever disappears, and persist every update there.
 
 Once the backend is live, point the web app at it with the `window.APP_CONFIG.apiBaseUrl` snippet described earlier so that everyone hits the same Supabase-backed datastore.
+
+### Configure the frontend API base URL
+
+1. Edit `site/app-config.js` so `apiBaseUrl` matches your deployed Express server (include the `/api` suffix). The HTML page loads this file before any application logic so every fetch request goes through your backend, never directly to Supabase.
+2. `site/app-config.js` now lives in version control with a sensible default (`https://oracletournament.onrender.com/api`); override it locally if you run the backend somewhere else and commit the value you expect your production frontend to use.
+3. When the page boots it verifies the value and, if you forget to provide one, falls back to the same-origin `/api` endpoint and logs a console warning. Update the config instead of relying on the warning when you deploy to Render.
+
+### Quick connectivity check from the browser
+
+Open your browser dev tools and run:
+
+```js
+window.APP_UTILS.testApiConnection();
+```
+
+You should see the `{ state: … }` payload from `/api/state` printed to the console. If you get a network or CORS error, double-check the configured `apiBaseUrl` and that your Express server is running with the `cors()` middleware enabled (it is by default).
