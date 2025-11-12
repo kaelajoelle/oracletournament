@@ -251,6 +251,11 @@
   details.news-item > summary{ gap:.5rem; }
   .comment-actions{ justify-content:stretch; }
   .comment-actions button{ flex:1 1 140px; }
+  .table.avail th:first-child, .table.avail td:first-child, .avail-name{ min-width: 140px; }
+  .roster-form-grid{ grid-template-columns: minmax(0,1fr); }
+  .form-actions{ flex-direction: column-reverse; align-items: stretch; }
+  .form-actions .primary{ width: 100%; }
+  .form-actions .link-button{ align-self: center; }
 }
 
 /* Wrap any wide table in this to get the scroll behavior */
@@ -402,6 +407,53 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   gap: 10px;
 }
 
+.status-pill,
+.note-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.status-pill {
+  background: #f0f3f8;
+  color: var(--ink);
+}
+
+.status-pill.status-yes {
+  background: #e6f8ed;
+  color: #1d7a46;
+}
+
+.status-pill.status-no {
+  background: #fbeee3;
+  color: #b24a3a;
+}
+
+.status-pill.status-maybe {
+  background: #fffbe2;
+  color: #b07f10;
+}
+
+.status-pill.status-preferred {
+  background: #e8f1fa;
+  color: #2a6cb0;
+}
+
+.status-pill.status-default {
+  background: #ede9ff;
+  color: #5a4ab0;
+}
+
+.note-pill {
+  background: #f7f1da;
+  color: var(--muted);
+  font-weight: 500;
+}
+
 .link-button {
   background: none;
   border: none;
@@ -419,6 +471,73 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
 /* Optional: tighter first column */
 .table.avail th:first-child, .table.avail td:first-child {
   width: 160px;
+}
+
+.table.avail input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.table.avail tbody tr:hover td {
+  background: rgba(255, 250, 223, .8);
+}
+
+.roster-editor {
+  margin-top: 18px;
+}
+
+.roster-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.roster-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.roster-form-grid .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-form-grid .form-field-notes {
+  grid-column: 1 / -1;
+}
+
+#roster_notes {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.form-hint {
+  margin: 0;
+  font-size: .85rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+}
+
+.form-message {
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.form-message.success {
+  color: #1d7a46;
+}
+
+.form-message.error {
+  color: #b24a3a;
 }
 
     /* ---- Utility grids used in panels ---- */
@@ -2100,6 +2219,31 @@ function panelSessions(){
         Tick when someone is available. Changes sync to the shared datastore automatically (with an offline cache on this device).
       </div>
     </div>
+    <div class="card roster-editor" id="roster_editor" hidden>
+      <h3 id="roster_editor_title">Update roster</h3>
+      <form id="roster_form" class="roster-form">
+        <div class="roster-form-grid">
+          <div class="form-field">
+            <label for="roster_name">Name</label>
+            <input id="roster_name" name="name" autocomplete="off" placeholder="e.g., Tamsin Rowe" />
+          </div>
+          <div class="form-field">
+            <label for="roster_status">Status</label>
+            <input id="roster_status" name="status" autocomplete="off" placeholder="Yes / Maybe / No" />
+          </div>
+          <div class="form-field form-field-notes">
+            <label for="roster_notes">Notes</label>
+            <textarea id="roster_notes" name="notes" rows="2" placeholder="Add reminders or context"></textarea>
+          </div>
+        </div>
+        <p class="muted form-hint" id="roster_form_hint"></p>
+        <div class="form-message" id="roster_form_message" role="status" aria-live="polite" hidden></div>
+        <div class="form-actions">
+          <button type="button" class="link-button" id="roster_cancel">Cancel</button>
+          <button type="submit" class="primary" id="roster_submit">Save</button>
+        </div>
+      </form>
+    </div>
     <div class="controls">
       <div class="left">
         <button id="add_person">+ Add Person</button>
@@ -2113,20 +2257,101 @@ function panelSessions(){
   `;
 
   const rbody = p.querySelector('#roster_tbody');
-  function renderAvailabilityTable(){
+  const tableScroll = p.querySelector('.table-scroll');
+  const rosterEditor = p.querySelector('#roster_editor');
+  const rosterForm = p.querySelector('#roster_form');
+  const rosterTitle = p.querySelector('#roster_editor_title');
+  const rosterNameInput = p.querySelector('#roster_name');
+  const rosterStatusInput = p.querySelector('#roster_status');
+  const rosterNotesInput = p.querySelector('#roster_notes');
+  const rosterHint = p.querySelector('#roster_form_hint');
+  const rosterMessage = p.querySelector('#roster_form_message');
+  const rosterCancel = p.querySelector('#roster_cancel');
+  const rosterSubmit = p.querySelector('#roster_submit');
+
+  let rosterEditorMode = null;
+  let rosterEditorEntry = null;
+
+  function showRosterMessage(text='', variant='info'){
+    rosterMessage.textContent = text;
+    rosterMessage.classList.remove('error','success');
+    if(!text){
+      rosterMessage.hidden = true;
+      return;
+    }
+    rosterMessage.hidden = false;
+    if(variant === 'error') rosterMessage.classList.add('error');
+    if(variant === 'success') rosterMessage.classList.add('success');
+  }
+
+  function openRosterFormAdd(){
+    rosterEditorMode = 'add';
+    rosterEditorEntry = null;
+    rosterTitle.textContent = 'Add to roster';
+    rosterNameInput.disabled = false;
+    rosterNameInput.value = '';
+    rosterStatusInput.value = '';
+    rosterNotesInput.value = '';
+    rosterSubmit.textContent = 'Add Person';
+    rosterHint.textContent = 'Include a first name and optional status or notes. Everything syncs to the shared roster.';
+    showRosterMessage();
+    rosterEditor.hidden = false;
+    requestAnimationFrame(()=>{
+      rosterEditor.scrollIntoView({ behavior:'smooth', block:'center' });
+      rosterNameInput.focus();
+    });
+  }
+
+  function openRosterFormEdit(entry){
+    rosterEditorMode = 'edit';
+    rosterEditorEntry = entry;
+    rosterTitle.textContent = `Update ${entry.name}`;
+    rosterNameInput.value = entry.name;
+    rosterNameInput.disabled = true;
+    rosterStatusInput.value = entry.status || '';
+    rosterNotesInput.value = entry.notes || '';
+    rosterSubmit.textContent = 'Save Changes';
+    rosterHint.textContent = 'Adjust the status or leave quick notes so the scheduling team has context.';
+    showRosterMessage();
+    rosterEditor.hidden = false;
+    requestAnimationFrame(()=>{
+      rosterEditor.scrollIntoView({ behavior:'smooth', block:'center' });
+      rosterStatusInput.focus();
+    });
+  }
+
+  function closeRosterEditor(){
+    rosterEditorMode = null;
+    rosterEditorEntry = null;
+    rosterEditor.hidden = true;
+    rosterNameInput.disabled = false;
+    rosterNameInput.value = '';
+    rosterStatusInput.value = '';
+    rosterNotesInput.value = '';
+    showRosterMessage();
+  }
+
+  function renderAvailabilityTable(opts={}){
     const avail = AvailabilityStore.read();
     const roster = getRosterList();
+    const preserveScroll = typeof opts.scrollLeft === 'number' ? opts.scrollLeft : tableScroll.scrollLeft;
     if(!roster.length){
       rbody.innerHTML = `<tr><td colspan="${AVAIL_DATES.length + 1}" class="muted" style="text-align:center">Add people with the <em>Add Person</em> button to start tracking schedules.</td></tr>`;
+      tableScroll.scrollLeft = preserveScroll;
       return;
     }
     const rows = roster.map((entry)=>{
       const availKey = sanitizeName(entry.name);
       const rowAvail = avail[availKey] || {};
       const metaBits = [];
-      if(entry.status) metaBits.push(`Status: ${escapeHTML(entry.status)}`);
-      if(entry.notes) metaBits.push(escapeHTML(entry.notes));
-      const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' • ')}</div>` : '';
+      if(entry.status){
+        const statusClass = entry.status ? `status-${entry.status.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'default'}` : 'status-default';
+        metaBits.push(`<span class="status-pill ${statusClass}">${escapeHTML(entry.status)}</span>`);
+      }
+      if(entry.notes){
+        metaBits.push(`<span class="note-pill">${escapeHTML(entry.notes)}</span>`);
+      }
+      const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' ')}</div>` : '';
       const actions = `<div class="name-actions">
         <button type="button" class="link-button" data-edit="${entry.key}" data-name="${escapeAttr(entry.name)}">Edit</button>
         ${entry.custom ? `<button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}">Remove</button>` : ''}
@@ -2138,6 +2363,15 @@ function panelSessions(){
       return `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
     }).join('');
     rbody.innerHTML = rows;
+    tableScroll.scrollLeft = preserveScroll;
+    if(opts.focus && opts.focus.name && opts.focus.date){
+      const focusInput = Array.from(rbody.querySelectorAll('input[data-name][data-date]')).find((el)=>{
+        return el.getAttribute('data-name') === opts.focus.name && el.getAttribute('data-date') === opts.focus.date;
+      });
+      if(focusInput){
+        focusInput.focus({ preventScroll:true });
+      }
+    }
   }
 
   renderAvailabilityTable();
@@ -2151,7 +2385,7 @@ function panelSessions(){
     const newValue = cb.checked;
     try{
       await Backend.setAvailability({ name, date, available: newValue });
-      renderAvailabilityTable();
+      renderAvailabilityTable({ focus:{ name, date }, scrollLeft: tableScroll.scrollLeft });
     }catch(err){
       cb.checked = !newValue;
       alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
@@ -2166,16 +2400,7 @@ function panelSessions(){
       const roster = getRosterList();
       const entry = roster.find(r=>r.key===key);
       if(!entry) return;
-      const status = prompt(`Status for ${display}?`, entry.status || '');
-      if(status === null) return;
-      const notes = prompt(`Notes for ${display}?`, entry.notes || '');
-      if(notes === null) return;
-      try{
-        await updateRosterDetails(key, entry, status, notes);
-        renderAvailabilityTable();
-      }catch(err){
-        alert(`Failed to update roster details: ${err && err.message ? err.message : 'Request failed.'}`);
-      }
+      openRosterFormEdit(entry);
       return;
     }
     const removeBtn = e.target.closest('button[data-remove]');
@@ -2184,8 +2409,11 @@ function panelSessions(){
       const display = removeBtn.getAttribute('data-name') || '';
       if(!confirm(`Remove ${display} from this roster?`)) return;
       try{
+        if(rosterEditorEntry && rosterEditorEntry.key === key){
+          closeRosterEditor();
+        }
         await removeRosterExtra(key);
-        renderAvailabilityTable();
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
       }catch(err){
         alert(`Failed to remove ${display}: ${err && err.message ? err.message : 'Request failed.'}`);
       }
@@ -2194,26 +2422,62 @@ function panelSessions(){
 
   const addBtn = p.querySelector('#add_person');
   if(addBtn){
-    addBtn.onclick = async () => {
-      const nameInput = prompt('Name to add to the roster?');
-      if(nameInput === null) return;
-      const cleanName = sanitizeName(nameInput);
-      if(!cleanName){ alert('Name cannot be blank.'); return; }
-      const key = rosterKey(cleanName);
-      if(rosterHasKey(key)){
-        alert(`${cleanName} is already on the roster.`);
-        return;
-      }
-      const statusInput = prompt('Status (optional — e.g., Yes / Maybe / No):', '');
-      const notesInput = prompt('Notes to remember (optional):', '');
-      const result = await addRosterExtra(cleanName, statusInput ?? '', notesInput ?? '');
-      if(!result.ok){
-        alert(result.msg);
-        return;
-      }
-      renderAvailabilityTable();
+    addBtn.onclick = () => {
+      openRosterFormAdd();
     };
   }
+
+  rosterForm.addEventListener('submit', async (event)=>{
+    event.preventDefault();
+    if(!rosterEditorMode){
+      openRosterFormAdd();
+      return;
+    }
+    const rawName = rosterNameInput.value;
+    const cleanName = sanitizeName(rawName);
+    const cleanStatus = sanitizeOptional(rosterStatusInput.value);
+    const cleanNotes = sanitizeOptional(rosterNotesInput.value);
+    showRosterMessage();
+    try{
+      if(rosterEditorMode === 'add'){
+        if(!cleanName){
+          showRosterMessage('Name is required.', 'error');
+          rosterNameInput.focus();
+          return;
+        }
+        const key = rosterKey(cleanName);
+        if(rosterHasKey(key)){
+          showRosterMessage(`${cleanName} is already on the roster.`, 'error');
+          rosterNameInput.focus();
+          rosterNameInput.select();
+          return;
+        }
+        const result = await addRosterExtra(cleanName, cleanStatus, cleanNotes);
+        if(!result.ok){
+          showRosterMessage(result.msg || 'Failed to add roster entry.', 'error');
+          return;
+        }
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
+        rosterNameInput.value = '';
+        rosterStatusInput.value = '';
+        rosterNotesInput.value = '';
+        showRosterMessage(`${cleanName} added to the roster.`, 'success');
+        rosterNameInput.focus();
+      } else if(rosterEditorMode === 'edit' && rosterEditorEntry){
+        const key = rosterEditorEntry.key;
+        await updateRosterDetails(key, rosterEditorEntry, cleanStatus, cleanNotes);
+        rosterEditorEntry = { ...rosterEditorEntry, status: cleanStatus, notes: cleanNotes };
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
+        showRosterMessage(`Saved updates for ${rosterEditorEntry.name}.`, 'success');
+      }
+    }catch(err){
+      showRosterMessage(err && err.message ? err.message : 'Request failed. Please try again.', 'error');
+    }
+  });
+
+  rosterCancel.addEventListener('click', () => {
+    closeRosterEditor();
+  });
 
   p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
   p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
