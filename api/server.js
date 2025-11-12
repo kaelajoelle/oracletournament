@@ -3,6 +3,8 @@ const cors = require('cors');
 const fs = require('fs/promises');
 const path = require('path');
 
+const fetch = global.fetch || require('node-fetch');
+
 const PORT = process.env.PORT || 8787;
 const DATA_PATH = process.env.DATA_PATH
   ? path.resolve(process.env.DATA_PATH)
@@ -1086,6 +1088,10 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Oracle Tournament API listening on port ${PORT}`);
-});
+if(require.main === module){
+  app.listen(PORT, () => {
+    console.log(`Oracle Tournament API listening on port ${PORT}`);
+  });
+}
+
+module.exports = app;

@@ -75,6 +75,12 @@ All routes return the full state payload on success so the client can refresh it
 
 If you would rather keep the shared state in Supabase instead of the local JSON file, follow these steps:
 
+1. In the Supabase dashboard open **SQL Editor** (or use the Supabase CLI) and execute one of the bundled schema files:
+
+   * [`supabase/oracle_state.sql`](supabase/oracle_state.sql) — keeps everything in a single JSON row. This is the closest match to the original `state.json` workflow.
+   * [`supabase/oracle_tables.sql`](supabase/oracle_tables.sql) — creates normalized tables (`sessions`, `session_players`, `roster_extras`, `roster_meta`, `availability`, and `build_cards`) and seeds the default sessions.
+
+   Feel free to modify the SQL before running it if you want different table names or initial data. Supabase automatically stores your edits, so you do not need to run any bootstrap scripts from this repository.
 1. Run the bundled bootstrap script once to create and seed the table:
 
    ```bash
@@ -99,6 +105,21 @@ If you would rather keep the shared state in Supabase instead of the local JSON 
    | `SUPABASE_SERVICE_ROLE_KEY` | The service role key with read/write access. Keep this secret on the server only. |
    | `SUPABASE_TABLE` (optional) | Table name to store the state (`oracle_state` by default). |
    | `SUPABASE_ROW_ID` (optional) | Row identifier that holds the JSON blob (`shared` by default). |
+   | `SUPABASE_STORAGE_MODE` (optional) | `json` (default) for the single-row table, or `tables` for the normalized schema. |
+
+3. Deploy the API (Render, Railway, Fly.io, etc.) and set the environment variables above. The server will automatically connect to Supabase, seed the datastore if it ever disappears, and persist every update there.
+
+   * Leave `SUPABASE_STORAGE_MODE` unset (or `json`) to keep the original single-row JSON workflow. You can override `SUPABASE_TABLE` and `SUPABASE_ROW_ID` if you renamed them.
+   * Set `SUPABASE_STORAGE_MODE=tables` to use the normalized schema. You can override the table names individually:
+
+     | Variable | Default | Purpose |
+     |----------|---------|---------|
+     | `SUPABASE_SESSIONS_TABLE` | `sessions` | Session definitions (id, date, DM, capacity, finale). |
+     | `SUPABASE_SESSION_PLAYERS_TABLE` | `session_players` | Junction table that records who joined each session. |
+     | `SUPABASE_ROSTER_EXTRAS_TABLE` | `roster_extras` | Custom roster entries. |
+     | `SUPABASE_ROSTER_META_TABLE` | `roster_meta` | Status/notes overrides keyed by `rosterKey(name)`. |
+     | `SUPABASE_AVAILABILITY_TABLE` | `availability` | Availability checkmarks keyed by `sanitizeName(name)`. |
+     | `SUPABASE_BUILD_CARDS_TABLE` | `build_cards` | Stored build cards keyed by `sanitizeName(name)`. |
 
 3. Deploy the API (Render, Railway, Fly.io, etc.) and set the environment variables above. The server will automatically connect to Supabase, seed the row if it ever disappears, and persist every update there.
 
