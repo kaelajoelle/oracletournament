@@ -2,6 +2,8 @@
 const fs = require('fs/promises');
 const path = require('path');
 
+const fetch = global.fetch || require('node-fetch');
+
 async function main(){
   const projectUrl = process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -10,7 +12,6 @@ async function main(){
     ? 'oracle_tables.sql'
     : 'oracle_state.sql';
   const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', defaultSql);
-  const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', 'oracle_state.sql');
 
   if(!projectUrl){
     console.error('Missing SUPABASE_URL environment variable.');

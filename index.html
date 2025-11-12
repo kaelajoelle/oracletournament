@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Welcome To The Oracle Trials</title>
 
+  <!-- Optional runtime configuration -->
+  <script src="./site/app-config.js" data-origin="app-config"></script>
+
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
@@ -802,7 +805,21 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     '2026-01-01'
   ];
 
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl) || '';
+  function resolveApiBase(){
+    const cfg = window.APP_CONFIG || {};
+    const configured = typeof cfg.apiBaseUrl === 'string' ? cfg.apiBaseUrl.trim() : '';
+    if(configured){
+      return configured;
+    }
+    const sameOrigin = (typeof window !== 'undefined' && window.location && window.location.origin)
+      ? `${window.location.origin.replace(/\/$/, '')}/api`
+      : '/api';
+    console.warn('[OracleTournament] window.APP_CONFIG.apiBaseUrl is not configured; defaulting to', sameOrigin);
+    window.APP_CONFIG = {...cfg, apiBaseUrl: sameOrigin};
+    return sameOrigin;
+  }
+
+  const API_BASE = resolveApiBase();
 
   const DEFAULT_SHARED_STATE = {
     sessions: [],
@@ -1017,6 +1034,13 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       NetworkStatus.end();
     }
   }
+
+  window.APP_UTILS = window.APP_UTILS || {};
+  window.APP_UTILS.testApiConnection = async function testApiConnection(){
+    const response = await apiFetch('/api/state', { headers:{ Accept:'application/json' } });
+    console.info('[OracleTournament] /api/state responded with:', response);
+    return response;
+  };
 
   const SharedState = {
     data: normaliseSharedState(DEFAULT_SHARED_STATE),
