@@ -129,7 +129,7 @@
   .flex{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .pill{ display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); padding:6px 10px; border-radius:999px; background:#efe7c8; }
   .controls{ display:flex; justify-content:space-between; margin-top:12px; }
-  button{ padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; cursor:pointer; min-height:44px; min-width:44px; }
+  button{ padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; cursor:pointer; }
   button:focus,
   button:focus-visible,
   button:active{
@@ -215,7 +215,7 @@
   /* Background: avoid jank on mobile */
   body{
     background-attachment: scroll;
-    background-size:320px 320px, 420px 420px, cover;
+    background-size: cover;
   }
 
   /* Stack layout */
@@ -330,19 +330,6 @@
   .form-actions{ flex-direction: column-reverse; align-items: stretch; }
   .form-actions .primary{ width: 100%; }
   .form-actions .link-button{ align-self: center; }
-}
-
-@media (min-width: 960px){
-  .steps-rail{
-    display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));
-    overflow:visible;
-    padding:0;
-    gap:14px;
-  }
-  .stepbtn{
-    min-width:0;
-  }
 }
 
 /* Wrap any wide table in this to get the scroll behavior */
@@ -549,9 +536,6 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   accent-color: var(--accent);
 }
 
-.table.avail tbody tr:nth-child(even) td {
-  background: rgba(255, 248, 223, .45);
-}
 .table.avail tbody tr:hover td {
   background: rgba(255, 250, 223, .8);
 }

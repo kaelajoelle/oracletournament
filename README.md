@@ -127,8 +127,8 @@ Once the backend is live, point the web app at it with the `window.APP_CONFIG.ap
 
 ### Configure the frontend API base URL
 
-1. Edit `site/app-config.js` so `apiBaseUrl` matches your deployed Express server (include the `/api` suffix). The HTML page loads this file before any application logic so every fetch request goes through your backend, never directly to Supabase.
-2. `site/app-config.js` now lives in version control with a sensible default (`https://oracletournament.onrender.com/api`); override it locally if you run the backend somewhere else and commit the value you expect your production frontend to use.
+1. Copy `site/app-config.example.js` to `site/app-config.js` and edit `apiBaseUrl` so it matches your deployed Express server (include the `/api` suffix). The HTML page loads `site/app-config.js` before any application logic so every fetch request goes through your backend, never directly to Supabase.
+2. Commit the example file, not the real one—`site/app-config.js` is ignored by Git on purpose so you can keep environment-specific values out of version control.
 3. When the page boots it verifies the value and, if you forget to provide one, falls back to the same-origin `/api` endpoint and logs a console warning. Update the config instead of relying on the warning when you deploy to Render.
 
 ### Quick connectivity check from the browser

@@ -1094,7 +1094,3 @@ module.exports = app;
 module.exports.DEFAULT_STATE = DEFAULT_STATE;
 module.exports.normaliseState = normaliseState;
 module.exports.replaceSupabaseTablesState = replaceSupabaseTablesState;
-module.exports.loadStateFromSupabaseTables = loadStateFromSupabaseTables;
-module.exports.loadStateFromSupabase = loadStateFromSupabase;
-module.exports.useSupabaseTables = () => useSupabaseTables;
-module.exports.hasSupabase = () => hasSupabase;
