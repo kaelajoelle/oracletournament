@@ -139,6 +139,7 @@
   }
   button:active{ transform:translateY(1px); }
   .primary{ background:#d9c38b; }
+  .secondary{ background:#e5dccc; }
   .danger{ background:#e7b0a9; }
 
   .steps-rail{
@@ -851,6 +852,24 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   flex-direction:column;
   gap:.75rem;
 }
+.comment-form-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.75rem;
+}
+.comment-form-grid .form-field{
+  flex:1 1 180px;
+  display:flex;
+  flex-direction:column;
+  gap:.35rem;
+}
+.comment-form-grid input{
+  padding:8px 10px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  font-family:'Roboto Serif',serif;
+  background:#fff8df;
+}
 .comment-form textarea{
   resize:vertical;
   min-height:90px;
@@ -889,7 +908,21 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   position:relative;
   box-shadow:0 1px 3px rgba(0,0,0,0.04);
 }
+.comment-item[data-pending="true"]{
+  opacity:0.6;
+}
+.comment-item[data-pending="true"] button{
+  cursor:wait;
+}
 .comment-item p{ margin:0; }
+.comment-meta{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  font-size:.82rem;
+  color:var(--muted);
+  margin-top:.5rem;
+}
 .comment-item time{
   display:block;
   font-size:.78rem;
@@ -1377,27 +1410,6 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     }
   };
 
-  const CommentsStore = {
-    key:'oracleComments',
-    read(){
-      try{
-        const raw = localStorage.getItem(this.key);
-        if(!raw) return [];
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [];
-      }catch{
-        return [];
-      }
-    },
-    write(list){
-      try{
-        localStorage.setItem(this.key, JSON.stringify(Array.isArray(list)?list:[]));
-      }catch{
-        /* ignore quota errors */
-      }
-    }
-  };
-
   const HTML_ESCAPE = { "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" };
 
   function sanitizeName(value){
@@ -1829,12 +1841,16 @@ function renderSessionCards(container, opts={readOnly:false}){
 function setupCommentBoard(root){
   const form = root.querySelector('#commentForm');
   const textarea = root.querySelector('#commentText');
+  const playerInput = root.querySelector('#commentPlayer');
+  const characterInput = root.querySelector('#commentCharacter');
+  const sessionInput = root.querySelector('#commentSession');
   const list = root.querySelector('#commentList');
-  const clearBtn = root.querySelector('#clearComments');
+  const refreshBtn = root.querySelector('#refreshComments');
   const status = root.querySelector('#commentStatus');
   if(!form || !textarea || !list) return;
 
   let statusTimer = 0;
+  const submitButton = form.querySelector('button[type="submit"]');
 
   const announce = (message, tone='success')=>{
     if(!status) return;
@@ -1842,7 +1858,7 @@ function setupCommentBoard(root){
     status.textContent = message;
     status.dataset.tone = tone;
     status.hidden = false;
-    statusTimer = window.setTimeout(()=>{ status.hidden = true; }, 3200);
+    statusTimer = window.setTimeout(()=>{ status.hidden = true; }, 3600);
   };
 
   if(status){
@@ -1861,68 +1877,253 @@ function setupCommentBoard(root){
     }
   };
 
+  const sortComments = (entries)=> entries.slice().sort((a, b)=>{
+    const aTime = new Date(a?.createdAt || 0).getTime();
+    const bTime = new Date(b?.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+
+  const normaliseComment = (input)=>{
+    if(!input || typeof input !== 'object') return null;
+    const baseId = (input.id ?? input.comment_id ?? '').toString().trim();
+    const textValue = (input.comment ?? input.text ?? '').toString().trim();
+    if(!textValue){
+      return null;
+    }
+    const playerName = sanitizeOptional(input.playerName ?? input.player_name);
+    const characterName = sanitizeOptional(input.characterName ?? input.character_name);
+    const sessionId = sanitizeOptional(input.sessionId ?? input.session_id);
+    let createdAt = input.createdAt || input.created_at || input.stamp;
+    if(createdAt){
+      const stamp = new Date(createdAt);
+      createdAt = Number.isNaN(stamp.getTime()) ? new Date().toISOString() : stamp.toISOString();
+    }else{
+      createdAt = new Date().toISOString();
+    }
+    const id = baseId || `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    return {
+      id,
+      playerName,
+      characterName,
+      sessionId,
+      comment: textValue,
+      createdAt
+    };
+  };
+
+  const state = {
+    comments: [],
+    loading: false
+  };
+
+  const setComments = (entries)=>{
+    const seen = new Set();
+    const cleaned = [];
+    (entries || []).forEach((entry)=>{
+      const normalised = entry && entry.comment ? entry : normaliseComment(entry);
+      if(!normalised || !normalised.comment){
+        return;
+      }
+      if(seen.has(normalised.id)){
+        return;
+      }
+      seen.add(normalised.id);
+      cleaned.push(normalised);
+    });
+    state.comments = sortComments(cleaned);
+    return state.comments;
+  };
+
   const renderList = ()=>{
-    const comments = CommentsStore.read();
-    if(!comments.length){
-      list.innerHTML = '<p class="comment-empty">No comments yet. Use the form above to add one.</p>';
+    if(state.loading){
+      list.innerHTML = '<p class="comment-empty">Loading comments…</p>';
+      return;
+    }
+    if(!state.comments.length){
+      list.innerHTML = '<p class="comment-empty">No comments yet. Add the first note above.</p>';
       return;
     }
     list.innerHTML = '';
-    comments.forEach((entry, idx)=>{
+    state.comments.forEach((entry)=>{
+      if(!entry || !entry.comment) return;
       const item = document.createElement('div');
       item.className = 'comment-item';
+      item.dataset.pending = entry.pending ? 'true' : 'false';
 
       const copy = document.createElement('p');
-      copy.textContent = entry?.text || '';
+      copy.textContent = entry.comment;
       item.appendChild(copy);
 
+      if(entry.playerName || entry.characterName || entry.sessionId){
+        const meta = document.createElement('div');
+        meta.className = 'comment-meta';
+        if(entry.playerName){
+          const span = document.createElement('span');
+          span.textContent = `Player: ${entry.playerName}`;
+          meta.appendChild(span);
+        }
+        if(entry.characterName){
+          const span = document.createElement('span');
+          span.textContent = `Character: ${entry.characterName}`;
+          meta.appendChild(span);
+        }
+        if(entry.sessionId){
+          const span = document.createElement('span');
+          span.textContent = `Session: ${entry.sessionId}`;
+          meta.appendChild(span);
+        }
+        item.appendChild(meta);
+      }
+
       const stamp = document.createElement('time');
-      const iso = entry?.stamp || new Date().toISOString();
-      stamp.dateTime = iso;
-      stamp.textContent = formatStamp(iso);
+      stamp.dateTime = entry.createdAt;
+      stamp.textContent = formatStamp(entry.createdAt);
       item.appendChild(stamp);
 
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'danger';
-      remove.textContent = 'Delete';
-      remove.addEventListener('click', ()=>{
-        const fresh = CommentsStore.read().filter((_,i)=>i!==idx);
-        CommentsStore.write(fresh);
-        renderList();
-        announce('Comment deleted.', 'info');
-      });
+      if(entry.pending){
+        remove.textContent = 'Posting…';
+        remove.disabled = true;
+      }else{
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', ()=>{
+          void handleDelete(entry);
+        });
+      }
       item.appendChild(remove);
 
       list.appendChild(item);
     });
   };
 
-  form.addEventListener('submit', (event)=>{
-    event.preventDefault();
-    const text = (textarea.value||'').trim();
-    if(!text) return;
-    const comments = CommentsStore.read();
-    comments.push({ text, stamp:new Date().toISOString() });
-    CommentsStore.write(comments);
-    textarea.value = '';
+  const fetchComments = async ({ silent = false } = {})=>{
+    state.loading = true;
     renderList();
-    announce('Saved to this device.', 'success');
+    try{
+      const payload = await apiFetch('/api/comments', { headers:{ Accept:'application/json' } });
+      const rows = Array.isArray(payload?.comments) ? payload.comments : [];
+      setComments(rows.map(normaliseComment).filter(Boolean));
+      if(!silent){
+        announce('Comments updated.', 'info');
+      }
+    }catch(err){
+      if(!silent){
+        announce(err && err.message ? err.message : 'Failed to load comments.', 'error');
+      }
+      throw err;
+    }finally{
+      state.loading = false;
+      renderList();
+    }
+  };
+
+  const handleDelete = async (entry)=>{
+    if(!entry || !entry.id) return;
+    const ok = (typeof confirm === 'function') ? confirm('Delete this comment?') : true;
+    if(!ok) return;
+    const previous = state.comments.slice();
+    setComments(previous.filter((item)=> item.id !== entry.id));
+    renderList();
+    announce('Removing comment…', 'info');
+    try{
+      await apiFetch(`/api/comments/${encodeURIComponent(entry.id)}`, { method:'DELETE' });
+      announce('Comment deleted.', 'info');
+    }catch(err){
+      setComments(previous);
+      renderList();
+      announce(err && err.message ? err.message : 'Failed to delete comment.', 'error');
+    }
+  };
+
+  form.addEventListener('submit', async (event)=>{
+    event.preventDefault();
+    const textValue = (textarea.value || '').trim();
+    if(!textValue){
+      announce('Comment text is required.', 'error');
+      return;
+    }
+
+    const playerName = playerInput ? sanitizeOptional(playerInput.value) : '';
+    const characterName = characterInput ? sanitizeOptional(characterInput.value) : '';
+    const sessionId = sessionInput ? sanitizeOptional(sessionInput.value) : '';
+
+    const previous = state.comments.slice();
+    const optimistic = {
+      id: `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      playerName,
+      characterName,
+      sessionId,
+      comment: textValue,
+      createdAt: new Date().toISOString(),
+      pending: true
+    };
+
+    setComments([optimistic, ...previous]);
+    renderList();
+    announce('Posting comment…', 'info');
+    if(submitButton){
+      submitButton.disabled = true;
+    }
+
+    try{
+      const response = await apiFetch('/api/comments', {
+        method:'POST',
+        body: JSON.stringify({
+          playerName,
+          characterName,
+          sessionId,
+          comment: textValue
+        })
+      });
+      const saved = normaliseComment(response && response.comment);
+      if(!saved){
+        throw new Error('Invalid response from datastore.');
+      }
+      setComments([saved, ...previous]);
+      renderList();
+      if(textarea){ textarea.value = ''; }
+      if(playerInput){ playerInput.value = ''; }
+      if(characterInput){ characterInput.value = ''; }
+      if(sessionInput){ sessionInput.value = ''; }
+      announce('Comment posted!', 'success');
+    }catch(err){
+      setComments(previous);
+      renderList();
+      if(err && err.message){
+        announce(err.message, 'error');
+      }else{
+        announce('Failed to post comment.', 'error');
+      }
+    }finally{
+      if(submitButton){
+        submitButton.disabled = false;
+      }
+    }
   });
 
-  if(clearBtn){
-    clearBtn.addEventListener('click', (event)=>{
+  if(refreshBtn){
+    refreshBtn.addEventListener('click', (event)=>{
       event.preventDefault();
-      const ok = (typeof confirm === 'function') ? confirm('Clear all comments saved on this device?') : true;
-      if(ok){
-        CommentsStore.write([]);
-        renderList();
-        announce('All comments cleared.', 'info');
-      }
+      fetchComments().catch((err)=>{
+        if(err && err.message){
+          announce(err.message, 'error');
+        }else{
+          announce('Failed to refresh comments.', 'error');
+        }
+      });
     });
   }
 
   renderList();
+  fetchComments({ silent: true }).catch((err)=>{
+    if(err && err.message){
+      announce(err.message, 'error');
+    }else{
+      announce('Unable to load comments.', 'error');
+    }
+  });
 }
 
 async function hydrateQuestBoard(root=document){
@@ -2316,12 +2517,26 @@ Grand Oracle Trial: January 1</strong></p>
 
 <section class="comment-board" id="commentBoard">
   <h3>Comments &amp; Notes</h3>
-  <p class="muted">Jot reminders or questions for yourself here. Entries stay on this device; a shared database is needed for group-wide comments.</p>
+  <p class="muted">Jot reminders or questions for the group. Comments sync through the Oracle Archives so everyone stays in the loop.</p>
   <form id="commentForm" class="comment-form">
+    <div class="comment-form-grid">
+      <div class="form-field">
+        <label for="commentPlayer">Player name (optional)</label>
+        <input id="commentPlayer" name="commentPlayer" autocomplete="off" placeholder="e.g., Tamsin Rowe" />
+      </div>
+      <div class="form-field">
+        <label for="commentCharacter">Character name (optional)</label>
+        <input id="commentCharacter" name="commentCharacter" autocomplete="off" placeholder="e.g., Althea the Clever" />
+      </div>
+      <div class="form-field">
+        <label for="commentSession">Session ID (optional)</label>
+        <input id="commentSession" name="commentSession" autocomplete="off" placeholder="e.g., s3 or finale" />
+      </div>
+    </div>
     <label for="commentText">Add a comment</label>
     <textarea id="commentText" name="commentText" placeholder="Thanks for the invite! I'll bring cocoa." aria-label="Comment text"></textarea>
     <div class="comment-actions">
-      <button type="button" id="clearComments" class="danger">Clear All</button>
+      <button type="button" id="refreshComments" class="secondary">Refresh</button>
       <button type="submit" class="primary">Post Comment</button>
     </div>
     <p id="commentStatus" class="comment-status" aria-live="polite" role="status" hidden></p>
