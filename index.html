@@ -21,10 +21,15 @@
   body{
     margin:0;
     font-family:'Roboto Serif',serif;
-    background:var(--bg) url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEhUTExMWFhUXGR4bGBgYHRsdHx8eHyAdHh8aHh8fHSggGBolHR8fITEhJSkrLi4uHR8zODMsNygtLisBCgoKDg0OGxAQGy0lICYrLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKMBNgMBIgACEQEDEQH/xAAcAAEAAgMBAQEAAAAAAAAAAAAABgcEBQIDCAP/xABBEAABAwICBgQDBgUDAgcAAAABAAIRAyEEEjEFQVEGEyJhcYEykaGxFCNCUrHB0fAVM1Ji8SQzQ2KC0vE0gpL/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAQMEAgX/xAArEQEBAAIBAwMDBQEAAAAAAAAAAQIRAyExBBJBURMiYXGB8BRRgaHB/9oADAMBAAIRAxEAPwDjKj0ZyVwzgsce3f5Xj0Rz1qKwXfRrEpjSQhDCnKtISX0reFUZRlfKk9hz6eXWhSTSw1K4tTGCmWiMtgRCRSl6H6i4m6lGu9YxkXc6IuzAblYbmAIET8jAzWv6hV9zC7n5ykhZJdkNLE7wEQN2HB9y9Kt00G02JmWGlWRBBGCBuVU9yVBOVSSOCcnHsTQb6V5JNWkcK3Lo+Q4a+qMtY1OjgRql8UVK6C+9oCCGyY6IB+leU+XSGHbRfscR0/djj3GJrb7oF0zV1bWylpE2ptxDkNEcDqD9P6VVrHCe03mjqaiLWWsF13rM4yDhjby4KeQfuVdPwKcWo7qXtNe5LNm0lQysoKqp1OcL1KXn86euqdRcuVWJ7hIfEWG4yFbSKpXPBVX52Ukfc0fVxD5cz6V8pVkgAVACqB5B2AGcfI/wA9KyjRGRq8Gxmv8AjOox2taeT8M1ieo9zO+nEmo4r0e7SDuLohgqUUDKSVx3qe0g7vM7XTSM9SctIibBbqOaHTfU5AIVQ5qFqE48bUw6SvfTZLP1G55jbdMDxvl0ZBGp81TVRtWs1CC4uLjHE2y0olB9ozvbxO+v1qzfjVtxhIplpbp4cfX6HNEqkcjaFhiBFiWIEViVjx5fU8T0rbxXEanFdrCeXAUv40cH0I9/SvNrVfX9vE8P8A8bX2FbV1c+5H/9k=') repeat;
     color:var(--ink);
     line-height:1.6;
-    background-size:cover;
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(circle at 18% 22%, rgba(255,245,212,0.7), rgba(255,245,212,0)),
+      radial-gradient(circle at 82% 12%, rgba(244,228,186,0.6), rgba(244,228,186,0)),
+      linear-gradient(135deg, rgba(179,139,70,0.16), rgba(179,139,70,0.04));
+    background-size:420px 420px, 520px 520px, cover;
+    background-repeat:no-repeat;
     background-attachment:fixed;
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -135,8 +140,74 @@
   button:active{ transform:translateY(1px); }
   .primary{ background:#d9c38b; }
   .danger{ background:#e7b0a9; }
-  .stepbtn{ width:100%; text-align:left; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; }
-  .stepbtn.active{ outline:2px solid rgba(179,139,70,.35); }
+
+  .steps-rail{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding:4px 0;
+    scroll-snap-type:x mandatory;
+  }
+  .steps-rail::-webkit-scrollbar{ display:none; }
+
+  .stepbtn{
+    display:flex;
+    align-items:center;
+    gap:0.75rem;
+    padding:0.6rem 0.9rem;
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:#efe7c8;
+    min-height:52px;
+    min-width:150px;
+    cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
+    transition:background .2s, box-shadow .2s, transform .2s;
+    scroll-snap-align:start;
+    text-align:left;
+  }
+
+  .stepbtn .step-number{
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    background:#d9c38b;
+    color:#4b381f;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .stepbtn .step-label{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    font-weight:600;
+    line-height:1.2;
+  }
+
+  .stepbtn .step-label small{
+    font-size:.82rem;
+    color:var(--muted);
+    font-weight:500;
+  }
+
+  .stepbtn.active{
+    outline:2px solid rgba(179,139,70,.35);
+    background:linear-gradient(180deg, #fff8df, #f4e8bf);
+    box-shadow:0 2px 8px rgba(179,139,70,0.25);
+  }
+
+  .stepbtn:not(.active):hover{
+    background:#f9efd3;
+  }
+
+  .stepbtn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
     /* =============== MOBILE PATCH =============== */
@@ -166,22 +237,14 @@
   }
   .nav-content{ margin-top: 10px; gap: 12px; }
   .nav.collapsed{ padding-bottom: .75rem; }
-  .nav .stepbtn{ padding: 10px; }
-  .nav .stepbtn{ font-size: 1rem; }
-
-  /* Turn step list into a 2-col pill grid for quicker taps */
-  #stepNav{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
-    gap: 8px;
-    justify-items: stretch;
+  .steps-rail{
+    padding-bottom:6px;
   }
 
   /* Buttons: bigger tap targets */
   button{
     padding: 12px 14px;
     min-height: 44px;
-    width: 100%;
   }
   .controls{ flex-direction: column; gap: 8px; }
   .controls .left, .controls .right{ width: 100%; gap: 8px; }
@@ -350,27 +413,9 @@ input, select, textarea {
 
 /* === Step nav spacing & readability === */
 .nav { padding: 14px; }
-#stepNav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;               /* more space between buttons */
-}
-.stepbtn{
-  padding: 12px 14px;      /* larger tap target */
-  border-radius: 10px;
-  line-height: 1.1;
-  font-weight: 600;
-  box-shadow: 0 1px 0 rgba(0,0,0,.06) inset;
-}
-.stepbtn.active{
-  outline: 2px solid rgba(179,139,70,.35);
-  background: linear-gradient(180deg, #fff8df, #f4e8bf);
-}
-
-/* quick action buttons spacing */
-  .nav .callout { margin-top: 14px; }
-  .nav .callout .flex { gap: 8px; flex-wrap: wrap; }
-  .nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
+.nav .callout { margin-top: 14px; }
+.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+.nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
 
 
 button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
@@ -631,10 +676,6 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   white-space: nowrap;
 }
 
-/* Step buttons: a touch more breathing room */
-#stepNav { gap: 12px; }
-.stepbtn { padding: 12px 16px; }
-
     /* --- Arcane accordion --- */
 details.scroll-letter {
   border: 2px solid var(--border);
@@ -826,6 +867,14 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   flex-wrap:wrap;
 }
 .comment-actions button{ width:auto; }
+.comment-status{
+  margin-top:.25rem;
+  font-size:.9rem;
+  font-weight:600;
+}
+.comment-status[data-tone="success"]{ color:#1d7a46; }
+.comment-status[data-tone="info"]{ color:var(--muted); }
+.comment-status[data-tone="error"]{ color:#a13b3b; }
 .comment-list{
   margin-top:1rem;
   display:flex;
@@ -900,13 +949,13 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     </div>
     <main id="app-root">
   <div class="wizard">
-    <nav class="nav">
+    <nav class="nav" aria-label="Character builder steps">
       <div class="nav-header">
         <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
         <button id="navToggle" class="nav-toggle" type="button" aria-expanded="true" aria-controls="navContent">✖ Hide Steps</button>
       </div>
       <div id="navContent" class="nav-content">
-        <div id="stepNav"></div>
+        <div id="stepNav" class="steps-rail" role="tablist" aria-label="Character builder steps"></div>
 
         <div class="card quick-actions">
           <div class="kicker">Quick actions</div>
@@ -1755,7 +1804,23 @@ function setupCommentBoard(root){
   const textarea = root.querySelector('#commentText');
   const list = root.querySelector('#commentList');
   const clearBtn = root.querySelector('#clearComments');
+  const status = root.querySelector('#commentStatus');
   if(!form || !textarea || !list) return;
+
+  let statusTimer = 0;
+
+  const announce = (message, tone='success')=>{
+    if(!status) return;
+    try{ window.clearTimeout(statusTimer); }catch{}
+    status.textContent = message;
+    status.dataset.tone = tone;
+    status.hidden = false;
+    statusTimer = window.setTimeout(()=>{ status.hidden = true; }, 3200);
+  };
+
+  if(status){
+    status.hidden = true;
+  }
 
   const formatStamp = (iso)=>{
     try{
@@ -1798,6 +1863,7 @@ function setupCommentBoard(root){
         const fresh = CommentsStore.read().filter((_,i)=>i!==idx);
         CommentsStore.write(fresh);
         renderList();
+        announce('Comment deleted.', 'info');
       });
       item.appendChild(remove);
 
@@ -1814,6 +1880,7 @@ function setupCommentBoard(root){
     CommentsStore.write(comments);
     textarea.value = '';
     renderList();
+    announce('Saved to this device.', 'success');
   });
 
   if(clearBtn){
@@ -1823,6 +1890,7 @@ function setupCommentBoard(root){
       if(ok){
         CommentsStore.write([]);
         renderList();
+        announce('All comments cleared.', 'info');
       }
     });
   }
@@ -1953,14 +2021,14 @@ function downloadAvailabilityCSV() {
      STEPS
   ======================= */
 const STEPS = [
-  {key:'intro',      label:'1) Welcome'},
-  {key:'sessions', label:'2) Availability'},
-  {key:'core',       label:'3) Core 5e Setup'},
-  {key:'university', label:'4) University & Feat'},
-  {key:'extras',     label:'5) Job & Extracurriculars'},
-  {key:'personality',label:'6) Personality & Prompt'},
-  {key:'join',       label:'7) Join a Session'},          // NEW step
-  {key:'summary',    label:'8) Summary & Export'}
+  {key:'intro',       title:'Welcome',                hint:'Overview & updates'},
+  {key:'sessions',    title:'Availability',           hint:'Mark who can attend'},
+  {key:'core',        title:'Core 5e Setup',          hint:'Stats, species, class'},
+  {key:'university',  title:'University & Feat',      hint:'Select your college'},
+  {key:'extras',      title:'Job & Extracurriculars', hint:'Schedule & flavour'},
+  {key:'personality', title:'Personality & Prompt',   hint:'Backstory beats'},
+  {key:'join',        title:'Join a Session',         hint:'Reserve a seat'},
+  {key:'summary',     title:'Summary & Export',       hint:'Share or download'}
 ];
 
 
@@ -1983,15 +2051,47 @@ const STEPS = [
     }
 
     if(nav){
+      const previousScroll = nav.scrollLeft;
       nav.innerHTML = '';
+      nav.setAttribute('role', 'tablist');
+      nav.setAttribute('aria-label', 'Character builder steps');
       if(!navCollapsed){
+        let activeButton = null;
         STEPS.forEach((s,idx)=>{
-          const b=document.createElement('button');
-          b.className='stepbtn'+(idx===currentStep?' active':'');
-          b.textContent=s.label;
-          b.onclick=()=>{currentStep=idx; renderPanels(); renderNav();};
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'stepbtn' + (idx===currentStep ? ' active' : '');
+          b.dataset.step = s.key;
+          b.dataset.index = String(idx);
+          b.setAttribute('role', 'tab');
+          b.setAttribute('aria-label', `Step ${idx+1}: ${s.title}`);
+          b.setAttribute('aria-selected', idx===currentStep ? 'true' : 'false');
+          if(idx===currentStep){
+            b.setAttribute('aria-current', 'step');
+          }
+          const hint = s.hint ? `<small>${escapeHTML(s.hint)}</small>` : '';
+          b.innerHTML = `
+            <span class="step-number">${idx+1}</span>
+            <span class="step-label"><span>${escapeHTML(s.title)}</span>${hint}</span>
+          `;
+          b.addEventListener('click', ()=>{
+            currentStep = idx;
+            renderPanels();
+            renderNav();
+          });
+          if(idx===currentStep){
+            activeButton = b;
+          }
           nav.appendChild(b);
         });
+        nav.scrollLeft = previousScroll;
+        if(activeButton && nav.scrollWidth > nav.clientWidth + 8){
+          try{
+            activeButton.scrollIntoView({block:'nearest', inline:'center', behavior: previousScroll === 0 ? 'auto' : 'smooth'});
+          }catch{
+            /* older browsers */
+          }
+        }
       }
     }
     const badge=document.getElementById('cfgBadge');
@@ -2197,6 +2297,7 @@ Grand Oracle Trial: January 1</strong></p>
       <button type="button" id="clearComments" class="danger">Clear All</button>
       <button type="submit" class="primary">Post Comment</button>
     </div>
+    <p id="commentStatus" class="comment-status" aria-live="polite" role="status" hidden></p>
   </form>
   <div id="commentList" class="comment-list" aria-live="polite"></div>
 </section>
