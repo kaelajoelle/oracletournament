@@ -25,11 +25,17 @@
     line-height:1.6;
     background-color:var(--bg);
     background-image:
-      radial-gradient(circle at 18% 22%, rgba(255,245,212,0.7), rgba(255,245,212,0)),
-      radial-gradient(circle at 82% 12%, rgba(244,228,186,0.6), rgba(244,228,186,0)),
-      linear-gradient(135deg, rgba(179,139,70,0.16), rgba(179,139,70,0.04));
-    background-size:420px 420px, 520px 520px, cover;
-    background-repeat:no-repeat;
+      radial-gradient(circle at 18% 22%, rgba(255,245,212,0.72), rgba(255,245,212,0)),
+      radial-gradient(circle at 82% 16%, rgba(242,226,188,0.62), rgba(242,226,188,0)),
+      linear-gradient(135deg, rgba(179,139,70,0.18), rgba(179,139,70,0.05)),
+      repeating-linear-gradient(115deg,
+        rgba(112,86,48,0.08) 0px,
+        rgba(112,86,48,0.08) 2px,
+        rgba(248,242,223,0.08) 2px,
+        rgba(248,242,223,0.08) 6px
+      );
+    background-size:420px 420px, 520px 520px, cover, 14px 14px;
+    background-repeat:no-repeat, no-repeat, no-repeat, repeat;
     background-attachment:fixed;
     padding-bottom: env(safe-area-inset-bottom);
   }
@@ -215,7 +221,7 @@
   /* Background: avoid jank on mobile */
   body{
     background-attachment: scroll;
-    background-size: cover;
+    background-size:360px 360px, 440px 440px, cover, 16px 16px;
   }
 
   /* Stack layout */
