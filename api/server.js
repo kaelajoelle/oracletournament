@@ -14,10 +14,7 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'oracle_state';
 const SUPABASE_ROW_ID = process.env.SUPABASE_ROW_ID || 'shared';
-
-const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const SUPABASE_STORAGE_MODE = (process.env.SUPABASE_STORAGE_MODE || 'json').toLowerCase();
-const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
 
 const ROSTER_META_HIDDEN_SENTINEL = '__hidden__::';
 let supabaseMetaSupportsHidden = true;
@@ -29,14 +26,14 @@ const SUPABASE_ROSTER_META_TABLE = process.env.SUPABASE_ROSTER_META_TABLE || 'ro
 const SUPABASE_AVAILABILITY_TABLE = process.env.SUPABASE_AVAILABILITY_TABLE || 'availability';
 const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
 
-const SUPABASE_STATE_REST_URL = hasSupabase
-  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${SUPABASE_TABLE}`
-  : null;
+const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
+
 const SUPABASE_REST_BASE = hasSupabase
   ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
   : null;
 const SUPABASE_REST_URL = hasSupabase
-  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${SUPABASE_TABLE}`
+  ? `${SUPABASE_REST_BASE}/${SUPABASE_TABLE}`
   : null;
 
 const AVAIL_DATES = [
@@ -72,7 +69,8 @@ function sanitizeName(value){
 }
 
 function sanitizeOptional(value){
-  return String(value ?? '').trim();
+  const trimmed = String(value ?? '').trim();
+  return trimmed || '';
 }
 
 function rosterKey(name){
@@ -554,18 +552,18 @@ async function saveStateToSupabaseTables(state, context = {}){
       case 'leaveSession': {
         const sessionId = sanitizeOptional(context.sessionId);
         const key = sanitizeName(context.buildKey || context.playerName);
-        if(!sessionId || !key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        const filters = [`session_id=eq.${encodeURIComponent(sessionId)}`, `player_key=eq.${encodeURIComponent(key)}`].join('&');
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?${filters}`, {
-          method: 'DELETE'
-        });
-        if(context.removeBuildCard){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
+        if(sessionId && key){
+          const filters = [`session_id=eq.${encodeURIComponent(sessionId)}`, `player_key=eq.${encodeURIComponent(key)}`].join('&');
+          await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?${filters}`, {
             method: 'DELETE'
           });
+          if(context.removeBuildCard){
+            await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
+              method: 'DELETE'
+            });
+          }
+        } else {
+          await replaceSupabaseTablesState(state);
         }
         break;
       }
@@ -626,8 +624,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
-        if(context.status || context.notes || context.hidden){
-          const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
+        if(context.status || context.notes){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
               player_key: key,
@@ -690,14 +687,17 @@ async function saveStateToSupabaseTables(state, context = {}){
 
 async function replaceSupabaseTablesState(state){
   const sessions = Array.isArray(state.sessions) ? state.sessions : [];
+  await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?id=not.is.null`, {
+    method: 'DELETE'
+  });
   if(sessions.length > 0){
     const sessionRows = sessions.map((session)=>({
       id: sanitizeOptional(session.id),
-      title: sanitizeOptional(session.title),
-      dm: sanitizeOptional(session.dm),
-      date: sanitizeOptional(session.date),
+      title: sanitizeOptional(session.title) || null,
+      dm: sanitizeOptional(session.dm) || null,
+      date: sanitizeOptional(session.date) || null,
       capacity: Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : null,
-      finale: Boolean(session.finale)
+      finale: session.finale != null ? Boolean(session.finale) : null
     }));
     await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}`, {
       body: sessionRows,
@@ -1144,3 +1144,6 @@ if(require.main === module){
 }
 
 module.exports = app;
+module.exports.DEFAULT_STATE = DEFAULT_STATE;
+module.exports.normaliseState = normaliseState;
+module.exports.replaceSupabaseTablesState = replaceSupabaseTablesState;

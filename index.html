@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Welcome To The Oracle Trials</title>
 
+  <!-- Optional runtime configuration -->
+  <script src="./site/app-config.js" data-origin="app-config"></script>
+
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
 
@@ -18,17 +21,23 @@
   body{
     margin:0;
     font-family:'Roboto Serif',serif;
-    background:var(--bg) url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wCEAAkGBxMSEhUTExMWFhUXGR4bGBgYHRsdHx8eHyAdHh8aHh8fHSggGBolHR8fITEhJSkrLi4uHR8zODMsNygtLisBCgoKDg0OGxAQGy0lICYrLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLS0tLf/AABEIAKMBNgMBIgACEQEDEQH/xAAcAAEAAgMBAQEAAAAAAAAAAAAABgcEBQIDCAP/xABBEAABAwICBgQDBgUDAgcAAAABAAIRAyEEEjEFQVEGEyJhcYEykaGxFCNCUrHB0fAVM1Ji8SQzQ2KC0vE0gpL/xAAZAQEAAwEBAAAAAAAAAAAAAAAAAQMEAgX/xAArEQEBAAIBAwMDBQEAAAAAAAAAAQIRAyExBBJBURMiYXGB8BRRgaHB/9oADAMBAAIRAxEAPwDjKj0ZyVwzgsce3f5Xj0Rz1qKwXfRrEpjSQhDCnKtISX0reFUZRlfKk9hz6eXWhSTSw1K4tTGCmWiMtgRCRSl6H6i4m6lGu9YxkXc6IuzAblYbmAIET8jAzWv6hV9zC7n5ykhZJdkNLE7wEQN2HB9y9Kt00G02JmWGlWRBBGCBuVU9yVBOVSSOCcnHsTQb6V5JNWkcK3Lo+Q4a+qMtY1OjgRql8UVK6C+9oCCGyY6IB+leU+XSGHbRfscR0/djj3GJrb7oF0zV1bWylpE2ptxDkNEcDqD9P6VVrHCe03mjqaiLWWsF13rM4yDhjby4KeQfuVdPwKcWo7qXtNe5LNm0lQysoKqp1OcL1KXn86euqdRcuVWJ7hIfEWG4yFbSKpXPBVX52Ukfc0fVxD5cz6V8pVkgAVACqB5B2AGcfI/wA9KyjRGRq8Gxmv8AjOox2taeT8M1ieo9zO+nEmo4r0e7SDuLohgqUUDKSVx3qe0g7vM7XTSM9SctIibBbqOaHTfU5AIVQ5qFqE48bUw6SvfTZLP1G55jbdMDxvl0ZBGp81TVRtWs1CC4uLjHE2y0olB9ozvbxO+v1qzfjVtxhIplpbp4cfX6HNEqkcjaFhiBFiWIEViVjx5fU8T0rbxXEanFdrCeXAUv40cH0I9/SvNrVfX9vE8P8A8bX2FbV1c+5H/9k=') repeat;
     color:var(--ink);
     line-height:1.6;
-    background-size:cover;
+    background-color:var(--bg);
+    background-image:
+      radial-gradient(circle at 18% 22%, rgba(255,245,212,0.7), rgba(255,245,212,0)),
+      radial-gradient(circle at 82% 12%, rgba(244,228,186,0.6), rgba(244,228,186,0)),
+      linear-gradient(135deg, rgba(179,139,70,0.16), rgba(179,139,70,0.04));
+    background-size:420px 420px, 520px 520px, cover;
+    background-repeat:no-repeat;
     background-attachment:fixed;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-    /* Main Font Sizes */
-    body, p, label, input, select, textarea, button {
+  /* Main Font Sizes */
+  body, p, label, input, select, textarea, button {
     font-family: 'Roboto Serif';
-    font-size: 1.2rem; /* try 1.1rem or 1.2rem if you want it bigger */
+    font-size: clamp(1rem, 2.3vw, 1.2rem);
     line-height: 1.5;
   }
     
@@ -38,15 +47,22 @@
 
   header{
     text-align:center;
-    padding:2rem 1rem 1rem;
+    padding:1.2rem 1rem 1rem;
     border-bottom:2px solid var(--border);
     background:rgba(248,242,223,.9);
     font-family:'IM Fell English SC',serif;
-    font-size: 1.5rem;
   }
 
-  h1{ font-size:2rem; margin:.2rem 0 .3rem; color:var(--ink); }
-  .subtitle{ color:var(--muted); font-size:1.5rem; font-style:italic; }
+  h1{
+    font-size:clamp(1.5rem, 7vw, 2.2rem);
+    margin:.2rem 0 .3rem;
+    color:var(--ink);
+  }
+  .subtitle{
+    color:var(--muted);
+    font-size:clamp(1.2rem, 4vw, 1.3rem);
+    font-style:italic;
+  }
 
   .disclaimer{
     max-width:900px; margin:1rem auto; background:var(--panel);
@@ -114,10 +130,84 @@
   .pill{ display:inline-flex; gap:8px; align-items:center; border:1px solid var(--border); padding:6px 10px; border-radius:999px; background:#efe7c8; }
   .controls{ display:flex; justify-content:space-between; margin-top:12px; }
   button{ padding:10px 14px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; cursor:pointer; }
+  button:focus,
+  button:focus-visible,
+  button:active{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+    box-shadow:0 0 4px rgba(179,139,70,.45) inset;
+  }
+  button:active{ transform:translateY(1px); }
   .primary{ background:#d9c38b; }
   .danger{ background:#e7b0a9; }
-  .stepbtn{ width:100%; text-align:left; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:#efe7c8; }
-  .stepbtn.active{ outline:2px solid rgba(179,139,70,.35); }
+
+  .steps-rail{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding:4px 0;
+    scroll-snap-type:x mandatory;
+  }
+  .steps-rail::-webkit-scrollbar{ display:none; }
+
+  .stepbtn{
+    display:flex;
+    align-items:center;
+    gap:0.75rem;
+    padding:0.6rem 0.9rem;
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:#efe7c8;
+    min-height:52px;
+    min-width:150px;
+    cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
+    transition:background .2s, box-shadow .2s, transform .2s;
+    scroll-snap-align:start;
+    text-align:left;
+  }
+
+  .stepbtn .step-number{
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    background:#d9c38b;
+    color:#4b381f;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .stepbtn .step-label{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    font-weight:600;
+    line-height:1.2;
+  }
+
+  .stepbtn .step-label small{
+    font-size:.82rem;
+    color:var(--muted);
+    font-weight:500;
+  }
+
+  .stepbtn.active{
+    outline:2px solid rgba(179,139,70,.35);
+    background:linear-gradient(180deg, #fff8df, #f4e8bf);
+    box-shadow:0 2px 8px rgba(179,139,70,0.25);
+  }
+
+  .stepbtn:not(.active):hover{
+    background:#f9efd3;
+  }
+
+  .stepbtn:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:3px;
+  }
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
     /* =============== MOBILE PATCH =============== */
@@ -125,12 +215,8 @@
   /* Background: avoid jank on mobile */
   body{
     background-attachment: scroll;
-    background-size: 120% auto;
+    background-size: cover;
   }
-
-  header{ padding: 1rem .75rem .75rem; }
-  h1{ font-size: 1.3rem; }
-  .subtitle{ font-size: 1.2rem; }
 
   /* Stack layout */
   .wizard{
@@ -151,22 +237,14 @@
   }
   .nav-content{ margin-top: 10px; gap: 12px; }
   .nav.collapsed{ padding-bottom: .75rem; }
-  .nav .stepbtn{ padding: 10px; }
-  .nav .stepbtn{ font-size: 1rem; }
-
-  /* Turn step list into a 2-col pill grid for quicker taps */
-  #stepNav{
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px,1fr));
-    gap: 8px;
-    justify-items: stretch;
+  .steps-rail{
+    padding-bottom:6px;
   }
 
   /* Buttons: bigger tap targets */
   button{
     padding: 12px 14px;
     min-height: 44px;
-    width: 100%;
   }
   .controls{ flex-direction: column; gap: 8px; }
   .controls .left, .controls .right{ width: 100%; gap: 8px; }
@@ -228,13 +306,12 @@
   .muted{ font-size: .8rem; }
 }
 
+@media (max-width: 600px){
+  .wizard{ margin-top:.5rem; }
+}
+
 @media (max-width: 900px){
-  body, p, label, input, select, textarea, button{
-    font-size: clamp(1rem, 3.6vw, 1.1rem);
-  }
-  header{ padding: .85rem .6rem .6rem; }
-  h1{ font-size: clamp(1.6rem, 7vw, 2rem); }
-  .subtitle{ font-size: clamp(1.1rem, 4.8vw, 1.35rem); }
+  header{ padding: clamp(.85rem, 4vw, 1rem); }
   .wizard{ padding: clamp(.5rem, 4vw, .75rem); }
   .nav{ padding: .65rem; }
   .nav-toggle{ font-size: 1rem; padding: 10px; }
@@ -248,6 +325,11 @@
   details.news-item > summary{ gap:.5rem; }
   .comment-actions{ justify-content:stretch; }
   .comment-actions button{ flex:1 1 140px; }
+  .table.avail th:first-child, .table.avail td:first-child, .avail-name{ min-width: 140px; }
+  .roster-form-grid{ grid-template-columns: minmax(0,1fr); }
+  .form-actions{ flex-direction: column-reverse; align-items: stretch; }
+  .form-actions .primary{ width: 100%; }
+  .form-actions .link-button{ align-self: center; }
 }
 
 /* Wrap any wide table in this to get the scroll behavior */
@@ -331,27 +413,9 @@ input, select, textarea {
 
 /* === Step nav spacing & readability === */
 .nav { padding: 14px; }
-#stepNav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;               /* more space between buttons */
-}
-.stepbtn{
-  padding: 12px 14px;      /* larger tap target */
-  border-radius: 10px;
-  line-height: 1.1;
-  font-weight: 600;
-  box-shadow: 0 1px 0 rgba(0,0,0,.06) inset;
-}
-.stepbtn.active{
-  outline: 2px solid rgba(179,139,70,.35);
-  background: linear-gradient(180deg, #fff8df, #f4e8bf);
-}
-
-/* quick action buttons spacing */
-  .nav .callout { margin-top: 14px; }
-  .nav .callout .flex { gap: 8px; flex-wrap: wrap; }
-  .nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
+.nav .callout { margin-top: 14px; }
+.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
+.nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
 
 
 button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
@@ -399,40 +463,51 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   gap: 10px;
 }
 
-.removed-roster {
-  margin-top: 14px;
-  display: none;
-}
-
-.removed-roster.active {
-  display: block;
-}
-
-.removed-roster h3 {
-  margin: 0 0 8px;
-}
-
-.removed-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.removed-list li {
-  display: flex;
-  justify-content: space-between;
+.status-pill,
+.note-pill {
+  display: inline-flex;
   align-items: center;
-  padding: 8px 10px;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  background: rgba(248, 242, 223, 0.75);
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 600;
+  margin-right: 6px;
 }
 
-.removed-list .muted {
-  margin: 0;
+.status-pill {
+  background: #f0f3f8;
+  color: var(--ink);
+}
+
+.status-pill.status-yes {
+  background: #e6f8ed;
+  color: #1d7a46;
+}
+
+.status-pill.status-no {
+  background: #fbeee3;
+  color: #b24a3a;
+}
+
+.status-pill.status-maybe {
+  background: #fffbe2;
+  color: #b07f10;
+}
+
+.status-pill.status-preferred {
+  background: #e8f1fa;
+  color: #2a6cb0;
+}
+
+.status-pill.status-default {
+  background: #ede9ff;
+  color: #5a4ab0;
+}
+
+.note-pill {
+  background: #f7f1da;
+  color: var(--muted);
+  font-weight: 500;
 }
 
 .link-button {
@@ -452,6 +527,73 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
 /* Optional: tighter first column */
 .table.avail th:first-child, .table.avail td:first-child {
   width: 160px;
+}
+
+.table.avail input[type="checkbox"] {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.table.avail tbody tr:hover td {
+  background: rgba(255, 250, 223, .8);
+}
+
+.roster-editor {
+  margin-top: 18px;
+}
+
+.roster-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.roster-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.roster-form-grid .form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.roster-form-grid .form-field-notes {
+  grid-column: 1 / -1;
+}
+
+#roster_notes {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.form-hint {
+  margin: 0;
+  font-size: .85rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  align-items: center;
+}
+
+.form-message {
+  font-size: .85rem;
+  font-weight: 600;
+}
+
+.form-message.success {
+  color: #1d7a46;
+}
+
+.form-message.error {
+  color: #b24a3a;
 }
 
     /* ---- Utility grids used in panels ---- */
@@ -533,10 +675,6 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   padding: 6px 8px;
   white-space: nowrap;
 }
-
-/* Step buttons: a touch more breathing room */
-#stepNav { gap: 12px; }
-.stepbtn { padding: 12px 16px; }
 
     /* --- Arcane accordion --- */
 details.scroll-letter {
@@ -729,6 +867,14 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   flex-wrap:wrap;
 }
 .comment-actions button{ width:auto; }
+.comment-status{
+  margin-top:.25rem;
+  font-size:.9rem;
+  font-weight:600;
+}
+.comment-status[data-tone="success"]{ color:#1d7a46; }
+.comment-status[data-tone="info"]{ color:var(--muted); }
+.comment-status[data-tone="error"]{ color:#a13b3b; }
 .comment-list{
   margin-top:1rem;
   display:flex;
@@ -803,13 +949,13 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     </div>
     <main id="app-root">
   <div class="wizard">
-    <nav class="nav">
+    <nav class="nav" aria-label="Character builder steps">
       <div class="nav-header">
         <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
         <button id="navToggle" class="nav-toggle" type="button" aria-expanded="true" aria-controls="navContent">✖ Hide Steps</button>
       </div>
       <div id="navContent" class="nav-content">
-        <div id="stepNav"></div>
+        <div id="stepNav" class="steps-rail" role="tablist" aria-label="Character builder steps"></div>
 
         <div class="card quick-actions">
           <div class="kicker">Quick actions</div>
@@ -838,7 +984,21 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     '2026-01-01'
   ];
 
-  const API_BASE = (window.APP_CONFIG && window.APP_CONFIG.apiBaseUrl) || '';
+  function resolveApiBase(){
+    const cfg = window.APP_CONFIG || {};
+    const configured = typeof cfg.apiBaseUrl === 'string' ? cfg.apiBaseUrl.trim() : '';
+    if(configured){
+      return configured;
+    }
+    const sameOrigin = (typeof window !== 'undefined' && window.location && window.location.origin)
+      ? `${window.location.origin.replace(/\/$/, '')}/api`
+      : '/api';
+    console.warn('[OracleTournament] window.APP_CONFIG.apiBaseUrl is not configured; defaulting to', sameOrigin);
+    window.APP_CONFIG = {...cfg, apiBaseUrl: sameOrigin};
+    return sameOrigin;
+  }
+
+  const API_BASE = resolveApiBase();
 
   const DEFAULT_SHARED_STATE = {
     sessions: [],
@@ -1054,6 +1214,13 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       NetworkStatus.end();
     }
   }
+
+  window.APP_UTILS = window.APP_UTILS || {};
+  window.APP_UTILS.testApiConnection = async function testApiConnection(){
+    const response = await apiFetch('/api/state', { headers:{ Accept:'application/json' } });
+    console.info('[OracleTournament] /api/state responded with:', response);
+    return response;
+  };
 
   const SharedState = {
     data: normaliseSharedState(DEFAULT_SHARED_STATE),
@@ -1664,7 +1831,23 @@ function setupCommentBoard(root){
   const textarea = root.querySelector('#commentText');
   const list = root.querySelector('#commentList');
   const clearBtn = root.querySelector('#clearComments');
+  const status = root.querySelector('#commentStatus');
   if(!form || !textarea || !list) return;
+
+  let statusTimer = 0;
+
+  const announce = (message, tone='success')=>{
+    if(!status) return;
+    try{ window.clearTimeout(statusTimer); }catch{}
+    status.textContent = message;
+    status.dataset.tone = tone;
+    status.hidden = false;
+    statusTimer = window.setTimeout(()=>{ status.hidden = true; }, 3200);
+  };
+
+  if(status){
+    status.hidden = true;
+  }
 
   const formatStamp = (iso)=>{
     try{
@@ -1707,6 +1890,7 @@ function setupCommentBoard(root){
         const fresh = CommentsStore.read().filter((_,i)=>i!==idx);
         CommentsStore.write(fresh);
         renderList();
+        announce('Comment deleted.', 'info');
       });
       item.appendChild(remove);
 
@@ -1723,6 +1907,7 @@ function setupCommentBoard(root){
     CommentsStore.write(comments);
     textarea.value = '';
     renderList();
+    announce('Saved to this device.', 'success');
   });
 
   if(clearBtn){
@@ -1732,6 +1917,7 @@ function setupCommentBoard(root){
       if(ok){
         CommentsStore.write([]);
         renderList();
+        announce('All comments cleared.', 'info');
       }
     });
   }
@@ -1862,14 +2048,14 @@ function downloadAvailabilityCSV() {
      STEPS
   ======================= */
 const STEPS = [
-  {key:'intro',      label:'1) Welcome'},
-  {key:'sessions', label:'2) Availability'},
-  {key:'core',       label:'3) Core 5e Setup'},
-  {key:'university', label:'4) University & Feat'},
-  {key:'extras',     label:'5) Job & Extracurriculars'},
-  {key:'personality',label:'6) Personality & Prompt'},
-  {key:'join',       label:'7) Join a Session'},          // NEW step
-  {key:'summary',    label:'8) Summary & Export'}
+  {key:'intro',       title:'Welcome',                hint:'Overview & updates'},
+  {key:'sessions',    title:'Availability',           hint:'Mark who can attend'},
+  {key:'core',        title:'Core 5e Setup',          hint:'Stats, species, class'},
+  {key:'university',  title:'University & Feat',      hint:'Select your college'},
+  {key:'extras',      title:'Job & Extracurriculars', hint:'Schedule & flavour'},
+  {key:'personality', title:'Personality & Prompt',   hint:'Backstory beats'},
+  {key:'join',        title:'Join a Session',         hint:'Reserve a seat'},
+  {key:'summary',     title:'Summary & Export',       hint:'Share or download'}
 ];
 
 
@@ -1892,15 +2078,47 @@ const STEPS = [
     }
 
     if(nav){
+      const previousScroll = nav.scrollLeft;
       nav.innerHTML = '';
+      nav.setAttribute('role', 'tablist');
+      nav.setAttribute('aria-label', 'Character builder steps');
       if(!navCollapsed){
+        let activeButton = null;
         STEPS.forEach((s,idx)=>{
-          const b=document.createElement('button');
-          b.className='stepbtn'+(idx===currentStep?' active':'');
-          b.textContent=s.label;
-          b.onclick=()=>{currentStep=idx; renderPanels(); renderNav();};
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'stepbtn' + (idx===currentStep ? ' active' : '');
+          b.dataset.step = s.key;
+          b.dataset.index = String(idx);
+          b.setAttribute('role', 'tab');
+          b.setAttribute('aria-label', `Step ${idx+1}: ${s.title}`);
+          b.setAttribute('aria-selected', idx===currentStep ? 'true' : 'false');
+          if(idx===currentStep){
+            b.setAttribute('aria-current', 'step');
+          }
+          const hint = s.hint ? `<small>${escapeHTML(s.hint)}</small>` : '';
+          b.innerHTML = `
+            <span class="step-number">${idx+1}</span>
+            <span class="step-label"><span>${escapeHTML(s.title)}</span>${hint}</span>
+          `;
+          b.addEventListener('click', ()=>{
+            currentStep = idx;
+            renderPanels();
+            renderNav();
+          });
+          if(idx===currentStep){
+            activeButton = b;
+          }
           nav.appendChild(b);
         });
+        nav.scrollLeft = previousScroll;
+        if(activeButton && nav.scrollWidth > nav.clientWidth + 8){
+          try{
+            activeButton.scrollIntoView({block:'nearest', inline:'center', behavior: previousScroll === 0 ? 'auto' : 'smooth'});
+          }catch{
+            /* older browsers */
+          }
+        }
       }
     }
     const badge=document.getElementById('cfgBadge');
@@ -2106,6 +2324,7 @@ Grand Oracle Trial: January 1</strong></p>
       <button type="button" id="clearComments" class="danger">Clear All</button>
       <button type="submit" class="primary">Post Comment</button>
     </div>
+    <p id="commentStatus" class="comment-status" aria-live="polite" role="status" hidden></p>
   </form>
   <div id="commentList" class="comment-list" aria-live="polite"></div>
 </section>
@@ -2139,10 +2358,30 @@ function panelSessions(){
         Tick when someone is available. Changes sync to the shared datastore automatically (with an offline cache on this device).
       </div>
     </div>
-    <div class="card removed-roster" id="removed_roster">
-      <h3>Removed players</h3>
-      <p class="muted" id="removed_roster_empty">No players are hidden. Remove someone above to list them here.</p>
-      <ul class="removed-list" id="removed_roster_list"></ul>
+    <div class="card roster-editor" id="roster_editor" hidden>
+      <h3 id="roster_editor_title">Update roster</h3>
+      <form id="roster_form" class="roster-form">
+        <div class="roster-form-grid">
+          <div class="form-field">
+            <label for="roster_name">Name</label>
+            <input id="roster_name" name="name" autocomplete="off" placeholder="e.g., Tamsin Rowe" />
+          </div>
+          <div class="form-field">
+            <label for="roster_status">Status</label>
+            <input id="roster_status" name="status" autocomplete="off" placeholder="Yes / Maybe / No" />
+          </div>
+          <div class="form-field form-field-notes">
+            <label for="roster_notes">Notes</label>
+            <textarea id="roster_notes" name="notes" rows="2" placeholder="Add reminders or context"></textarea>
+          </div>
+        </div>
+        <p class="muted form-hint" id="roster_form_hint"></p>
+        <div class="form-message" id="roster_form_message" role="status" aria-live="polite" hidden></div>
+        <div class="form-actions">
+          <button type="button" class="link-button" id="roster_cancel">Cancel</button>
+          <button type="submit" class="primary" id="roster_submit">Save</button>
+        </div>
+      </form>
     </div>
     <div class="controls">
       <div class="left">
@@ -2157,48 +2396,101 @@ function panelSessions(){
   `;
 
   const rbody = p.querySelector('#roster_tbody');
-  const removedCard = p.querySelector('#removed_roster');
-  const removedList = p.querySelector('#removed_roster_list');
-  const removedEmpty = p.querySelector('#removed_roster_empty');
+  const tableScroll = p.querySelector('.table-scroll');
+  const rosterEditor = p.querySelector('#roster_editor');
+  const rosterForm = p.querySelector('#roster_form');
+  const rosterTitle = p.querySelector('#roster_editor_title');
+  const rosterNameInput = p.querySelector('#roster_name');
+  const rosterStatusInput = p.querySelector('#roster_status');
+  const rosterNotesInput = p.querySelector('#roster_notes');
+  const rosterHint = p.querySelector('#roster_form_hint');
+  const rosterMessage = p.querySelector('#roster_form_message');
+  const rosterCancel = p.querySelector('#roster_cancel');
+  const rosterSubmit = p.querySelector('#roster_submit');
 
-  function renderRemovedRoster(){
-    if(!removedCard || !removedList || !removedEmpty) return;
-    const hidden = getHiddenRosterEntries();
-    if(!hidden.length){
-      removedCard.classList.remove('active');
-      removedList.innerHTML = '';
-      removedEmpty.hidden = false;
+  let rosterEditorMode = null;
+  let rosterEditorEntry = null;
+
+  function showRosterMessage(text='', variant='info'){
+    rosterMessage.textContent = text;
+    rosterMessage.classList.remove('error','success');
+    if(!text){
+      rosterMessage.hidden = true;
       return;
     }
-    removedCard.classList.add('active');
-    removedEmpty.hidden = true;
-    removedList.innerHTML = hidden.map(entry => `
-      <li>
-        <div>
-          <strong>${escapeHTML(entry.name)}</strong>
-          ${entry.status ? `<div class="name-meta">Status: ${escapeHTML(entry.status)}</div>` : ''}
-          ${entry.notes ? `<div class="name-meta">${escapeHTML(entry.notes)}</div>` : ''}
-        </div>
-        <button type="button" class="link-button" data-restore="${entry.key}" data-name="${escapeAttr(entry.name)}">Restore</button>
-      </li>
-    `).join('');
+    rosterMessage.hidden = false;
+    if(variant === 'error') rosterMessage.classList.add('error');
+    if(variant === 'success') rosterMessage.classList.add('success');
   }
 
-  function renderAvailabilityTable(){
+  function openRosterFormAdd(){
+    rosterEditorMode = 'add';
+    rosterEditorEntry = null;
+    rosterTitle.textContent = 'Add to roster';
+    rosterNameInput.disabled = false;
+    rosterNameInput.value = '';
+    rosterStatusInput.value = '';
+    rosterNotesInput.value = '';
+    rosterSubmit.textContent = 'Add Person';
+    rosterHint.textContent = 'Include a first name and optional status or notes. Everything syncs to the shared roster.';
+    showRosterMessage();
+    rosterEditor.hidden = false;
+    requestAnimationFrame(()=>{
+      rosterEditor.scrollIntoView({ behavior:'smooth', block:'center' });
+      rosterNameInput.focus();
+    });
+  }
+
+  function openRosterFormEdit(entry){
+    rosterEditorMode = 'edit';
+    rosterEditorEntry = entry;
+    rosterTitle.textContent = `Update ${entry.name}`;
+    rosterNameInput.value = entry.name;
+    rosterNameInput.disabled = true;
+    rosterStatusInput.value = entry.status || '';
+    rosterNotesInput.value = entry.notes || '';
+    rosterSubmit.textContent = 'Save Changes';
+    rosterHint.textContent = 'Adjust the status or leave quick notes so the scheduling team has context.';
+    showRosterMessage();
+    rosterEditor.hidden = false;
+    requestAnimationFrame(()=>{
+      rosterEditor.scrollIntoView({ behavior:'smooth', block:'center' });
+      rosterStatusInput.focus();
+    });
+  }
+
+  function closeRosterEditor(){
+    rosterEditorMode = null;
+    rosterEditorEntry = null;
+    rosterEditor.hidden = true;
+    rosterNameInput.disabled = false;
+    rosterNameInput.value = '';
+    rosterStatusInput.value = '';
+    rosterNotesInput.value = '';
+    showRosterMessage();
+  }
+
+  function renderAvailabilityTable(opts={}){
     const avail = AvailabilityStore.read();
     const roster = getRosterList();
+    const preserveScroll = typeof opts.scrollLeft === 'number' ? opts.scrollLeft : tableScroll.scrollLeft;
     if(!roster.length){
       rbody.innerHTML = `<tr><td colspan="${AVAIL_DATES.length + 1}" class="muted" style="text-align:center">Add people with the <em>Add Person</em> button to start tracking schedules.</td></tr>`;
-      renderRemovedRoster();
+      tableScroll.scrollLeft = preserveScroll;
       return;
     }
     const rows = roster.map((entry)=>{
       const availKey = sanitizeName(entry.name);
       const rowAvail = avail[availKey] || {};
       const metaBits = [];
-      if(entry.status) metaBits.push(`Status: ${escapeHTML(entry.status)}`);
-      if(entry.notes) metaBits.push(escapeHTML(entry.notes));
-      const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' • ')}</div>` : '';
+      if(entry.status){
+        const statusClass = entry.status ? `status-${entry.status.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'default'}` : 'status-default';
+        metaBits.push(`<span class="status-pill ${statusClass}">${escapeHTML(entry.status)}</span>`);
+      }
+      if(entry.notes){
+        metaBits.push(`<span class="note-pill">${escapeHTML(entry.notes)}</span>`);
+      }
+      const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' ')}</div>` : '';
       const actions = `<div class="name-actions">
         <button type="button" class="link-button" data-edit="${entry.key}" data-name="${escapeAttr(entry.name)}">Edit</button>
         <button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}" data-remove-type="${entry.custom ? 'custom' : 'base'}">Remove</button>
@@ -2210,7 +2502,15 @@ function panelSessions(){
       return `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
     }).join('');
     rbody.innerHTML = rows;
-    renderRemovedRoster();
+    tableScroll.scrollLeft = preserveScroll;
+    if(opts.focus && opts.focus.name && opts.focus.date){
+      const focusInput = Array.from(rbody.querySelectorAll('input[data-name][data-date]')).find((el)=>{
+        return el.getAttribute('data-name') === opts.focus.name && el.getAttribute('data-date') === opts.focus.date;
+      });
+      if(focusInput){
+        focusInput.focus({ preventScroll:true });
+      }
+    }
   }
 
   renderAvailabilityTable();
@@ -2224,7 +2524,7 @@ function panelSessions(){
     const newValue = cb.checked;
     try{
       await Backend.setAvailability({ name, date, available: newValue });
-      renderAvailabilityTable();
+      renderAvailabilityTable({ focus:{ name, date }, scrollLeft: tableScroll.scrollLeft });
     }catch(err){
       cb.checked = !newValue;
       alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
@@ -2239,16 +2539,7 @@ function panelSessions(){
       const roster = getRosterList();
       const entry = roster.find(r=>r.key===key);
       if(!entry) return;
-      const status = prompt(`Status for ${display}?`, entry.status || '');
-      if(status === null) return;
-      const notes = prompt(`Notes for ${display}?`, entry.notes || '');
-      if(notes === null) return;
-      try{
-        await updateRosterDetails(key, entry, status, notes);
-        renderAvailabilityTable();
-      }catch(err){
-        alert(`Failed to update roster details: ${err && err.message ? err.message : 'Request failed.'}`);
-      }
+      openRosterFormEdit(entry);
       return;
     }
     const removeBtn = e.target.closest('button[data-remove]');
@@ -2258,16 +2549,11 @@ function panelSessions(){
       const removeType = removeBtn.getAttribute('data-remove-type') || 'custom';
       if(!confirm(`Remove ${display} from this roster?`)) return;
       try{
-        if(removeType === 'base'){
-          const roster = getRosterList({ includeHidden: true });
-          const entry = roster.find(r=>r.key === key);
-          if(entry){
-            await setRosterHidden(entry, true);
-          }
-        }else{
-          await removeRosterExtra(key);
+        if(rosterEditorEntry && rosterEditorEntry.key === key){
+          closeRosterEditor();
         }
-        renderAvailabilityTable();
+        await removeRosterExtra(key);
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
       }catch(err){
         alert(`Failed to remove ${display}: ${err && err.message ? err.message : 'Request failed.'}`);
       }
@@ -2295,26 +2581,62 @@ function panelSessions(){
 
   const addBtn = p.querySelector('#add_person');
   if(addBtn){
-    addBtn.onclick = async () => {
-      const nameInput = prompt('Name to add to the roster?');
-      if(nameInput === null) return;
-      const cleanName = sanitizeName(nameInput);
-      if(!cleanName){ alert('Name cannot be blank.'); return; }
-      const key = rosterKey(cleanName);
-      if(rosterHasKey(key)){
-        alert(`${cleanName} is already on the roster.`);
-        return;
-      }
-      const statusInput = prompt('Status (optional — e.g., Yes / Maybe / No):', '');
-      const notesInput = prompt('Notes to remember (optional):', '');
-      const result = await addRosterExtra(cleanName, statusInput ?? '', notesInput ?? '');
-      if(!result.ok){
-        alert(result.msg);
-        return;
-      }
-      renderAvailabilityTable();
+    addBtn.onclick = () => {
+      openRosterFormAdd();
     };
   }
+
+  rosterForm.addEventListener('submit', async (event)=>{
+    event.preventDefault();
+    if(!rosterEditorMode){
+      openRosterFormAdd();
+      return;
+    }
+    const rawName = rosterNameInput.value;
+    const cleanName = sanitizeName(rawName);
+    const cleanStatus = sanitizeOptional(rosterStatusInput.value);
+    const cleanNotes = sanitizeOptional(rosterNotesInput.value);
+    showRosterMessage();
+    try{
+      if(rosterEditorMode === 'add'){
+        if(!cleanName){
+          showRosterMessage('Name is required.', 'error');
+          rosterNameInput.focus();
+          return;
+        }
+        const key = rosterKey(cleanName);
+        if(rosterHasKey(key)){
+          showRosterMessage(`${cleanName} is already on the roster.`, 'error');
+          rosterNameInput.focus();
+          rosterNameInput.select();
+          return;
+        }
+        const result = await addRosterExtra(cleanName, cleanStatus, cleanNotes);
+        if(!result.ok){
+          showRosterMessage(result.msg || 'Failed to add roster entry.', 'error');
+          return;
+        }
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
+        rosterNameInput.value = '';
+        rosterStatusInput.value = '';
+        rosterNotesInput.value = '';
+        showRosterMessage(`${cleanName} added to the roster.`, 'success');
+        rosterNameInput.focus();
+      } else if(rosterEditorMode === 'edit' && rosterEditorEntry){
+        const key = rosterEditorEntry.key;
+        await updateRosterDetails(key, rosterEditorEntry, cleanStatus, cleanNotes);
+        rosterEditorEntry = { ...rosterEditorEntry, status: cleanStatus, notes: cleanNotes };
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
+        showRosterMessage(`Saved updates for ${rosterEditorEntry.name}.`, 'success');
+      }
+    }catch(err){
+      showRosterMessage(err && err.message ? err.message : 'Request failed. Please try again.', 'error');
+    }
+  });
+
+  rosterCancel.addEventListener('click', () => {
+    closeRosterEditor();
+  });
 
   p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
   p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
