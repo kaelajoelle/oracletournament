@@ -1091,3 +1091,6 @@ if(require.main === module){
 }
 
 module.exports = app;
+module.exports.DEFAULT_STATE = DEFAULT_STATE;
+module.exports.normaliseState = normaliseState;
+module.exports.replaceSupabaseTablesState = replaceSupabaseTablesState;

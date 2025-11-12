@@ -5,7 +5,8 @@
   "main": "api/server.js",
   "scripts": {
     "start": "node api/server.js",
-    "supabase:bootstrap": "node scripts/bootstrap-supabase.js"
+    "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
+    "supabase:seed:tables": "node scripts/seed-supabase-tables.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
