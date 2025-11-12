@@ -77,51 +77,152 @@
   }
   .disclaimer::before{ content:"✶"; position:absolute; top:-10px; left:12px; color:var(--accent); }
 
-  .wizard{ display:grid; grid-template-columns:280px 1fr; gap:20px; max-width:1200px; margin:0 auto; padding:1.5rem; }
+  .wizard{
+    display:flex;
+    flex-direction:column;
+    gap:1.25rem;
+    max-width:1200px;
+    margin:0 auto;
+    padding:1.5rem;
+  }
 
-  .nav{
+  .steps-shell{
     background:var(--panel);
     border:2px solid var(--border);
     border-radius:12px;
     padding:1rem;
     box-shadow:0 2px 6px rgba(0,0,0,.08);
-
-  }
-
-  .nav-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:10px;
-  }
-
-  .nav-toggle{
-    padding:8px 12px;
-    border-radius:10px;
-    border:1px solid var(--border);
-    background:#efe7c8;
-    cursor:pointer;
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-size:1rem;
-    line-height:1.2;
-    white-space:nowrap;
-  }
-
-  .nav-content{
-    margin-top:14px;
     display:flex;
     flex-direction:column;
-    gap:14px;
+    gap:.75rem;
   }
 
-  .nav.collapsed .nav-content{
-    display:none;
+  .steps-header{
+    display:flex;
+    align-items:center;
+    gap:.75rem;
+    flex-wrap:wrap;
   }
 
-  .nav.collapsed .nav-toggle{
-    background:#fff8df;
+  .steps-header h3{
+    margin:0;
+    font-size:1.15rem;
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+  }
+
+  .steps-header #cfgBadge{
+    font-size:.95rem;
+  }
+
+  .steps-rail{
+    display:flex;
+    gap:12px;
+    overflow-x:auto;
+    padding:4px 2px 6px;
+    scroll-snap-type:x mandatory;
+    scrollbar-width:thin;
+  }
+  .steps-rail:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:4px;
+  }
+  .steps-rail::-webkit-scrollbar{ height:8px; }
+  .steps-rail::-webkit-scrollbar-thumb{
+    background-color:rgba(179,139,70,.6);
+    border-radius:999px;
+  }
+  .steps-rail::-webkit-scrollbar-track{
+    background:rgba(179,139,70,.18);
+    border-radius:999px;
+  }
+
+  .step-pill{
+    display:flex;
+    align-items:center;
+    gap:0.75rem;
+    padding:0.6rem 0.9rem;
+    border-radius:16px;
+    border:1px solid var(--border);
+    background:#efe7c8;
+    min-height:52px;
+    min-width:150px;
+    cursor:pointer;
+    box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
+    transition:background .2s, box-shadow .2s, transform .2s;
+    scroll-snap-align:start;
+    text-align:left;
+    color:inherit;
+  }
+  .step-pill[aria-selected="true"]{
+    background:linear-gradient(180deg,#fff8df,#f4e8bf);
+    box-shadow:0 2px 8px rgba(179,139,70,0.25);
+    border-color:#a67a33;
+  }
+  .step-pill:focus-visible{
+    outline:3px solid #3b2b1a;
+    outline-offset:2px;
+  }
+  .step-pill:hover{
+    background:linear-gradient(180deg,#fdf3d0,#f2e4bb);
+    transform:translateY(-1px);
+  }
+
+  .step-pill .step-number{
+    width:32px;
+    height:32px;
+    border-radius:999px;
+    background:#d9c38b;
+    color:#4b381f;
+    font-weight:700;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+
+  .step-pill .step-label{
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    font-weight:600;
+    line-height:1.2;
+  }
+
+  .step-pill .step-label small{
+    font-size:.82rem;
+    color:var(--muted);
+    font-weight:500;
+  }
+
+  .steps-actions{
+    border:2px solid var(--border);
+    border-radius:12px;
+    background:var(--panel);
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
+    padding:1rem;
+    display:flex;
+    flex-direction:column;
+    gap:.75rem;
+  }
+  .steps-actions .flex{
+    justify-content:flex-start;
+  }
+
+  @media (min-width: 900px){
+    .steps-rail{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      overflow-x:visible;
+      overflow-y:visible;
+      padding:6px 0 0;
+      gap:14px;
+      scroll-snap-type:none;
+    }
+    .step-pill{
+      min-width:0;
+    }
   }
 
   /* minimal UI styles so it looks sane */
@@ -147,73 +248,7 @@
   .primary{ background:#d9c38b; }
   .danger{ background:#e7b0a9; }
 
-  .steps-rail{
-    display:flex;
-    gap:12px;
-    overflow-x:auto;
-    padding:4px 0;
-    scroll-snap-type:x mandatory;
-  }
-  .steps-rail::-webkit-scrollbar{ display:none; }
-
-  .stepbtn{
-    display:flex;
-    align-items:center;
-    gap:0.75rem;
-    padding:0.6rem 0.9rem;
-    border-radius:16px;
-    border:1px solid var(--border);
-    background:#efe7c8;
-    min-height:52px;
-    min-width:150px;
-    cursor:pointer;
-    box-shadow:0 1px 0 rgba(0,0,0,.06) inset;
-    transition:background .2s, box-shadow .2s, transform .2s;
-    scroll-snap-align:start;
-    text-align:left;
-  }
-
-  .stepbtn .step-number{
-    width:32px;
-    height:32px;
-    border-radius:999px;
-    background:#d9c38b;
-    color:#4b381f;
-    font-weight:700;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
-  }
-
-  .stepbtn .step-label{
-    display:flex;
-    flex-direction:column;
-    gap:2px;
-    font-weight:600;
-    line-height:1.2;
-  }
-
-  .stepbtn .step-label small{
-    font-size:.82rem;
-    color:var(--muted);
-    font-weight:500;
-  }
-
-  .stepbtn.active{
-    outline:2px solid rgba(179,139,70,.35);
-    background:linear-gradient(180deg, #fff8df, #f4e8bf);
-    box-shadow:0 2px 8px rgba(179,139,70,0.25);
-  }
-
-  .stepbtn:not(.active):hover{
-    background:#f9efd3;
-  }
-
-  .stepbtn:focus-visible{
-    outline:2px solid var(--accent);
-    outline-offset:3px;
-  }
+  
   .table{ width:100%; border-collapse:collapse; }
   .table th,.table td{ border-bottom:1px solid var(--border); padding:8px 6px; text-align:left; }
     /* =============== MOBILE PATCH =============== */
@@ -226,25 +261,20 @@
 
   /* Stack layout */
   .wizard{
-    grid-template-columns: 1fr;
-    gap: 12px;
     padding: .75rem;
+    gap: 1rem;
   }
-
-  /* Nav collapses into a toggle */
-  .nav{
-    padding: .75rem;
+  .steps-shell{
+    padding:.85rem;
   }
-  .nav-header{ flex-wrap: wrap; gap: 6px; }
-  .nav-toggle{
-    width: 100%;
-    justify-content: center;
-    font-size: 1.1rem;
-  }
-  .nav-content{ margin-top: 10px; gap: 12px; }
-  .nav.collapsed{ padding-bottom: .75rem; }
   .steps-rail{
-    padding-bottom:6px;
+    padding-bottom:8px;
+  }
+  .step-pill{
+    min-width:140px;
+  }
+  .steps-actions{
+    padding:.85rem;
   }
 
   /* Buttons: bigger tap targets */
@@ -284,9 +314,8 @@
     background: linear-gradient(to left, rgba(0,0,0,.06), transparent);
   }
 
-  /* Keep sidebar comfy on narrower phones */
-  .nav{ margin:0 auto; }
-  .nav .quick-actions .flex button{ width:100%; }
+  /* Keep actions comfy on narrower phones */
+  .steps-actions .flex button{ width:100%; }
 
   details.news-item > summary{
     flex-wrap:wrap;
@@ -319,11 +348,10 @@
 @media (max-width: 900px){
   header{ padding: clamp(.85rem, 4vw, 1rem); }
   .wizard{ padding: clamp(.5rem, 4vw, .75rem); }
-  .nav{ padding: .65rem; }
-  .nav-toggle{ font-size: 1rem; padding: 10px; }
-  .nav-content{ gap: 10px; }
-  .nav .quick-actions .flex{ gap:6px; }
-  .nav .quick-actions .flex button{ flex:1 1 120px; }
+  .steps-shell{ padding:.75rem; }
+  .steps-actions{ padding:.75rem; }
+  .steps-actions .flex{ gap:6px; }
+  .steps-actions .flex button{ flex:1 1 140px; }
   .panel, .card{ padding: 10px; }
   .table-scroll{ margin:0 -4px; }
   .letter-table .table{ min-width: 420px; }
@@ -417,11 +445,11 @@ input, select, textarea {
   text-align: center;
 }
 
-/* === Step nav spacing & readability === */
-.nav { padding: 14px; }
-.nav .callout { margin-top: 14px; }
-.nav .callout .flex { gap: 8px; flex-wrap: wrap; }
-.nav .quick-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
+/* === Step rail spacing & readability === */
+.steps-shell{ padding:14px; }
+.steps-shell .callout { margin-top: 14px; }
+.steps-shell .callout .flex { gap: 8px; flex-wrap: wrap; }
+.steps-actions .flex { margin-top: 6px; gap: 8px; flex-wrap: wrap; }
 
 
 button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
@@ -955,28 +983,26 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     </div>
     <main id="app-root">
   <div class="wizard">
-    <nav class="nav" aria-label="Character builder steps">
-      <div class="nav-header">
-        <h3>Steps <small id="cfgBadge" class="muted"></small></h3>
-        <button id="navToggle" class="nav-toggle" type="button" aria-expanded="true" aria-controls="navContent">✖ Hide Steps</button>
+    <div class="steps-shell" aria-label="Character builder steps">
+      <div class="steps-header">
+        <h3>Steps</h3>
+        <small id="cfgBadge" class="muted"></small>
       </div>
-      <div id="navContent" class="nav-content">
-        <div id="stepNav" class="steps-rail" role="tablist" aria-label="Character builder steps"></div>
-
-        <div class="card quick-actions">
-          <div class="kicker">Quick actions</div>
-          <div class="flex">
-            <button id="btnSave">Save Draft</button>
-            <button id="btnLoad">Load Draft</button>
-            <button id="btnExport" class="primary">Export JSON</button>
-            <button id="btnClear" class="danger">Clear Local Data</button>
-          </div>
-        </div>
-      </div>
-    </nav>
+      <nav id="stepNav" class="steps-rail" role="tablist" aria-label="Character builder steps"></nav>
+    </div>
 
     <!-- JS renders each screen here -->
     <section id="panels" class="grid" style="gap:16px"></section>
+
+    <div class="steps-actions card" aria-label="Quick actions">
+      <div class="kicker">Quick actions</div>
+      <div class="flex">
+        <button id="btnSave">Save Draft</button>
+        <button id="btnLoad">Load Draft</button>
+        <button id="btnExport" class="primary">Export JSON</button>
+        <button id="btnClear" class="danger">Clear Local Data</button>
+      </div>
+    </div>
   </div>
 </main>
 
@@ -2067,66 +2093,101 @@ const STEPS = [
 
 
   let currentStep = 0;
-  let navCollapsed = false;
+
+  function focusCurrentTab(){
+    const nav = document.getElementById('stepNav');
+    if(!nav) return;
+    const active = nav.querySelector('button[aria-selected="true"]');
+    if(active){
+      active.focus();
+    }
+  }
+
+  function activateStep(idx, focusTab = false){
+    if(Number.isNaN(idx) || idx < 0 || idx >= STEPS.length){
+      return;
+    }
+    currentStep = idx;
+    renderPanels();
+    renderNav();
+    if(focusTab){
+      focusCurrentTab();
+    }
+  }
+
+  function onStepRailKeydown(event){
+    const target = event.target;
+    if(!target || target.getAttribute('role') !== 'tab'){ return; }
+    const key = event.key;
+    const currentIndex = Number(target.dataset.index || '0');
+    let nextIndex = null;
+    if(key === 'ArrowRight' || key === 'ArrowDown'){
+      nextIndex = (currentIndex + 1) % STEPS.length;
+    } else if(key === 'ArrowLeft' || key === 'ArrowUp'){
+      nextIndex = (currentIndex - 1 + STEPS.length) % STEPS.length;
+    } else if(key === 'Home'){
+      nextIndex = 0;
+    } else if(key === 'End'){
+      nextIndex = STEPS.length - 1;
+    }
+    if(nextIndex !== null){
+      event.preventDefault();
+      activateStep(nextIndex, true);
+    }
+  }
 
   function renderNav(){
     const nav = document.getElementById('stepNav');
-    const navShell = document.querySelector('.nav');
-    const toggle = document.getElementById('navToggle');
+    if(!nav) return;
 
-    if(navShell){
-      navShell.classList.toggle('collapsed', navCollapsed);
-    }
-    if(toggle){
-      toggle.textContent = navCollapsed ? '☰ Show Steps' : '✖ Hide Steps';
-      toggle.setAttribute('aria-expanded', String(!navCollapsed));
-      toggle.setAttribute('aria-label', navCollapsed ? 'Expand navigation steps' : 'Collapse navigation steps');
+    const previousScroll = nav.scrollLeft;
+    nav.innerHTML = '';
+    nav.setAttribute('role', 'tablist');
+    nav.setAttribute('aria-label', 'Character builder steps');
+
+    const fragments = document.createDocumentFragment();
+    STEPS.forEach((s, idx)=>{
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.id = `step-tab-${s.key}`;
+      button.className = 'step-pill';
+      button.dataset.step = s.key;
+      button.dataset.index = String(idx);
+      button.setAttribute('role', 'tab');
+      button.setAttribute('aria-controls', `panel-${s.key}`);
+      const selected = idx === currentStep;
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+      button.setAttribute('tabindex', selected ? '0' : '-1');
+      const hint = s.hint ? `<small>${escapeHTML(s.hint)}</small>` : '';
+      button.innerHTML = `
+        <span class="step-number">${idx + 1}</span>
+        <span class="step-label"><span>${escapeHTML(s.title)}</span>${hint}</span>
+      `;
+      button.addEventListener('click', ()=>{
+        activateStep(idx, true);
+      });
+      fragments.appendChild(button);
+    });
+    nav.appendChild(fragments);
+
+    if(!nav.dataset.keysBound){
+      nav.addEventListener('keydown', onStepRailKeydown);
+      nav.dataset.keysBound = 'true';
     }
 
-    if(nav){
-      const previousScroll = nav.scrollLeft;
-      nav.innerHTML = '';
-      nav.setAttribute('role', 'tablist');
-      nav.setAttribute('aria-label', 'Character builder steps');
-      if(!navCollapsed){
-        let activeButton = null;
-        STEPS.forEach((s,idx)=>{
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'stepbtn' + (idx===currentStep ? ' active' : '');
-          b.dataset.step = s.key;
-          b.dataset.index = String(idx);
-          b.setAttribute('role', 'tab');
-          b.setAttribute('aria-label', `Step ${idx+1}: ${s.title}`);
-          b.setAttribute('aria-selected', idx===currentStep ? 'true' : 'false');
-          if(idx===currentStep){
-            b.setAttribute('aria-current', 'step');
-          }
-          const hint = s.hint ? `<small>${escapeHTML(s.hint)}</small>` : '';
-          b.innerHTML = `
-            <span class="step-number">${idx+1}</span>
-            <span class="step-label"><span>${escapeHTML(s.title)}</span>${hint}</span>
-          `;
-          b.addEventListener('click', ()=>{
-            currentStep = idx;
-            renderPanels();
-            renderNav();
-          });
-          if(idx===currentStep){
-            activeButton = b;
-          }
-          nav.appendChild(b);
-        });
-        nav.scrollLeft = previousScroll;
-        if(activeButton && nav.scrollWidth > nav.clientWidth + 8){
-          try{
-            activeButton.scrollIntoView({block:'nearest', inline:'center', behavior: previousScroll === 0 ? 'auto' : 'smooth'});
-          }catch{
-            /* older browsers */
-          }
+    if(nav.scrollWidth > nav.clientWidth + 8){
+      const active = nav.querySelector('button[aria-selected="true"]');
+      if(active){
+        try{
+          active.scrollIntoView({block:'nearest', inline:'center'});
+        }catch{
+          /* ignore */
         }
       }
+    }else{
+      nav.scrollLeft = previousScroll;
     }
+
     const badge=document.getElementById('cfgBadge');
     const errs=validateConfig();
     badge.textContent = errs.length? `⚠️ ${errs.length} config issue${errs.length>1?'s':''}` : '✅ config OK';
@@ -2134,16 +2195,25 @@ const STEPS = [
 
   function renderPanels(){
     const el = document.getElementById('panels');
+    if(!el) return;
     el.innerHTML='';
     const step = STEPS[currentStep].key;
-    if(step==='core') el.appendChild(panelCore());
-    if(step==='university') el.appendChild(panelUniversity());
-    if(step==='extras') el.appendChild(panelExtras());
-    if(step==='sessions') el.appendChild(panelSessions());
-    if(step==='personality') el.appendChild(panelPersonality());
-    if(step==='summary') el.appendChild(panelSummary());
-    if(step==='intro') el.appendChild(panelIntro());
-    if(step==='join') el.appendChild(panelJoin());
+    let panelEl = null;
+    if(step==='core') panelEl = panelCore();
+    if(step==='university') panelEl = panelUniversity();
+    if(step==='extras') panelEl = panelExtras();
+    if(step==='sessions') panelEl = panelSessions();
+    if(step==='personality') panelEl = panelPersonality();
+    if(step==='summary') panelEl = panelSummary();
+    if(step==='intro') panelEl = panelIntro();
+    if(step==='join') panelEl = panelJoin();
+    if(panelEl){
+      panelEl.id = `panel-${step}`;
+      panelEl.setAttribute('role','tabpanel');
+      panelEl.setAttribute('aria-labelledby', `step-tab-${step}`);
+      panelEl.setAttribute('tabindex','0');
+      el.appendChild(panelEl);
+    }
 
   }
 
@@ -2645,8 +2715,8 @@ function panelSessions(){
   });
 
   p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
-  p.querySelector('#back_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'intro'); renderAll(); };
-  p.querySelector('#next_sessions').onclick = () => { currentStep = STEPS.findIndex(s => s.key === 'core'); renderAll(); };
+  p.querySelector('#back_sessions').onclick = () => { activateStep(STEPS.findIndex(s => s.key === 'intro')); };
+  p.querySelector('#next_sessions').onclick = () => { activateStep(STEPS.findIndex(s => s.key === 'core')); };
 
   return p;
 }
@@ -2748,8 +2818,7 @@ function panelSessions(){
         abilities: abObj,
         equipment: p.querySelector('#equipment').value
       };
-      currentStep = STEPS.findIndex(s=>s.key==='university');
-      renderAll();
+      activateStep(STEPS.findIndex(s=>s.key==='university'));
     };
     return p;
   }
@@ -2801,7 +2870,7 @@ function panelSessions(){
     sel.value = State.data.university.key || '';
     p.querySelector('#spell_ability').value = State.data.university.spellAbility || 'INT';
     drawInfo();
-    p.querySelector('#back_u').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='core'); renderAll();};
+    p.querySelector('#back_u').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='core'));};
     p.querySelector('#next_u').onclick=()=>{
       State.data.university={ key: sel.value, spellAbility: p.querySelector('#spell_ability').value };
       if(!State.data.university.key){ alert('Pick a university to continue.'); return; }
@@ -2810,8 +2879,7 @@ function panelSessions(){
       } else {
         State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
       }
-      currentStep = STEPS.findIndex(s=>s.key==='extras');
-      renderAll();
+      activateStep(STEPS.findIndex(s=>s.key==='extras'));
     };
     return p;
   }
@@ -2873,13 +2941,12 @@ function panelSessions(){
     clubWrap.addEventListener('change', readExtras);
     readExtras();
 
-    p.querySelector('#back_e').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='university'); renderAll();};
+    p.querySelector('#back_e').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='university'));};
     p.querySelector('#next_e').onclick=()=>{
       const {job, clubs} = readExtras();
       State.data.extras.job = job;
       State.data.extras.clubs = clubs;
-      currentStep = STEPS.findIndex(s=>s.key==='personality');
-      renderAll();
+      activateStep(STEPS.findIndex(s=>s.key==='personality'));
     };
     return p;
   }
@@ -2924,7 +2991,7 @@ function panelSessions(){
     p.querySelector('#bond').value = State.data.personality.bond||'';
     p.querySelector('#goal').value = State.data.personality.goal||'';
 
-    p.querySelector('#back_p').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='extras'); renderAll();};
+    p.querySelector('#back_p').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='extras'));};
     p.querySelector('#next_p').onclick=()=>{
       State.data.personality={
         traits: p.querySelector('#traits').value.trim(),
@@ -2933,8 +3000,7 @@ function panelSessions(){
         goal: p.querySelector('#goal').value.trim(),
         prompt: State.data.personality.prompt||''
       };
-      currentStep = STEPS.findIndex(s=>s.key==='summary');
-      renderAll();
+      activateStep(STEPS.findIndex(s=>s.key==='summary'));
     };
     return p;
   }
@@ -3000,8 +3066,8 @@ function panelSessions(){
     }
   });
 
-  p.querySelector('#back_join').onclick = ()=>{ currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll(); };
-  p.querySelector('#to_summary').onclick= ()=>{ currentStep = STEPS.findIndex(s=>s.key==='summary'); renderAll(); };
+  p.querySelector('#back_join').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='personality')); };
+  p.querySelector('#to_summary').onclick= ()=>{ activateStep(STEPS.findIndex(s=>s.key==='summary')); };
   return p;
 }
 
@@ -3054,7 +3120,7 @@ function panelSessions(){
         </div>
       </div>
     `;
-    p.querySelector('#back_s').onclick=()=>{currentStep = STEPS.findIndex(s=>s.key==='personality'); renderAll();};
+    p.querySelector('#back_s').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='personality'));};
     p.querySelector('#save_s').onclick=()=>State.save();
     p.querySelector('#export_s').onclick=()=>State.export();
     p.querySelector('#pdf_s').onclick=()=>window.print();
@@ -3103,14 +3169,6 @@ function panelSessions(){
     }
   }
   function bindHeaderActions(){
-    const toggle = document.getElementById('navToggle');
-    if(toggle){
-      toggle.onclick = ()=>{
-        navCollapsed = !navCollapsed;
-        renderNav();
-        renderPanels();
-      };
-    }
     const s = document.getElementById('btnSave'); if(s) s.onclick=()=>State.save();
     const l = document.getElementById('btnLoad'); if(l) l.onclick=()=>State.load();
     const e = document.getElementById('btnExport'); if(e) e.onclick=()=>State.export();
