@@ -399,6 +399,42 @@ button[disabled]{ opacity:.55; cursor:not-allowed; filter:grayscale(.2); }
   gap: 10px;
 }
 
+.removed-roster {
+  margin-top: 14px;
+  display: none;
+}
+
+.removed-roster.active {
+  display: block;
+}
+
+.removed-roster h3 {
+  margin: 0 0 8px;
+}
+
+.removed-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.removed-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: rgba(248, 242, 223, 0.75);
+}
+
+.removed-list .muted {
+  margin: 0;
+}
+
 .link-button {
   background: none;
   border: none;
@@ -881,8 +917,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
         if(!key || !value || typeof value !== 'object') return;
         const status = sanitizeOptional(value.status);
         const notes = sanitizeOptional(value.notes);
-        if(status || notes){
-          safe.rosterMeta[key] = { status, notes };
+        const hidden = Boolean(value.hidden);
+        if(status || notes || hidden){
+          safe.rosterMeta[key] = { status, notes, hidden };
         }
       });
     }
@@ -1240,17 +1277,24 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     }
   }
 
-  async function updateRosterDetails(key, entry, status, notes){
+  async function updateRosterDetails(key, entry, status, notes, hiddenOverride){
     const cleanKey = rosterKey(key);
     if(!cleanKey) return;
     const cleanStatus = sanitizeOptional(status);
     const cleanNotes = sanitizeOptional(notes);
+    const hidden = hiddenOverride == null ? Boolean(entry && entry.hidden) : Boolean(hiddenOverride);
     await Backend.updateRosterEntry(cleanKey, {
       status: cleanStatus,
       notes: cleanNotes,
       custom: Boolean(entry && entry.custom),
-      name: entry && entry.name ? sanitizeName(entry.name) : ''
+      name: entry && entry.name ? sanitizeName(entry.name) : '',
+      hidden
     });
+  }
+
+  async function setRosterHidden(entry, hidden){
+    if(!entry || !entry.key) return;
+    await updateRosterDetails(entry.key, entry, entry.status, entry.notes, hidden);
   }
 
   async function removeRosterExtra(key){
@@ -1259,32 +1303,51 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     await Backend.removeRosterExtra(cleanKey);
   }
 
-  function getRosterList(){
+  function getRosterList(opts={}){
+    const includeHidden = Boolean(opts.includeHidden);
     const extras = RosterExtrasStore.read();
     const meta = RosterMetaStore.read();
-    const list = DATA.roster.map((r)=>{
+    const list = [];
+
+    DATA.roster.forEach((r)=>{
       const key = rosterKey(r.name);
       const override = meta[key] || {};
-      return {
+      const entry = {
         name: r.name,
         key,
         status: override.status || sanitizeOptional(r.status),
         notes: override.notes || sanitizeOptional(r.notes),
-        custom: false
+        custom: false,
+        hidden: Boolean(override.hidden)
       };
+      if(entry.hidden && !includeHidden){
+        return;
+      }
+      list.push(entry);
     });
+
     extras.forEach((item)=>{
       const key = item.key || rosterKey(item.name);
       const override = meta[key] || {};
-      list.push({
+      const entry = {
         name: item.name,
         key,
         status: override.status || sanitizeOptional(item.status),
         notes: override.notes || sanitizeOptional(item.notes),
-        custom: true
-      });
+        custom: true,
+        hidden: Boolean(override.hidden)
+      };
+      if(entry.hidden && !includeHidden){
+        return;
+      }
+      list.push(entry);
     });
+
     return list.sort((a,b)=>a.name.localeCompare(b.name,'en',{sensitivity:'base'}));
+  }
+
+  function getHiddenRosterEntries(){
+    return getRosterList({ includeHidden: true }).filter(entry => entry.hidden);
   }
 
   function labelDate(iso){
@@ -1519,7 +1582,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   const State = {
     data:{
       meta:{version:'0.5-stable'},
-      core:{ name:'', race:'', class:'', background:'', level:4, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
+      core:{ playerName:'', name:'', race:'', class:'', background:'', level:4, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
       university:{ key:'', spellAbility:'INT' },
       feats:[],
       extras:{ job:null, clubs:[], studentDice:[] },
@@ -2076,6 +2139,11 @@ function panelSessions(){
         Tick when someone is available. Changes sync to the shared datastore automatically (with an offline cache on this device).
       </div>
     </div>
+    <div class="card removed-roster" id="removed_roster">
+      <h3>Removed players</h3>
+      <p class="muted" id="removed_roster_empty">No players are hidden. Remove someone above to list them here.</p>
+      <ul class="removed-list" id="removed_roster_list"></ul>
+    </div>
     <div class="controls">
       <div class="left">
         <button id="add_person">+ Add Person</button>
@@ -2089,11 +2157,39 @@ function panelSessions(){
   `;
 
   const rbody = p.querySelector('#roster_tbody');
+  const removedCard = p.querySelector('#removed_roster');
+  const removedList = p.querySelector('#removed_roster_list');
+  const removedEmpty = p.querySelector('#removed_roster_empty');
+
+  function renderRemovedRoster(){
+    if(!removedCard || !removedList || !removedEmpty) return;
+    const hidden = getHiddenRosterEntries();
+    if(!hidden.length){
+      removedCard.classList.remove('active');
+      removedList.innerHTML = '';
+      removedEmpty.hidden = false;
+      return;
+    }
+    removedCard.classList.add('active');
+    removedEmpty.hidden = true;
+    removedList.innerHTML = hidden.map(entry => `
+      <li>
+        <div>
+          <strong>${escapeHTML(entry.name)}</strong>
+          ${entry.status ? `<div class="name-meta">Status: ${escapeHTML(entry.status)}</div>` : ''}
+          ${entry.notes ? `<div class="name-meta">${escapeHTML(entry.notes)}</div>` : ''}
+        </div>
+        <button type="button" class="link-button" data-restore="${entry.key}" data-name="${escapeAttr(entry.name)}">Restore</button>
+      </li>
+    `).join('');
+  }
+
   function renderAvailabilityTable(){
     const avail = AvailabilityStore.read();
     const roster = getRosterList();
     if(!roster.length){
       rbody.innerHTML = `<tr><td colspan="${AVAIL_DATES.length + 1}" class="muted" style="text-align:center">Add people with the <em>Add Person</em> button to start tracking schedules.</td></tr>`;
+      renderRemovedRoster();
       return;
     }
     const rows = roster.map((entry)=>{
@@ -2105,7 +2201,7 @@ function panelSessions(){
       const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' • ')}</div>` : '';
       const actions = `<div class="name-actions">
         <button type="button" class="link-button" data-edit="${entry.key}" data-name="${escapeAttr(entry.name)}">Edit</button>
-        ${entry.custom ? `<button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}">Remove</button>` : ''}
+        <button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}" data-remove-type="${entry.custom ? 'custom' : 'base'}">Remove</button>
       </div>`;
       const cells = AVAIL_DATES.map((d)=>{
         const checked = rowAvail[d] ? ' checked' : '';
@@ -2114,6 +2210,7 @@ function panelSessions(){
       return `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
     }).join('');
     rbody.innerHTML = rows;
+    renderRemovedRoster();
   }
 
   renderAvailabilityTable();
@@ -2158,15 +2255,43 @@ function panelSessions(){
     if(removeBtn){
       const key = removeBtn.getAttribute('data-remove');
       const display = removeBtn.getAttribute('data-name') || '';
+      const removeType = removeBtn.getAttribute('data-remove-type') || 'custom';
       if(!confirm(`Remove ${display} from this roster?`)) return;
       try{
-        await removeRosterExtra(key);
+        if(removeType === 'base'){
+          const roster = getRosterList({ includeHidden: true });
+          const entry = roster.find(r=>r.key === key);
+          if(entry){
+            await setRosterHidden(entry, true);
+          }
+        }else{
+          await removeRosterExtra(key);
+        }
         renderAvailabilityTable();
       }catch(err){
         alert(`Failed to remove ${display}: ${err && err.message ? err.message : 'Request failed.'}`);
       }
     }
   });
+
+  if(removedList){
+    removedList.addEventListener('click', async (event)=>{
+      const restoreBtn = event.target.closest('button[data-restore]');
+      if(!restoreBtn) return;
+      const key = restoreBtn.getAttribute('data-restore');
+      const display = restoreBtn.getAttribute('data-name') || '';
+      try{
+        const roster = getRosterList({ includeHidden: true });
+        const entry = roster.find(r=>r.key === key);
+        if(entry){
+          await setRosterHidden(entry, false);
+          renderAvailabilityTable();
+        }
+      }catch(err){
+        alert(`Failed to restore ${display}: ${err && err.message ? err.message : 'Request failed.'}`);
+      }
+    });
+  }
 
   const addBtn = p.querySelector('#add_person');
   if(addBtn){
@@ -2203,8 +2328,18 @@ function panelSessions(){
     const p = document.createElement('div'); p.className='panel';
     p.innerHTML = `
       <h2>Core 5e Setup</h2>
+      <div class="callout" aria-label="Character creation instructions">
+        <strong>Quick build checklist:</strong>
+        <ul>
+          <li>Enter your <strong>player name</strong> and <strong>character name</strong>.</li>
+          <li>Pick a race, class, background, level, and ability score method.</li>
+          <li>Select starting equipment — class kit or 50 gp.</li>
+          <li>Need a refresher? Try the <a href="https://dnd.wizards.com/resources/character-sheets" target="_blank" rel="noreferrer">official D&D 5e character sheets</a>.</li>
+        </ul>
+      </div>
       <div class="grid cols-2">
-        <div><label>Name</label><input id="core_name" placeholder="e.g., Aria Winterborn" /></div>
+        <div><label>Player Name</label><input id="core_player" placeholder="e.g., Kaela" /></div>
+        <div><label>Character Name</label><input id="core_name" placeholder="e.g., Aria Winterborn" /></div>
         <div><label>Level</label><select id="core_level"></select></div>
         <div><label>Race</label><input id="core_race" placeholder="Any 5e race" /></div>
         <div><label>Class</label><input id="core_class" placeholder="Any 5e class" /></div>
@@ -2257,6 +2392,7 @@ function panelSessions(){
     drawAbilityInputs();
 
     const s = State.data.core;
+    p.querySelector('#core_player').value = s.playerName || '';
     p.querySelector('#core_name').value = s.name;
     p.querySelector('#core_race').value = s.race;
     p.querySelector('#core_class').value = s.class;
@@ -2274,6 +2410,7 @@ function panelSessions(){
         abObj[ab] = parseInt(el.value,10);
       });
       State.data.core = {
+        playerName: p.querySelector('#core_player').value.trim(),
         name: p.querySelector('#core_name').value.trim(),
         race: p.querySelector('#core_race').value.trim(),
         class: p.querySelector('#core_class').value.trim(),
@@ -2555,6 +2692,7 @@ function panelSessions(){
         <div class="card">
           <div class="kicker">Character</div>
           <div><strong>${s.core.name||'Unnamed'}</strong></div>
+          <div class="muted">Player: ${s.core.playerName || '—'}</div>
           <div class="muted">${s.core.race||'Race?'} • ${s.core.class||'Class?'} • Level ${s.core.level||3}</div>
           <div style="margin-top:8px">${abilityList}</div>
           <div style="margin-top:8px" class="muted">Background: ${s.core.background||'—'} • Equipment: ${s.core.equipment==='50gp'?'50 gp':'Class kit'}</div>

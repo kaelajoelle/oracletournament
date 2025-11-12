@@ -19,6 +19,9 @@ const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const SUPABASE_STORAGE_MODE = (process.env.SUPABASE_STORAGE_MODE || 'json').toLowerCase();
 const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
 
+const ROSTER_META_HIDDEN_SENTINEL = '__hidden__::';
+let supabaseMetaSupportsHidden = true;
+
 const SUPABASE_SESSIONS_TABLE = process.env.SUPABASE_SESSIONS_TABLE || 'sessions';
 const SUPABASE_SESSION_PLAYERS_TABLE = process.env.SUPABASE_SESSION_PLAYERS_TABLE || 'session_players';
 const SUPABASE_ROSTER_EXTRAS_TABLE = process.env.SUPABASE_ROSTER_EXTRAS_TABLE || 'roster_extras';
@@ -74,6 +77,37 @@ function sanitizeOptional(value){
 
 function rosterKey(name){
   return sanitizeName(name).toLowerCase();
+}
+
+function decodeRosterMeta(status, notes, hiddenFlag){
+  const cleanStatus = sanitizeOptional(status);
+  let cleanNotes = sanitizeOptional(notes);
+  let hidden = Boolean(hiddenFlag);
+  if(!hidden && cleanNotes && cleanNotes.startsWith(ROSTER_META_HIDDEN_SENTINEL)){
+    hidden = true;
+    cleanNotes = cleanNotes.slice(ROSTER_META_HIDDEN_SENTINEL.length);
+  }
+  return { status: cleanStatus, notes: cleanNotes, hidden };
+}
+
+function encodeRosterMeta(status, notes, hiddenFlag){
+  const cleanStatus = sanitizeOptional(status) || null;
+  let cleanNotes = sanitizeOptional(notes) || '';
+  const hidden = Boolean(hiddenFlag);
+  if(!supabaseMetaSupportsHidden){
+    if(cleanNotes.startsWith(ROSTER_META_HIDDEN_SENTINEL)){
+      cleanNotes = cleanNotes.slice(ROSTER_META_HIDDEN_SENTINEL.length);
+    }
+    if(hidden){
+      cleanNotes = `${ROSTER_META_HIDDEN_SENTINEL}${cleanNotes}`;
+    }
+    return { status: cleanStatus, notes: cleanNotes || null };
+  }
+  return {
+    status: cleanStatus,
+    notes: cleanNotes || null,
+    hidden: hidden ? true : false
+  };
 }
 
 function normaliseSession(session){
@@ -147,10 +181,9 @@ function normaliseState(state){
     Object.entries(state.rosterMeta).forEach(([rawKey, value])=>{
       const key = rosterKey(rawKey);
       if(!key || !value || typeof value !== 'object') return;
-      const status = sanitizeOptional(value.status);
-      const notes = sanitizeOptional(value.notes);
-      if(status || notes){
-        rosterMeta[key] = { status, notes };
+      const { status, notes, hidden } = decodeRosterMeta(value.status, value.notes, value.hidden);
+      if(status || notes || hidden){
+        rosterMeta[key] = { status, notes, hidden };
       }
     });
   }
@@ -214,8 +247,6 @@ async function saveState(state, context) {
     await fs.writeFile(DATA_PATH, JSON.stringify(normalised, null, 2));
   }
 
-  return normalised;
-}
   return normalised;
 }
 
@@ -323,11 +354,23 @@ async function supabaseMutate(path, options = {}){
 }
 
 async function loadStateFromSupabaseTables(){
+  const metaPromise = supabaseMetaSupportsHidden
+    ? supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes,hidden`, { fallback: [] })
+        .catch(async (err)=>{
+          const message = String(err && err.message ? err.message : err || '').toLowerCase();
+          if(message.includes('column') && message.includes('hidden')){
+            supabaseMetaSupportsHidden = false;
+            return supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes`, { fallback: [] });
+          }
+          throw err;
+        })
+    : supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes`, { fallback: [] });
+
   const [sessionRows, playerRows, extrasRows, metaRows, availabilityRows, buildRows] = await Promise.all([
     supabaseQuery(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?select=id,title,dm,date,capacity,finale`),
     supabaseQuery(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?select=session_id,player_key,player_name&order=player_name.asc`),
     supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?select=player_key,name,status,notes&order=name.asc`),
-    supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes`),
+    metaPromise,
     supabaseQuery(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?select=player_key,player_name,date,available`),
     supabaseQuery(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?select=player_key,class,university`)
   ]);
@@ -412,10 +455,9 @@ async function loadStateFromSupabaseTables(){
     if(!key){
       return;
     }
-    const status = sanitizeOptional(row.status);
-    const notes = sanitizeOptional(row.notes);
-    if(status || notes){
-      rosterMeta[key] = { status, notes };
+    const { status, notes, hidden } = decodeRosterMeta(row.status, row.notes, row.hidden);
+    if(status || notes || hidden){
+      rosterMeta[key] = { status, notes, hidden };
     }
   });
 
@@ -462,16 +504,65 @@ async function loadStateFromSupabaseTables(){
   });
 }
 
+async function saveStateToSupabaseTables(state, context = {}){
+  const action = context && context.action;
+  if(!action){
+    await replaceSupabaseTablesState(state);
+    return loadStateFromSupabaseTables();
+  }
+
+  try{
+    switch(action){
+      case 'joinSession': {
+        const sessionId = sanitizeOptional(context.sessionId);
+        const key = sanitizeName(context.buildKey || context.playerName);
+        if(!sessionId || !key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
+        const session = state.sessions.find(s => sanitizeOptional(s.id) === sessionId);
+        if(session){
+          await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?id=eq.${encodeURIComponent(sessionId)}`, {
+            method: 'PATCH',
+            body: {
+              title: sanitizeOptional(session.title) || null,
+              dm: sanitizeOptional(session.dm) || null,
+              date: sanitizeOptional(session.date) || null,
+              capacity: Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : null,
+              finale: session.finale != null ? Boolean(session.finale) : null
+            }
+          });
+        }
+        await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}`, {
+          body: [{
+            session_id: sessionId,
+            player_key: key,
+            player_name: sanitizeName(context.playerName)
+          }],
+          headers: { Prefer: 'resolution=ignore-duplicates' }
+        });
+        await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}`, {
+          body: [{
+            player_key: key,
+            class: context.build?.class ? sanitizeOptional(context.build.class) : null,
+            university: context.build?.university ? sanitizeOptional(context.build.university) : null
+          }],
+          headers: { Prefer: 'resolution=merge-duplicates' }
+        });
         break;
       }
       case 'leaveSession': {
         const sessionId = sanitizeOptional(context.sessionId);
         const key = sanitizeName(context.buildKey || context.playerName);
+        if(!sessionId || !key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
         const filters = [`session_id=eq.${encodeURIComponent(sessionId)}`, `player_key=eq.${encodeURIComponent(key)}`].join('&');
         await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?${filters}`, {
           method: 'DELETE'
         });
-        if(context.removeBuildCard && key){
+        if(context.removeBuildCard){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
             method: 'DELETE'
           });
@@ -480,6 +571,10 @@ async function loadStateFromSupabaseTables(){
       }
       case 'setAvailability': {
         const key = sanitizeName(context.availabilityKey || context.playerName);
+        if(!key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
         if(context.available){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}`, {
             body: [{
@@ -500,6 +595,10 @@ async function loadStateFromSupabaseTables(){
       }
       case 'addRosterExtra': {
         const key = rosterKey(context.rosterKey || context.name);
+        if(!key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
         await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}`, {
           body: [{
             player_key: key,
@@ -509,12 +608,12 @@ async function loadStateFromSupabaseTables(){
           }],
           headers: { Prefer: 'resolution=merge-duplicates' }
         });
-        if(context.status || context.notes){
+        if(context.status || context.notes || context.hidden){
+          const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
               player_key: key,
-              status: sanitizeOptional(context.status) || null,
-              notes: sanitizeOptional(context.notes) || null
+              ...metaPayload
             }],
             headers: { Prefer: 'resolution=merge-duplicates' }
           });
@@ -523,12 +622,16 @@ async function loadStateFromSupabaseTables(){
       }
       case 'updateRoster': {
         const key = rosterKey(context.rosterKey || context.name);
-        if(context.status || context.notes){
+        if(!key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
+        if(context.status || context.notes || context.hidden){
+          const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
               player_key: key,
-              status: sanitizeOptional(context.status) || null,
-              notes: sanitizeOptional(context.notes) || null
+              ...metaPayload
             }],
             headers: { Prefer: 'resolution=merge-duplicates' }
           });
@@ -547,10 +650,19 @@ async function loadStateFromSupabaseTables(){
             }
           });
         }
+        if(context.hidden){
+          await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
+            method: 'DELETE'
+          });
+        }
         break;
       }
       case 'removeRosterExtra': {
         const key = rosterKey(context.rosterKey || context.name);
+        if(!key){
+          await replaceSupabaseTablesState(state);
+          break;
+        }
         await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
           method: 'DELETE'
         });
@@ -638,8 +750,7 @@ async function replaceSupabaseTablesState(state){
   const metaRows = state.rosterMeta && typeof state.rosterMeta === 'object'
     ? Object.entries(state.rosterMeta).map(([rawKey, value])=>({
         player_key: rosterKey(rawKey),
-        status: sanitizeOptional(value.status) || null,
-        notes: sanitizeOptional(value.notes) || null
+        ...encodeRosterMeta(value && value.status, value && value.notes, value && value.hidden)
       }))
     : [];
   if(metaRows.length){
@@ -701,28 +812,16 @@ async function loadStateFromSupabase(){
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: \`Bearer \${SUPABASE_SERVICE_ROLE_KEY}\`,
+      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
       Accept: 'application/json'
     }
   });
 
-  if(!res.ok){
-    const body = await res.text();
-    throw new Error(\`Supabase select failed (\${res.status}): \${body}\`);
-  }
-
-  const rows = await res.json();
-  const record = Array.isArray(rows) ? rows[0] : null;
-
-  if(!record || !record.state){
+  if(res.status === 404){
     const initial = normaliseState(DEFAULT_STATE);
     await insertStateToSupabase(initial);
     return initial;
   }
-
-  return normaliseState(record.state);
-}
-  });
 
   if(!res.ok){
     const body = await res.text();
@@ -741,36 +840,15 @@ async function loadStateFromSupabase(){
   return normaliseState(record.state);
 }
 
-      }catch(parseErr){
-        console.warn('Supabase update parse warning:', parseErr);
-      }
-    }else{
-      await insertStateToSupabase(state);
-    }
-    return;
-  }
-
-  if(res.status === 204){
-    const range = res.headers.get('content-range');
-    if(range && /\b0\/?0?$/.test(range.split('/').pop() || '')){
-      await insertStateToSupabase(state);
-      return;
-    }
-    return;
-  }
-
-  if(res.status === 404){
-    await insertStateToSupabase(state);
-    return;
-  }
-
-  if(!res.ok){
-    const body = await res.text();
-    throw new Error(`Supabase update failed (${res.status}): ${body}`);
-  }
+async function saveStateToSupabase(state){
+  await insertStateToSupabase(state);
 }
 
 async function insertStateToSupabase(state){
+  if(!SUPABASE_REST_URL){
+    return;
+  }
+
   const payload = {
     id: SUPABASE_ROW_ID,
     state,
@@ -982,14 +1060,15 @@ app.patch('/api/roster/:key', async (req, res) => {
   const key = rosterKey(req.params.key);
   const status = sanitizeOptional(req.body?.status);
   const notes = sanitizeOptional(req.body?.notes);
+  const hidden = Boolean(req.body?.hidden);
   const custom = Boolean(req.body?.custom);
   if(!key){
     return handleError(res, httpError(400, 'Roster key is required.'));
   }
   try{
     const state = await loadState();
-    if(status || notes){
-      state.rosterMeta[key] = { status, notes };
+    if(status || notes || hidden){
+      state.rosterMeta[key] = { status, notes, hidden };
     }else{
       delete state.rosterMeta[key];
     }
@@ -1001,15 +1080,20 @@ app.patch('/api/roster/:key', async (req, res) => {
         state.rosterExtras[idx] = {
           ...state.rosterExtras[idx],
           status,
-          notes
+          notes,
+          hidden
         };
       }
+    }
+    if(hidden){
+      delete state.availability[key];
     }
     const updated = await saveState(state, {
       action: 'updateRoster',
       rosterKey: key,
       status,
       notes,
+      hidden,
       custom,
       name: extraName
     });
