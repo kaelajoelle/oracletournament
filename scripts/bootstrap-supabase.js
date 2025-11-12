@@ -10,6 +10,7 @@ async function main(){
     ? 'oracle_tables.sql'
     : 'oracle_state.sql';
   const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', defaultSql);
+  const sqlFile = process.env.SUPABASE_SQL_PATH || path.join(__dirname, '..', 'supabase', 'oracle_state.sql');
 
   if(!projectUrl){
     console.error('Missing SUPABASE_URL environment variable.');
@@ -28,7 +29,6 @@ async function main(){
     process.exit(1);
   }
 
-  console.log(`Using Supabase storage mode: ${storageMode}`);
   console.log(`Executing ${path.relative(process.cwd(), sqlFile)} against ${projectUrl}...`);
 
   const res = await fetch(endpoint, {
