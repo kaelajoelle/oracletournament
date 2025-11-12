@@ -32,6 +32,9 @@ const SUPABASE_STATE_REST_URL = hasSupabase
 const SUPABASE_REST_BASE = hasSupabase
   ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
   : null;
+const SUPABASE_REST_URL = hasSupabase
+  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1/${SUPABASE_TABLE}`
+  : null;
 
 const AVAIL_DATES = [
   '2025-12-21','2025-12-22','2025-12-23',
@@ -203,6 +206,8 @@ async function saveState(state, context){
   if(useSupabaseTables){
     return saveStateToSupabaseTables(normalised, context);
   }
+async function saveState(state){
+  const normalised = normaliseState(state);
   if(hasSupabase){
     await saveStateToSupabase(normalised);
   }else{
@@ -718,6 +723,8 @@ async function replaceSupabaseTablesState(state){
 
 async function loadStateFromSupabase(){
   const url = `${SUPABASE_STATE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}&select=state`;
+async function loadStateFromSupabase(){
+  const url = `${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}&select=state`;
   const res = await fetch(url, {
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -749,7 +756,7 @@ async function saveStateToSupabase(state){
     updated_at: new Date().toISOString()
   };
 
-  const res = await fetch(`${SUPABASE_STATE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}`, {
+  const res = await fetch(`${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}`, {
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -805,7 +812,7 @@ async function insertStateToSupabase(state){
     updated_at: new Date().toISOString()
   };
 
-  const res = await fetch(SUPABASE_STATE_REST_URL, {
+  const res = await fetch(SUPABASE_REST_URL, {
     method: 'POST',
     headers: {
       apikey: SUPABASE_SERVICE_ROLE_KEY,

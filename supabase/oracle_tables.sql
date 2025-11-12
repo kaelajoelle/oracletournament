@@ -1,5 +1,5 @@
 -- Supabase schema for the Oracle Tournament normalized tables storage mode
--- Run this in the Supabase SQL editor or through the Supabase CLI.
+-- Run via `npm run supabase:bootstrap` with SUPABASE_STORAGE_MODE=tables or execute manually.
 
 begin;
 
