@@ -8,6 +8,6 @@
 /data/*.sqlite
 /site/data/*.sqlite
 # Frontend runtime config (copy from site/app-config.example.js)
-# Keep project-wide default checked in so deployments work out of the box.
+site/app-config.js
 # Node dependencies
 /node_modules/
