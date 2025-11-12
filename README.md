@@ -58,5 +58,47 @@ All routes return the full state payload on success so the client can refresh it
 
 ## Deployment notes
 
-* The API stores its state in `api/state.json`. Back up this file or point the `DATA_PATH` environment variable at another location if you want to keep multiple environments.
+* By default the API stores its state in `api/state.json`. Set `DATA_PATH` to point at another writable location if you want separate environments on the same host.
 * When deploying to a serverless platform or container host, expose port `8787` (or set `PORT`). Serve the static front-end from the same origin, or configure `window.APP_CONFIG.apiBaseUrl` to point at the API hostname.
+
+### Supabase quick start
+
+If you would rather keep the shared state in Supabase instead of the local JSON file, follow these steps:
+
+1. Run the bundled bootstrap script once to create and seed the datastore:
+
+   ```bash
+   SUPABASE_URL="https://your-project.supabase.co" \\
+   SUPABASE_SERVICE_ROLE_KEY="service-role-key" \\
+   npm run supabase:bootstrap
+   ```
+
+   The script defaults to the original single-row JSON storage, using [`supabase/oracle_state.sql`](supabase/oracle_state.sql). Set `SUPABASE_STORAGE_MODE=tables` (or point `SUPABASE_SQL_PATH` at your own file) if you want the normalized schema in [`supabase/oracle_tables.sql`](supabase/oracle_tables.sql) instead. That variant creates the `sessions`, `session_players`, `roster_extras`, `roster_meta`, `availability`, and `build_cards` tables with matching policies and seeds the default sessions for you.
+
+   If you prefer to run the SQL manually, copy the relevant file into the Supabase **SQL Editor** or push it with the Supabase CLI (`supabase db push path/to/file.sql`).
+
+2. In **Project Settings → API**, copy your project URL and the **service role** key. Supply them as environment variables when you start the Node server:
+
+   | Variable | Description |
+   |----------|-------------|
+   | `SUPABASE_URL` | The Supabase project URL (for example `https://xyzcompany.supabase.co`). |
+   | `SUPABASE_SERVICE_ROLE_KEY` | The service role key with read/write access. Keep this secret on the server only. |
+   | `SUPABASE_TABLE` (optional) | Table name to store the state (`oracle_state` by default). |
+   | `SUPABASE_ROW_ID` (optional) | Row identifier that holds the JSON blob (`shared` by default). |
+   | `SUPABASE_STORAGE_MODE` (optional) | `json` (default) for the single-row table, or `tables` for the normalized schema. |
+
+3. Deploy the API (Render, Railway, Fly.io, etc.) and set the environment variables above. The server will automatically connect to Supabase, seed the datastore if it ever disappears, and persist every update there.
+
+   * Leave `SUPABASE_STORAGE_MODE` unset (or `json`) to keep the original single-row JSON workflow. You can override `SUPABASE_TABLE` and `SUPABASE_ROW_ID` if you renamed them.
+   * Set `SUPABASE_STORAGE_MODE=tables` to use the normalized schema. You can override the table names individually:
+
+     | Variable | Default | Purpose |
+     |----------|---------|---------|
+     | `SUPABASE_SESSIONS_TABLE` | `sessions` | Session definitions (id, date, DM, capacity, finale). |
+     | `SUPABASE_SESSION_PLAYERS_TABLE` | `session_players` | Junction table that records who joined each session. |
+     | `SUPABASE_ROSTER_EXTRAS_TABLE` | `roster_extras` | Custom roster entries. |
+     | `SUPABASE_ROSTER_META_TABLE` | `roster_meta` | Status/notes overrides keyed by `rosterKey(name)`. |
+     | `SUPABASE_AVAILABILITY_TABLE` | `availability` | Availability checkmarks keyed by `sanitizeName(name)`. |
+     | `SUPABASE_BUILD_CARDS_TABLE` | `build_cards` | Stored build cards keyed by `sanitizeName(name)`. |
+
+Once the backend is live, point the web app at it with the `window.APP_CONFIG.apiBaseUrl` snippet described earlier so that everyone hits the same Supabase-backed datastore.
