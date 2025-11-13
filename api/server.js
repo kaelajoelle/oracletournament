@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
 const path = require('path');
-const { randomUUID } = require('crypto');
+const { randomUUID, createHash } = require('crypto');
 
 const fetch = global.fetch || require('node-fetch');
 
@@ -34,9 +34,12 @@ const SUPABASE_ROSTER_META_TABLE = process.env.SUPABASE_ROSTER_META_TABLE || 'ro
 const SUPABASE_AVAILABILITY_TABLE = process.env.SUPABASE_AVAILABILITY_TABLE || 'availability';
 const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
 const SUPABASE_COMMENTS_TABLE = process.env.SUPABASE_COMMENTS_TABLE || 'comments';
+const SUPABASE_PLAYER_ACCESS_TABLE = process.env.SUPABASE_PLAYER_ACCESS_TABLE || 'player_access';
+const PLAYER_ACCESS_ADMIN_TOKEN = process.env.PLAYER_ACCESS_ADMIN_TOKEN || '';
 
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
+const canUsePlayerAccess = hasSupabase && Boolean(SUPABASE_PLAYER_ACCESS_TABLE);
 
 const SUPABASE_REST_BASE = hasSupabase
   ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
@@ -98,6 +101,14 @@ function assertNotGuestKey(key){
   }
 }
 
+function hashAccessCode(value){
+  const clean = sanitizeOptional(value).toLowerCase();
+  if(!clean){
+    return '';
+  }
+  return createHash('sha256').update(clean).digest('hex');
+}
+
 function decodeRosterMeta(status, notes, hiddenFlag){
   const cleanStatus = sanitizeOptional(status);
   let cleanNotes = sanitizeOptional(notes);
@@ -154,6 +165,24 @@ function normalisePlayer(entry){
     key: key || rosterKey(character),
     character: character || playerName || key || '',
     playerName
+  };
+}
+
+function normalisePlayerAccess(row){
+  if(!row || typeof row !== 'object'){
+    return null;
+  }
+  const playerKey = rosterKey(row.player_key || row.playerKey);
+  const displayName = sanitizeName(row.display_name || row.displayName || row.name);
+  if(!playerKey){
+    return null;
+  }
+  return {
+    playerKey,
+    displayName,
+    lastLoginAt: row.last_login_at || row.lastLoginAt || null,
+    createdAt: row.created_at || row.createdAt || null,
+    updatedAt: row.updated_at || row.updatedAt || null
   };
 }
 
@@ -525,6 +554,63 @@ async function supabaseMutate(path, options = {}){
   return null;
 }
 
+async function fetchPlayerAccessByCode(code){
+  if(!canUsePlayerAccess){
+    throw httpError(503, 'Player login is not configured.');
+  }
+  const hash = hashAccessCode(code);
+  if(!hash){
+    throw httpError(400, 'Access code is required.');
+  }
+  const filters = [
+    `access_code_hash=eq.${encodeURIComponent(hash)}`,
+    'select=player_key,display_name,last_login_at,created_at,updated_at'
+  ];
+  const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?${filters.join('&')}`, { fallback: [] });
+  const record = Array.isArray(rows) ? rows[0] : null;
+  if(!record){
+    throw httpError(401, 'Invalid access code.');
+  }
+  return normalisePlayerAccess(record);
+}
+
+async function recordPlayerAccessLogin(playerKey){
+  if(!canUsePlayerAccess){
+    return;
+  }
+  const key = rosterKey(playerKey);
+  if(!key){
+    return;
+  }
+  try{
+    await supabaseMutate(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: { last_login_at: new Date().toISOString() }
+    });
+  }catch(err){
+    console.warn('recordPlayerAccessLogin failed', err.message || err);
+  }
+}
+
+async function updatePlayerAccessDisplayName(playerKey, displayName){
+  if(!canUsePlayerAccess){
+    return;
+  }
+  const key = rosterKey(playerKey);
+  const cleanName = sanitizeName(displayName);
+  if(!key || !cleanName){
+    return;
+  }
+  try{
+    await supabaseMutate(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
+      method: 'PATCH',
+      body: { display_name: cleanName }
+    });
+  }catch(err){
+    console.warn('updatePlayerAccessDisplayName failed', err.message || err);
+  }
+}
+
 function normaliseComment(row){
   if(!row || typeof row !== 'object'){
     return null;
@@ -833,6 +919,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
+        await updatePlayerAccessDisplayName(key, context.playerName || context.characterName);
         const session = state.sessions.find(s => sanitizeOptional(s.id) === sessionId);
         if(session){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?id=eq.${encodeURIComponent(sessionId)}`, {
@@ -889,6 +976,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
+        await updatePlayerAccessDisplayName(key, context.playerName);
         if(context.available){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}`, {
             body: [{
@@ -913,6 +1001,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
+        await updatePlayerAccessDisplayName(key, context.name);
         await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}`, {
           body: [{
             player_key: key,
@@ -940,6 +1029,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
+        const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
         if(context.status || context.notes){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
@@ -1202,34 +1292,44 @@ function handleError(res, err){
   res.status(status).json({ error: message });
 }
 
-app.get('/api/characters/:playerKey', async (req, res) => {
-  const playerKey = rosterKey(req.params.playerKey);
-  if(!playerKey){
-    return handleError(res, httpError(400, 'Player key is required.'));
-  }
+app.post('/api/login', async (req, res) => {
   try{
-    const draft = await getCharacterDraft(playerKey);
-    res.json({ draft: draft || null });
+    if(!canUsePlayerAccess){
+      throw httpError(503, 'Personal access codes are not enabled on this server.');
+    }
+    const accessCode = sanitizeOptional(req.body?.accessCode || req.body?.code);
+    const record = await fetchPlayerAccessByCode(accessCode);
+    const loginTime = new Date().toISOString();
+    await recordPlayerAccessLogin(record.playerKey);
+    res.json({
+      playerKey: record.playerKey,
+      displayName: record.displayName,
+      lastLoginAt: record.lastLoginAt || loginTime,
+      loginRecordedAt: loginTime
+    });
   }catch(err){
-    console.error('draft fetch failed', err);
+    console.error('login failed', err);
     handleError(res, err);
   }
 });
 
-app.put('/api/characters/:playerKey', async (req, res) => {
-  const playerKey = rosterKey(req.params.playerKey);
-  if(!playerKey){
-    return handleError(res, httpError(400, 'Player key is required.'));
-  }
-  assertNotGuestKey(playerKey);
-  if(!req.body || typeof req.body.data !== 'object' || req.body.data === null){
-    return handleError(res, httpError(400, 'Draft payload is required.'));
-  }
+app.get('/api/admin/player-access', async (req, res) => {
   try{
-    const saved = await saveCharacterDraft(playerKey, req.body.data);
-    res.json({ draft: saved });
+    if(!PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(503, 'Player directory access is disabled.');
+    }
+    const providedToken = sanitizeOptional(req.header('x-admin-token') || req.query.token);
+    if(providedToken !== PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(401, 'Unauthorized');
+    }
+    if(!canUsePlayerAccess){
+      throw httpError(503, 'Player directory is unavailable.');
+    }
+    const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?select=player_key,display_name,last_login_at,created_at,updated_at&order=display_name.asc`, { fallback: [] });
+    const players = rows.map(normalisePlayerAccess).filter(Boolean);
+    res.json({ players });
   }catch(err){
-    console.error('draft save failed', err);
+    console.error('admin player access lookup failed', err);
     handleError(res, err);
   }
 });
