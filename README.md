@@ -29,6 +29,7 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 
 * Open `index.html` in a browser that can reach the API origin. By default the front-end will call `/api/...` on the same host that served the page.
 * Share `login.html` with players so they can enter their roster access code. The code is stored in `localStorage` as `player_key` and is required before visiting the main builder.
+* Testers can click **Continue as guest** on `login.html` to load the builder in read-only mode. The UI hides all mutating controls, but guests still see the latest roster, availability, and session data. To make changes later, clear the guest session (or overwrite `player_key`) with your personal access code.
 * If the datastore is hosted somewhere else, inject a small configuration snippet before the main script:
 
   ```html
