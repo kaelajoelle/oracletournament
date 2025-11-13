@@ -5,12 +5,21 @@
   "main": "api/server.js",
   "scripts": {
     "start": "node api/server.js",
+    "dev": "concurrently -k \"npm:dev:api\" \"npm:dev:site\"",
+    "dev:api": "node api/server.js",
+    "dev:site": "serve --listen 4173 --single .",
+    "build": "node scripts/build.js",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.19.2",
     "node-fetch": "^2.6.13"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "serve": "^14.2.5"
   }
 }
