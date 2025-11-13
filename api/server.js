@@ -817,7 +817,8 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
-        if(context.status || context.notes){
+        const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
+        if(metaPayload.status || metaPayload.notes || metaPayload.hidden){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
               player_key: key,
