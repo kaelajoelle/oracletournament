@@ -113,6 +113,34 @@ function encodeRosterMeta(status, notes, hiddenFlag){
   };
 }
 
+function normalisePlayer(entry){
+  if(!entry){
+    return null;
+  }
+  if(typeof entry === 'string'){
+    const character = sanitizeName(entry);
+    if(!character){
+      return null;
+    }
+    return { key: rosterKey(entry), character };
+  }
+  if(typeof entry !== 'object'){
+    return null;
+  }
+  const character = sanitizeName(entry.character || entry.characterName || entry.name || entry.player_name || '');
+  const keySource = entry.key || entry.playerKey || entry.player_key || entry.code || entry.id || character;
+  const key = rosterKey(keySource);
+  if(!key && !character){
+    return null;
+  }
+  const playerName = sanitizeName(entry.playerName || entry.player_name || entry.displayName || '');
+  return {
+    key: key || rosterKey(character),
+    character: character || playerName || key || '',
+    playerName
+  };
+}
+
 function normaliseSession(session){
   if(!session || typeof session !== 'object') return null;
   const id = sanitizeOptional(session.id);
@@ -123,7 +151,7 @@ function normaliseSession(session){
   const date = sanitizeOptional(session.date || (base && base.date));
   const capacity = Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : (base ? base.capacity : 0);
   const players = Array.isArray(session.players)
-    ? session.players.map(name => sanitizeName(name)).filter(Boolean)
+    ? session.players.map(normalisePlayer).filter(Boolean)
     : [];
   return {
     id,
@@ -157,7 +185,10 @@ function normaliseState(state){
   }
 
   sessionMap.forEach((value)=>{
-    sessions.push({...value, players: Array.isArray(value.players) ? value.players.slice() : []});
+    const players = Array.isArray(value.players)
+      ? value.players.map((player)=>({ ...player }))
+      : [];
+    sessions.push({ ...value, players });
   });
 
   sessions.sort((a,b)=>a.date.localeCompare(b.date));
@@ -193,28 +224,31 @@ function normaliseState(state){
 
   const availability = {};
   if(state && typeof state.availability === 'object'){
-    Object.entries(state.availability).forEach(([rawName, dates])=>{
-      const name = sanitizeName(rawName);
-      if(!name || !dates || typeof dates !== 'object') return;
+    Object.entries(state.availability).forEach(([rawKey, dates])=>{
+      const key = rosterKey(rawKey);
+      if(!key || !dates || typeof dates !== 'object') return;
       const row = {};
       Object.entries(dates).forEach(([date, value])=>{
         if(AVAIL_DATES.includes(date)){
           row[date] = Boolean(value);
         }
       });
-      availability[name] = row;
+      availability[key] = row;
     });
   }
 
   const buildCards = {};
   if(state && typeof state.buildCards === 'object'){
-    Object.entries(state.buildCards).forEach(([rawName, card])=>{
-      const name = sanitizeName(rawName);
-      if(!name || !card || typeof card !== 'object') return;
+    Object.entries(state.buildCards).forEach(([rawKey, card])=>{
+      const key = rosterKey(rawKey);
+      if(!key || !card || typeof card !== 'object') return;
       const entry = {};
       if(card.class) entry.class = sanitizeOptional(card.class);
       if(card.university) entry.university = sanitizeOptional(card.university);
-      buildCards[name] = entry;
+      if(card.characterName || card.character_name || card.name){
+        entry.characterName = sanitizeName(card.characterName || card.character_name || card.name);
+      }
+      buildCards[key] = entry;
     });
   }
 
@@ -606,7 +640,7 @@ async function loadStateFromSupabaseTables(){
     if(row.available === false){
       return;
     }
-    const key = sanitizeName(row.player_key || row.player_name);
+    const key = rosterKey(row.player_key || row.player_name);
     const date = sanitizeOptional(row.date);
     if(!key || !AVAIL_DATES.includes(date)){
       return;
@@ -617,18 +651,22 @@ async function loadStateFromSupabaseTables(){
 
   const buildCards = {};
   buildRows.forEach((row)=>{
-    const key = sanitizeName(row.player_key);
+    const key = rosterKey(row.player_key);
     if(!key){
       return;
     }
     const entry = {};
     const klass = sanitizeOptional(row.class);
     const university = sanitizeOptional(row.university);
+    const characterName = sanitizeName(row.character_name || '');
     if(klass){
       entry.class = klass;
     }
     if(university){
       entry.university = university;
+    }
+    if(characterName){
+      entry.characterName = characterName;
     }
     if(Object.keys(entry).length > 0){
       buildCards[key] = entry;
@@ -655,7 +693,7 @@ async function saveStateToSupabaseTables(state, context = {}){
     switch(action){
       case 'joinSession': {
         const sessionId = sanitizeOptional(context.sessionId);
-        const key = sanitizeName(context.buildKey || context.playerName);
+        const key = rosterKey(context.playerKey || context.buildKey || context.playerName);
         if(!sessionId || !key){
           await replaceSupabaseTablesState(state);
           break;
@@ -677,7 +715,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           body: [{
             session_id: sessionId,
             player_key: key,
-            player_name: sanitizeName(context.playerName)
+            player_name: sanitizeName(context.characterName || context.playerName)
           }],
           headers: { Prefer: 'resolution=ignore-duplicates' }
         });
@@ -685,7 +723,8 @@ async function saveStateToSupabaseTables(state, context = {}){
           body: [{
             player_key: key,
             class: context.build?.class ? sanitizeOptional(context.build.class) : null,
-            university: context.build?.university ? sanitizeOptional(context.build.university) : null
+            university: context.build?.university ? sanitizeOptional(context.build.university) : null,
+            character_name: context.characterName ? sanitizeName(context.characterName) : null
           }],
           headers: { Prefer: 'resolution=merge-duplicates' }
         });
@@ -693,7 +732,7 @@ async function saveStateToSupabaseTables(state, context = {}){
       }
       case 'leaveSession': {
         const sessionId = sanitizeOptional(context.sessionId);
-        const key = sanitizeName(context.buildKey || context.playerName);
+        const key = rosterKey(context.playerKey || context.buildKey || context.playerName);
         if(sessionId && key){
           const filters = [`session_id=eq.${encodeURIComponent(sessionId)}`, `player_key=eq.${encodeURIComponent(key)}`].join('&');
           await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?${filters}`, {
@@ -710,7 +749,7 @@ async function saveStateToSupabaseTables(state, context = {}){
         break;
       }
       case 'setAvailability': {
-        const key = sanitizeName(context.availabilityKey || context.playerName);
+        const key = rosterKey(context.availabilityKey || context.playerKey || context.playerName);
         if(!key){
           await replaceSupabaseTablesState(state);
           break;
@@ -856,11 +895,11 @@ async function replaceSupabaseTablesState(state){
       method: 'DELETE'
     });
     if(Array.isArray(session.players) && session.players.length){
-      const rows = session.players.map((name)=>({
+      const rows = session.players.map((player)=>({
         session_id: sessionId,
-        player_key: sanitizeName(name),
-        player_name: sanitizeName(name)
-      }));
+        player_key: rosterKey(player && (player.key || player.character || player.name)),
+        player_name: sanitizeName(player && (player.character || player.name || player.playerName || ''))
+      })).filter(row => row.player_key);
       await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}`, {
         body: rows,
         headers: { Prefer: 'resolution=ignore-duplicates' }
@@ -907,8 +946,8 @@ async function replaceSupabaseTablesState(state){
   });
   const availabilityRows = [];
   if(state.availability && typeof state.availability === 'object'){
-    Object.entries(state.availability).forEach(([rawName, dates])=>{
-      const key = sanitizeName(rawName);
+    Object.entries(state.availability).forEach(([rawKey, dates])=>{
+      const key = rosterKey(rawKey);
       if(!key || !dates || typeof dates !== 'object'){
         return;
       }
@@ -916,7 +955,7 @@ async function replaceSupabaseTablesState(state){
         if(value && AVAIL_DATES.includes(date)){
           availabilityRows.push({
             player_key: key,
-            player_name: sanitizeName(rawName),
+            player_name: sanitizeName(rawKey),
             date: sanitizeOptional(date),
             available: true
           });
@@ -935,10 +974,11 @@ async function replaceSupabaseTablesState(state){
     method: 'DELETE'
   });
   const buildRows = state.buildCards && typeof state.buildCards === 'object'
-    ? Object.entries(state.buildCards).map(([rawName, card])=>({
-        player_key: sanitizeName(rawName),
+    ? Object.entries(state.buildCards).map(([rawKey, card])=>({
+        player_key: rosterKey(rawKey),
         class: card && card.class ? sanitizeOptional(card.class) : null,
-        university: card && card.university ? sanitizeOptional(card.university) : null
+        university: card && card.university ? sanitizeOptional(card.university) : null,
+        character_name: card && card.characterName ? sanitizeName(card.characterName) : null
       }))
     : [];
   if(buildRows.length){
@@ -1069,7 +1109,9 @@ app.get('/api/state', async (req, res) => {
 
 app.post('/api/sessions/:id/join', async (req, res) => {
   const sessionId = sanitizeOptional(req.params.id);
-  const name = sanitizeName(req.body?.name);
+  const characterName = sanitizeName(req.body?.characterName || req.body?.name);
+  const playerKey = rosterKey(req.body?.playerKey || req.body?.player_key || characterName);
+  const playerName = sanitizeName(req.body?.playerName);
   const build = req.body?.build || {};
   const klass = sanitizeOptional(build.class);
   const university = sanitizeOptional(build.university);
@@ -1077,8 +1119,11 @@ app.post('/api/sessions/:id/join', async (req, res) => {
   if(!sessionId){
     return handleError(res, httpError(400, 'Session id is required.'));
   }
-  if(!name){
-    return handleError(res, httpError(400, 'Name is required.'));
+  if(!characterName){
+    return handleError(res, httpError(400, 'Character name is required.'));
+  }
+  if(!playerKey){
+    return handleError(res, httpError(400, 'Access code is required.'));
   }
 
   try{
@@ -1087,33 +1132,40 @@ app.post('/api/sessions/:id/join', async (req, res) => {
     if(!session){
       throw httpError(404, 'Session not found.');
     }
-    if(session.players.includes(name)){
-      throw httpError(409, `${name} is already signed up for this session.`);
+    session.players = Array.isArray(session.players) ? session.players : [];
+    const existingPlayer = Array.isArray(session.players)
+      ? session.players.find(player => rosterKey(player && player.key) === playerKey)
+      : null;
+    if(existingPlayer){
+      throw httpError(409, `${characterName} is already signed up for this session.`);
     }
     if(session.players.length >= session.capacity){
       throw httpError(409, 'This session is already at capacity.');
     }
     if(university){
       for(const player of session.players){
-        const existing = state.buildCards[sanitizeName(player)];
+        const key = rosterKey(player && (player.key || player.character));
+        const existing = key ? state.buildCards[key] : null;
         if(existing && existing.university && existing.university === university){
           throw httpError(409, `Another ${university} student is already in this session.`);
         }
       }
     }
 
-    session.players = session.players.concat([name]);
-    const buildKey = sanitizeName(name);
-    state.buildCards[buildKey] = {
+    session.players = session.players.concat([{ key: playerKey, character: characterName, playerName }]);
+    state.buildCards[playerKey] = {
       class: klass,
-      university
+      university,
+      characterName
     };
 
     const updated = await saveState(state, {
       action: 'joinSession',
       sessionId,
-      playerName: name,
-      buildKey,
+      playerName: playerName || characterName,
+      playerKey,
+      buildKey: playerKey,
+      characterName,
       build: { class: klass, university }
     });
     res.json({ state: updated });
@@ -1125,12 +1177,13 @@ app.post('/api/sessions/:id/join', async (req, res) => {
 
 app.post('/api/sessions/:id/leave', async (req, res) => {
   const sessionId = sanitizeOptional(req.params.id);
-  const name = sanitizeName(req.body?.name);
+  const characterName = sanitizeName(req.body?.characterName || req.body?.name);
+  const playerKey = rosterKey(req.body?.playerKey || req.body?.player_key || req.body?.name);
   if(!sessionId){
     return handleError(res, httpError(400, 'Session id is required.'));
   }
-  if(!name){
-    return handleError(res, httpError(400, 'Name is required.'));
+  if(!playerKey){
+    return handleError(res, httpError(400, 'Access code is required.'));
   }
   try{
     const state = await loadState();
@@ -1138,18 +1191,20 @@ app.post('/api/sessions/:id/leave', async (req, res) => {
     if(!session){
       throw httpError(404, 'Session not found.');
     }
-    session.players = session.players.filter(player => sanitizeName(player) !== name);
-    const buildKey = sanitizeName(name);
-    const stillSignedUp = state.sessions.some(sess => sess.players.some(p => sanitizeName(p) === buildKey));
-    const removeBuildCard = !stillSignedUp && Boolean(state.buildCards[buildKey]);
+    session.players = session.players.filter(player => rosterKey(player && player.key) !== playerKey);
+    const stillSignedUp = state.sessions.some((sess)=>{
+      return Array.isArray(sess.players) && sess.players.some(p => rosterKey(p && p.key) === playerKey);
+    });
+    const removeBuildCard = !stillSignedUp && Boolean(state.buildCards[playerKey]);
     if(removeBuildCard){
-      delete state.buildCards[buildKey];
+      delete state.buildCards[playerKey];
     }
     const updated = await saveState(state, {
       action: 'leaveSession',
       sessionId,
-      playerName: name,
-      buildKey,
+      playerName: characterName || playerKey,
+      playerKey,
+      buildKey: playerKey,
       removeBuildCard
     });
     res.json({ state: updated });
@@ -1160,12 +1215,13 @@ app.post('/api/sessions/:id/leave', async (req, res) => {
 });
 
 app.post('/api/availability', async (req, res) => {
-  const name = sanitizeName(req.body?.name);
+  const playerKey = rosterKey(req.body?.playerKey || req.body?.key || req.body?.name);
+  const playerName = sanitizeName(req.body?.playerName || req.body?.name);
   const date = sanitizeOptional(req.body?.date);
   const available = Boolean(req.body?.available);
 
-  if(!name){
-    return handleError(res, httpError(400, 'Name is required.'));
+  if(!playerKey){
+    return handleError(res, httpError(400, 'Access code is required.'));
   }
   if(!AVAIL_DATES.includes(date)){
     return handleError(res, httpError(400, 'Date is not in the availability schedule.'));
@@ -1173,7 +1229,7 @@ app.post('/api/availability', async (req, res) => {
 
   try{
     const state = await loadState();
-    const key = sanitizeName(name);
+    const key = playerKey;
     state.availability[key] = state.availability[key] || {};
     if(available){
       state.availability[key][date] = true;
@@ -1185,7 +1241,8 @@ app.post('/api/availability', async (req, res) => {
     }
     const updated = await saveState(state, {
       action: 'setAvailability',
-      playerName: name,
+      playerName,
+      playerKey,
       availabilityKey: key,
       date,
       available
@@ -1284,7 +1341,7 @@ app.delete('/api/roster/extras/:key', async (req, res) => {
   try{
     const state = await loadState();
     const existing = state.rosterExtras.find(entry => entry.key === key);
-    const availabilityKey = existing ? sanitizeName(existing.name) : key;
+    const availabilityKey = existing ? existing.key : key;
     state.rosterExtras = state.rosterExtras.filter(entry => entry.key !== key);
     if(state.rosterMeta[key]){
       delete state.rosterMeta[key];

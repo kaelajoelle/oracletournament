@@ -1065,6 +1065,38 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   const API_BASE = resolveApiBase();
 
+  const PlayerIdentity = (()=>{
+    const STORAGE_KEY = 'player_key';
+    function read(){
+      try{
+        return (localStorage.getItem(STORAGE_KEY) || '').trim().toLowerCase();
+      }catch(err){
+        console.warn('Failed to read player key from storage', err);
+        return '';
+      }
+    }
+    function requireKey(){
+      const key = read();
+      if(!key){
+        window.location.href = './login.html';
+        throw new Error('Player key is required.');
+      }
+      return key;
+    }
+    function clear(){
+      try{ localStorage.removeItem(STORAGE_KEY); }catch{}
+    }
+    function getRosterEntry(){
+      const key = read();
+      if(!key) return null;
+      const roster = getRosterList({ includeHidden: true });
+      return roster.find(entry => entry.key === key) || null;
+    }
+    return { getKey: read, requireKey, clear, getRosterEntry };
+  })();
+
+  const CURRENT_PLAYER_KEY = PlayerIdentity.requireKey();
+
   const DEFAULT_SHARED_STATE = {
     sessions: [],
     rosterExtras: [],
@@ -1072,6 +1104,28 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     availability: {},
     buildCards: {}
   };
+
+  function normalisePlayer(entry){
+    if(!entry) return null;
+    if(typeof entry === 'string'){
+      const character = sanitizeName(entry);
+      if(!character) return null;
+      return { key: rosterKey(entry), character };
+    }
+    if(typeof entry !== 'object') return null;
+    const character = sanitizeName(entry.character || entry.characterName || entry.name || entry.player_name || '');
+    const keySource = entry.key || entry.playerKey || entry.player_key || entry.code || entry.id || character;
+    const key = rosterKey(keySource);
+    if(!key && !character){
+      return null;
+    }
+    const playerName = sanitizeName(entry.playerName || entry.player_name || entry.displayName || '');
+    return {
+      key: key || rosterKey(character),
+      character: character || playerName || key || '',
+      playerName
+    };
+  }
 
   function normaliseSession(session){
     if(!session || typeof session !== 'object') return null;
@@ -1081,7 +1135,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     const date = String(session.date || '').trim();
     const capacity = Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : 0;
     const players = Array.isArray(session.players)
-      ? session.players.map(name => sanitizeName(name)).filter(Boolean)
+      ? session.players.map(normalisePlayer).filter(Boolean)
       : [];
     return {
       id,
@@ -1112,7 +1166,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
         const clean = normaliseSession(session);
         if(clean && clean.id){
           clean.players = Array.isArray(session.players)
-            ? session.players.map(name => sanitizeName(name)).filter(Boolean)
+            ? session.players.map(normalisePlayer).filter(Boolean)
             : [];
           safe.sessions.push(clean);
         }
@@ -1150,27 +1204,30 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     }
 
     if(input.availability && typeof input.availability === 'object'){
-      Object.entries(input.availability).forEach(([rawName, dates])=>{
-        const name = sanitizeName(rawName);
-        if(!name || !dates || typeof dates !== 'object') return;
+      Object.entries(input.availability).forEach(([rawKey, dates])=>{
+        const key = rosterKey(rawKey);
+        if(!key || !dates || typeof dates !== 'object') return;
         const row = {};
         Object.entries(dates).forEach(([date, value])=>{
           if(AVAIL_DATES.includes(date)){
             row[date] = Boolean(value);
           }
         });
-        safe.availability[name] = row;
+        safe.availability[key] = row;
       });
     }
 
     if(input.buildCards && typeof input.buildCards === 'object'){
-      Object.entries(input.buildCards).forEach(([rawName, card])=>{
-        const name = sanitizeName(rawName);
-        if(!name || !card || typeof card !== 'object') return;
+      Object.entries(input.buildCards).forEach(([rawKey, card])=>{
+        const key = rosterKey(rawKey);
+        if(!key || !card || typeof card !== 'object') return;
         const entry = {};
         if(card.class) entry.class = sanitizeOptional(card.class);
         if(card.university) entry.university = sanitizeOptional(card.university);
-        safe.buildCards[name] = entry;
+        if(card.characterName || card.character_name || card.name){
+          entry.characterName = sanitizeName(card.characterName || card.character_name || card.name);
+        }
+        safe.buildCards[key] = entry;
       });
     }
 
@@ -1311,7 +1368,12 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       if(Array.isArray(list)){
         this.fallback.sessions = list.map((session)=>{
           const clean = normaliseSession(session);
-          return clean ? {...clean, players: clean.players||[]} : null;
+          return clean ? {
+            ...clean,
+            players: Array.isArray(clean.players)
+              ? clean.players.map(player => ({ ...player }))
+              : []
+          } : null;
         }).filter(Boolean);
       }
     },
@@ -1357,16 +1419,25 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     getSessionsCopy(){
       return this.data.sessions.map((session)=>({
         ...session,
-        players: Array.isArray(session.players) ? session.players.slice() : []
+        players: Array.isArray(session.players)
+          ? session.players.map(player => ({ ...player }))
+          : []
       }));
     }
   };
 
   const Backend = {
     async joinSession(sessionId, payload){
+      const rosterEntry = PlayerIdentity.getRosterEntry();
+      const body = {
+        ...payload,
+        playerKey: payload?.playerKey || CURRENT_PLAYER_KEY,
+        playerName: payload?.playerName || rosterEntry?.name || '',
+        characterName: payload?.characterName || payload?.name
+      };
       const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/join`, {
         method:'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
       if(res && res.state){
         SharedState.apply(res.state, 'remote');
@@ -1374,9 +1445,13 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async leaveSession(sessionId, payload){
+      const body = {
+        ...payload,
+        playerKey: payload?.playerKey || CURRENT_PLAYER_KEY
+      };
       const res = await apiFetch(`/api/sessions/${encodeURIComponent(sessionId)}/leave`, {
         method:'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
       if(res && res.state){
         SharedState.apply(res.state, 'remote');
@@ -1384,9 +1459,15 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async setAvailability(payload){
+      const rosterEntry = PlayerIdentity.getRosterEntry();
+      const body = {
+        ...payload,
+        playerKey: payload?.playerKey || CURRENT_PLAYER_KEY,
+        playerName: payload?.playerName || rosterEntry?.name || payload?.name
+      };
       const res = await apiFetch('/api/availability', {
         method:'POST',
-        body: JSON.stringify(payload)
+        body: JSON.stringify(body)
       });
       if(res && res.state){
         SharedState.apply(res.state, 'remote');
@@ -1521,7 +1602,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     const list = [];
 
     DATA.roster.forEach((r)=>{
-      const key = rosterKey(r.name);
+      const key = rosterKey(r.key || r.name);
       const override = meta[key] || {};
       const entry = {
         name: r.name,
@@ -1538,7 +1619,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     });
 
     extras.forEach((item)=>{
-      const key = item.key || rosterKey(item.name);
+      const key = rosterKey(item.key || item.name);
       const override = meta[key] || {};
       const entry = {
         name: item.name,
@@ -1682,8 +1763,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
     ],
     roster:[
-      {name:'Kaela', status:'Yes'},
-
+      {name:'Amy', status:'Yes', key:'amy456'},
+      {name:'Kaela', status:'Yes', key:'kaela123'},
+      {name:'Trevor', status:'Yes', key:'trev789'}
     ],
     sessions:[
       {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
@@ -1698,7 +1780,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   // Always render roster A→Z without risk to source order
   DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
-  BASE_ROSTER_KEYS = new Set(DATA.roster.map(r=>rosterKey(r.name)));
+  BASE_ROSTER_KEYS = new Set(DATA.roster.map(r=>rosterKey(r.key || r.name)));
 
   SharedState.useFallbackSessions(DATA.sessions);
   SharedState.useDefaultFallback();
@@ -1786,6 +1868,12 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   SharedState.subscribe(()=>{
     State.sessions = SharedState.getSessionsCopy();
+    if(State?.data?.core){
+      const rosterEntry = PlayerIdentity.getRosterEntry();
+      if(rosterEntry && !State.data.core.playerName){
+        State.data.core.playerName = rosterEntry.name;
+      }
+    }
   });
 
   /* =======================
@@ -1817,10 +1905,16 @@ function renderSessionCards(container, opts={readOnly:false}){
       const filled = (s.players||[]).length;
       const full = filled>=s.capacity;
       const roster = filled
-        ? s.players.map(name=>{
-            const b = builds[name];
-            const extra = b ? ` — <span class="muted">${b.class||'?'} • ${b.university||'?'}</span>` : '';
-            return `<div class="pill"><span>${name}</span>${extra}</div>`;
+        ? (Array.isArray(s.players) ? s.players : []).map(player=>{
+            const b = player && player.key ? builds[player.key] : null;
+            let extra = '';
+            if(b){
+              const classLabel = escapeHTML(b.class || '?');
+              const uniLabel = escapeHTML(b.university || '?');
+              extra = ` — <span class="muted">${classLabel} • ${uniLabel}</span>`;
+            }
+            const label = escapeHTML(player && (player.character || player.name || player.playerName || 'Player'));
+            return `<div class="pill"><span>${label}</span>${extra}</div>`;
           }).join('')
         : '<span class="muted">No players yet</span>';
 
@@ -2213,11 +2307,10 @@ async function hydrateQuestBoard(root=document){
   function canJoinSession(session, name){
     const thisUni = (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name) || '';
     if(!thisUni) return {ok:false, msg:'Pick a University in step 4 first.'};
-    const players = session.players||[];
+    const players = Array.isArray(session.players) ? session.players : [];
     const cards = getBuildCards();
-    for(const n of players){
-      const key = sanitizeName(n);
-      const b = cards[key] || cards[n];
+    for(const entry of players){
+      const b = entry && entry.key ? cards[entry.key] : null;
       if(b && b.university && b.university === thisUni){
         return {ok:false, msg:`Another ${thisUni} student is already in this session. Choose a different session or college.`};
       }
@@ -2235,8 +2328,8 @@ function downloadAvailabilityCSV() {
   getRosterList().forEach(r => {
     const line = [r.name];
     dates.forEach(d => {
-      const key = sanitizeName(r.name);
-      line.push(avail[key]?.[d] ? "Y" : "");      // "Y" if available, blank if not
+      const row = avail[r.key] || {};
+      line.push(row[d] ? "Y" : "");      // "Y" if available, blank if not
     });
     rows.push(line);
   });
@@ -2790,8 +2883,7 @@ function panelSessions(){
       return;
     }
     const rows = roster.map((entry)=>{
-      const availKey = sanitizeName(entry.name);
-      const rowAvail = avail[availKey] || {};
+      const rowAvail = avail[entry.key] || {};
       const metaBits = [];
       if(entry.status){
         const statusClass = entry.status ? `status-${entry.status.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || 'default'}` : 'status-default';
@@ -2807,7 +2899,7 @@ function panelSessions(){
       </div>`;
       const cells = AVAIL_DATES.map((d)=>{
         const checked = rowAvail[d] ? ' checked' : '';
-        return `<td><input data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}></td>`;
+        return `<td><input data-key="${entry.key}" data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}></td>`;
       }).join('');
       const mainRow = `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
       const inlineRow = renderInlineEditorRow(entry);
@@ -2815,10 +2907,13 @@ function panelSessions(){
     }).join('');
     rbody.innerHTML = rows;
     tableScroll.scrollLeft = preserveScroll;
-    if(opts.focus && opts.focus.name && opts.focus.date){
+    if(opts.focus && opts.focus.date && (opts.focus.key || opts.focus.name)){
       const targetFocus = opts.focus;
       requestAnimationFrame(()=>{
-        const focusInput = Array.from(rbody.querySelectorAll('input[data-name][data-date]')).find((el)=>{
+        const focusInput = Array.from(rbody.querySelectorAll('input[data-key][data-date]')).find((el)=>{
+          if(targetFocus.key){
+            return el.getAttribute('data-key') === targetFocus.key && el.getAttribute('data-date') === targetFocus.date;
+          }
           return el.getAttribute('data-name') === targetFocus.name && el.getAttribute('data-date') === targetFocus.date;
         });
         if(focusInput){
@@ -2847,14 +2942,15 @@ function panelSessions(){
 
   // Save on change
   rbody.addEventListener('change', async (e) => {
-    const cb = e.target.closest('input[type="checkbox"][data-name]');
+    const cb = e.target.closest('input[type="checkbox"][data-key][data-name]');
     if(!cb) return;
+    const key = cb.getAttribute('data-key');
     const name = cb.getAttribute('data-name');
     const date = cb.getAttribute('data-date');
     const newValue = cb.checked;
     try{
-      await Backend.setAvailability({ name, date, available: newValue });
-      renderAvailabilityTable({ focus:{ name, date }, scrollLeft: tableScroll.scrollLeft });
+      await Backend.setAvailability({ name, playerName: name, playerKey: key, date, available: newValue });
+      renderAvailabilityTable({ focus:{ key, name, date }, scrollLeft: tableScroll.scrollLeft });
     }catch(err){
       cb.checked = !newValue;
       alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
@@ -3340,16 +3436,22 @@ function panelSessions(){
       if(!name){ alert('Give your character a name (Core 5e).'); return; }
       if (ELIGIBILITY.hardNo.includes(name)) { alert(`${name} is marked as not playing.`); return; }
       if ((ELIGIBILITY.blockedDates[name]||[]).includes(s.date)) { alert(`${name} isn't available for ${s.date}.`); return; }
-      const players = s.players || [];
-      if(players.includes(name)){ alert('This character is already in that session.'); return; }
+      const players = Array.isArray(s.players) ? s.players : [];
+      if(players.some(player => sanitizeName(player && player.character) === sanitizeName(name))){
+        alert('This character is already in that session.');
+        return;
+      }
+      if(players.some(player => rosterKey(player && player.key) === CURRENT_PLAYER_KEY)){
+        alert('Your access code already has a seat in this session.');
+        return;
+      }
       if(players.length>=s.capacity){ alert('That session is full.'); return; }
       // enforce unique university
       const uniName = (DATA.universities.find(u=>u.key===State.data.university.key)?.name)||'';
       const builds = getBuildCards();
       if(uniName){
-        for(const n of players){
-          const key = sanitizeName(n);
-          const b = builds[key] || builds[n];
+        for(const player of players){
+          const b = player && player.key ? builds[player.key] : null;
           if(b && b.university === uniName){
             alert(`Another ${uniName} student is already in this session. Choose a different session or college.`);
             return;
@@ -3357,7 +3459,14 @@ function panelSessions(){
         }
       }
       const klass = State.data.core.class || '';
-      Backend.joinSession(id, { name, build:{ class: klass, university: uniName } })
+      const rosterEntry = PlayerIdentity.getRosterEntry();
+      Backend.joinSession(id, {
+        name,
+        characterName: name,
+        playerKey: CURRENT_PLAYER_KEY,
+        playerName: rosterEntry?.name,
+        build:{ class: klass, university: uniName }
+      })
         .then(()=>{
           renderSessionCards(wrap, {readOnly:false});
           alert(`Added ${name} to ${s.title}.`);

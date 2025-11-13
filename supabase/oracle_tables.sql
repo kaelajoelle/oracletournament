@@ -51,6 +51,7 @@ create table if not exists public.build_cards (
   player_key text primary key,
   class text,
   university text,
+  character_name text,
   updated_at timestamptz not null default timezone('utc', now())
 );
 
