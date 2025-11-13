@@ -28,6 +28,7 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 ## Using the web UI
 
 * Open `index.html` in a browser that can reach the API origin. By default the front-end will call `/api/...` on the same host that served the page.
+* Share `login.html` with players so they can enter their roster access code. The code is stored in `localStorage` as `player_key` and is required before visiting the main builder.
 * If the datastore is hosted somewhere else, inject a small configuration snippet before the main script:
 
   ```html
@@ -47,9 +48,9 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 Endpoint | Method | Description
 ---------|--------|------------
 `/api/state` | GET | Returns all shared data (sessions, roster extras, meta, availability, build cards).
-`/api/sessions/:id/join` | POST | Add a character to a session. Body: `{ name, build: { class, university } }`.
-`/api/sessions/:id/leave` | POST | Remove a character from a session. Body: `{ name }`.
-`/api/availability` | POST | Toggle availability for a person/date. Body: `{ name, date, available }`.
+`/api/sessions/:id/join` | POST | Add a character to a session. Body: `{ name, playerKey, playerName?, build: { class, university } }`.
+`/api/sessions/:id/leave` | POST | Remove a character from a session. Body: `{ playerKey, characterName? }`.
+`/api/availability` | POST | Toggle availability for a person/date. Body: `{ playerKey, playerName?, date, available }`.
 `/api/roster/extras` | POST | Add a custom roster entry. Body: `{ name, status?, notes? }`.
 `/api/roster/:key` | PATCH | Update status/notes for roster entries (base or custom). Body: `{ status?, notes?, custom? }`.
 `/api/roster/extras/:key` | DELETE | Remove a custom roster entry.
@@ -118,8 +119,8 @@ If you would rather keep the shared state in Supabase instead of the local JSON 
      | `SUPABASE_SESSION_PLAYERS_TABLE` | `session_players` | Junction table that records who joined each session. |
      | `SUPABASE_ROSTER_EXTRAS_TABLE` | `roster_extras` | Custom roster entries. |
      | `SUPABASE_ROSTER_META_TABLE` | `roster_meta` | Status/notes overrides keyed by `rosterKey(name)`. |
-     | `SUPABASE_AVAILABILITY_TABLE` | `availability` | Availability checkmarks keyed by `sanitizeName(name)`. |
-     | `SUPABASE_BUILD_CARDS_TABLE` | `build_cards` | Stored build cards keyed by `sanitizeName(name)`. |
+    | `SUPABASE_AVAILABILITY_TABLE` | `availability` | Availability checkmarks keyed by `player_key`. |
+    | `SUPABASE_BUILD_CARDS_TABLE` | `build_cards` | Stored build cards keyed by `player_key` (class, university, `character_name`). |
 
 3. Deploy the API (Render, Railway, Fly.io, etc.) and set the environment variables above. The server will automatically connect to Supabase, seed the row if it ever disappears, and persist every update there.
 
