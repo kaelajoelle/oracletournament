@@ -4,6 +4,8 @@ const fs = require('fs/promises');
 const path = require('path');
 const { randomUUID, createHash } = require('crypto');
 
+const { createStorageAdapter } = require('./storage');
+
 const fetch = global.fetch || require('node-fetch');
 
 const PORT = process.env.PORT || 8787;
@@ -306,32 +308,6 @@ function normaliseState(state){
   };
 }
 
-async function loadState(){
-  if(useSupabaseTables){
-    return loadStateFromSupabaseTables();
-  }
-  if(hasSupabase){
-    return loadStateFromSupabase();
-  }
-  return loadStateFromFile();
-}
-
-async function saveState(state, context) {
-  const normalised = normaliseState(state);
-
-  if (useSupabaseTables) {
-    return saveStateToSupabaseTables(normalised, context);
-  }
-
-  if (hasSupabase) {
-    await saveStateToSupabase(normalised);
-  } else {
-    await fs.writeFile(DATA_PATH, JSON.stringify(normalised, null, 2));
-  }
-
-  return normalised;
-}
-
 function normaliseCharacterDraftData(input){
   if(!input || typeof input !== 'object'){
     return {};
@@ -449,21 +425,6 @@ async function saveCharacterDraft(playerKey, draftData){
     return saveCharacterDraftToSupabase(playerKey, draftData);
   }
   return saveCharacterDraftToFile(playerKey, draftData);
-}
-
-async function loadStateFromFile(){
-  try{
-    const raw = await fs.readFile(DATA_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-    return normaliseState(parsed);
-  }catch(err){
-    if(err && err.code === 'ENOENT'){
-      const initial = normaliseState(DEFAULT_STATE);
-      await fs.writeFile(DATA_PATH, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    throw err;
-  }
 }
 
 function supabaseHeaders(extra){
@@ -611,6 +572,63 @@ async function updatePlayerAccessDisplayName(playerKey, displayName){
   }
 }
 
+const storage = createStorageAdapter({
+  mode: useSupabaseTables ? 'supabaseTables' : hasSupabase ? 'supabaseJson' : 'file',
+  file: {
+    dataPath: DATA_PATH,
+    defaultState: DEFAULT_STATE,
+    normaliseState,
+  },
+  supabaseJson: {
+    fetchImpl: fetch,
+    restUrl: SUPABASE_REST_URL,
+    rowId: SUPABASE_ROW_ID,
+    serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+    defaultState: DEFAULT_STATE,
+    normaliseState,
+  },
+  supabaseTables: {
+    defaultSessions: DEFAULT_SESSIONS,
+    normaliseState,
+    sanitizeName,
+    sanitizeOptional,
+    rosterKey,
+    decodeRosterMeta,
+    encodeRosterMeta,
+    AVAIL_DATES,
+    supabaseQuery,
+    supabaseMutate,
+    updatePlayerAccessDisplayName,
+    tables: {
+      sessionsTable: SUPABASE_SESSIONS_TABLE,
+      sessionPlayersTable: SUPABASE_SESSION_PLAYERS_TABLE,
+      rosterExtrasTable: SUPABASE_ROSTER_EXTRAS_TABLE,
+      rosterMetaTable: SUPABASE_ROSTER_META_TABLE,
+      availabilityTable: SUPABASE_AVAILABILITY_TABLE,
+      buildCardsTable: SUPABASE_BUILD_CARDS_TABLE,
+    },
+    getMetaSupportsHidden: () => supabaseMetaSupportsHidden,
+    setMetaSupportsHidden: (value) => {
+      supabaseMetaSupportsHidden = Boolean(value);
+    },
+  },
+});
+
+async function loadState(){
+  return storage.fetchState();
+}
+
+async function saveState(state, context){
+  return storage.saveState(state, context);
+}
+
+async function replaceSupabaseTablesState(state){
+  if(!storage || typeof storage.replaceState !== 'function'){
+    throw new Error('Supabase tables storage is not configured.');
+  }
+  return storage.replaceState(normaliseState(state));
+}
+
 function normaliseComment(row){
   if(!row || typeof row !== 'object'){
     return null;
@@ -748,537 +766,6 @@ async function removeComment(id){
   return true;
 }
 
-async function loadStateFromSupabaseTables(){
-  const metaPromise = supabaseMetaSupportsHidden
-    ? supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes,hidden`, { fallback: [] })
-        .catch(async (err)=>{
-          const message = String(err && err.message ? err.message : err || '').toLowerCase();
-          if(message.includes('column') && message.includes('hidden')){
-            supabaseMetaSupportsHidden = false;
-            return supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes`, { fallback: [] });
-          }
-          throw err;
-        })
-    : supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?select=player_key,status,notes`, { fallback: [] });
-
-  const [sessionRows, playerRows, extrasRows, metaRows, availabilityRows, buildRows] = await Promise.all([
-    supabaseQuery(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?select=id,title,dm,date,capacity,finale`),
-    supabaseQuery(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?select=session_id,player_key,player_name&order=player_name.asc`),
-    supabaseQuery(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?select=player_key,name,status,notes&order=name.asc`),
-    metaPromise,
-    supabaseQuery(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?select=player_key,player_name,date,available`),
-    supabaseQuery(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?select=player_key,class,university`)
-  ]);
-
-  const sessionMap = new Map(DEFAULT_SESSIONS.map((session)=>[
-    session.id,
-    { ...session, players: Array.isArray(session.players) ? session.players.slice() : [] }
-  ]));
-
-  sessionRows.forEach((row)=>{
-    const id = sanitizeOptional(row.id);
-    if(!id){
-      return;
-    }
-    const base = sessionMap.get(id) || {
-      id,
-      title: sanitizeOptional(row.title) || `Session ${id}`,
-      dm: sanitizeOptional(row.dm),
-      date: sanitizeOptional(row.date),
-      capacity: Number(row.capacity) || 0,
-      finale: Boolean(row.finale),
-      players: []
-    };
-    base.title = sanitizeOptional(row.title) || base.title;
-    base.dm = sanitizeOptional(row.dm) || base.dm;
-    base.date = sanitizeOptional(row.date) || base.date;
-    base.capacity = Number.isFinite(Number(row.capacity)) ? Number(row.capacity) : base.capacity;
-    base.finale = row.finale != null ? Boolean(row.finale) : base.finale;
-    base.players = Array.isArray(base.players) ? base.players : [];
-    sessionMap.set(id, base);
-  });
-
-  playerRows.forEach((row)=>{
-    const sessionId = sanitizeOptional(row.session_id);
-    const name = sanitizeName(row.player_name || row.player_key);
-    if(!sessionId || !name){
-      return;
-    }
-    const session = sessionMap.get(sessionId) || {
-      id: sessionId,
-      title: `Session ${sessionId}`,
-      dm: '',
-      date: '',
-      capacity: 0,
-      finale: false,
-      players: []
-    };
-    session.players = Array.isArray(session.players) ? session.players : [];
-    if(!session.players.includes(name)){
-      session.players.push(name);
-    }
-    sessionMap.set(sessionId, session);
-  });
-
-  const sessions = Array.from(sessionMap.values());
-  sessions.sort((a, b) => {
-    const dateCompare = sanitizeOptional(a.date).localeCompare(sanitizeOptional(b.date));
-    if(dateCompare !== 0){
-      return dateCompare;
-    }
-    return sanitizeOptional(a.id).localeCompare(sanitizeOptional(b.id));
-  });
-
-  const rosterExtras = extrasRows.map((row)=>{
-    const name = sanitizeName(row.name || row.player_key);
-    const key = rosterKey(row.player_key || name);
-    if(!name || !key){
-      return null;
-    }
-    return {
-      key,
-      name,
-      status: sanitizeOptional(row.status),
-      notes: sanitizeOptional(row.notes),
-      custom: true
-    };
-  }).filter(Boolean);
-
-  const rosterMeta = {};
-  metaRows.forEach((row)=>{
-    const key = rosterKey(row.player_key || row.name || '');
-    if(!key){
-      return;
-    }
-    const { status, notes, hidden } = decodeRosterMeta(row.status, row.notes, row.hidden);
-    if(status || notes || hidden){
-      rosterMeta[key] = { status, notes, hidden };
-    }
-  });
-
-  const availability = {};
-  availabilityRows.forEach((row)=>{
-    if(row.available === false){
-      return;
-    }
-    const key = rosterKey(row.player_key || row.player_name);
-    const date = sanitizeOptional(row.date);
-    if(!key || !AVAIL_DATES.includes(date)){
-      return;
-    }
-    availability[key] = availability[key] || {};
-    availability[key][date] = true;
-  });
-
-  const buildCards = {};
-  buildRows.forEach((row)=>{
-    const key = rosterKey(row.player_key);
-    if(!key){
-      return;
-    }
-    const entry = {};
-    const klass = sanitizeOptional(row.class);
-    const university = sanitizeOptional(row.university);
-    const characterName = sanitizeName(row.character_name || '');
-    if(klass){
-      entry.class = klass;
-    }
-    if(university){
-      entry.university = university;
-    }
-    if(characterName){
-      entry.characterName = characterName;
-    }
-    if(Object.keys(entry).length > 0){
-      buildCards[key] = entry;
-    }
-  });
-
-  return normaliseState({
-    sessions,
-    rosterExtras,
-    rosterMeta,
-    availability,
-    buildCards
-  });
-}
-
-async function saveStateToSupabaseTables(state, context = {}){
-  const action = context && context.action;
-  if(!action){
-    await replaceSupabaseTablesState(state);
-    return loadStateFromSupabaseTables();
-  }
-
-  try{
-    switch(action){
-      case 'joinSession': {
-        const sessionId = sanitizeOptional(context.sessionId);
-        const key = rosterKey(context.playerKey || context.buildKey || context.playerName);
-        if(!sessionId || !key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        await updatePlayerAccessDisplayName(key, context.playerName || context.characterName);
-        const session = state.sessions.find(s => sanitizeOptional(s.id) === sessionId);
-        if(session){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?id=eq.${encodeURIComponent(sessionId)}`, {
-            method: 'PATCH',
-            body: {
-              title: sanitizeOptional(session.title) || null,
-              dm: sanitizeOptional(session.dm) || null,
-              date: sanitizeOptional(session.date) || null,
-              capacity: Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : null,
-              finale: session.finale != null ? Boolean(session.finale) : null
-            }
-          });
-        }
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}`, {
-          body: [{
-            session_id: sessionId,
-            player_key: key,
-            player_name: sanitizeName(context.characterName || context.playerName)
-          }],
-          headers: { Prefer: 'resolution=ignore-duplicates' }
-        });
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}`, {
-          body: [{
-            player_key: key,
-            class: context.build?.class ? sanitizeOptional(context.build.class) : null,
-            university: context.build?.university ? sanitizeOptional(context.build.university) : null,
-            character_name: context.characterName ? sanitizeName(context.characterName) : null
-          }],
-          headers: { Prefer: 'resolution=merge-duplicates' }
-        });
-        break;
-      }
-      case 'leaveSession': {
-        const sessionId = sanitizeOptional(context.sessionId);
-        const key = rosterKey(context.playerKey || context.buildKey || context.playerName);
-        if(sessionId && key){
-          const filters = [`session_id=eq.${encodeURIComponent(sessionId)}`, `player_key=eq.${encodeURIComponent(key)}`].join('&');
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?${filters}`, {
-            method: 'DELETE'
-          });
-          if(context.removeBuildCard){
-            await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-              method: 'DELETE'
-            });
-          }
-        } else {
-          await replaceSupabaseTablesState(state);
-        }
-        break;
-      }
-      case 'setAvailability': {
-        const key = rosterKey(context.availabilityKey || context.playerKey || context.playerName);
-        if(!key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        await updatePlayerAccessDisplayName(key, context.playerName);
-        if(context.available){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}`, {
-            body: [{
-              player_key: key,
-              player_name: sanitizeName(context.playerName),
-              date: sanitizeOptional(context.date),
-              available: true
-            }],
-            headers: { Prefer: 'resolution=merge-duplicates' }
-          });
-        }else{
-          const filters = [`player_key=eq.${encodeURIComponent(key)}`, `date=eq.${encodeURIComponent(sanitizeOptional(context.date))}`].join('&');
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?${filters}`, {
-            method: 'DELETE'
-          });
-        }
-        break;
-      }
-      case 'addRosterExtra': {
-        const key = rosterKey(context.rosterKey || context.name);
-        if(!key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        await updatePlayerAccessDisplayName(key, context.name);
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}`, {
-          body: [{
-            player_key: key,
-            name: sanitizeName(context.name),
-            status: sanitizeOptional(context.status) || null,
-            notes: sanitizeOptional(context.notes) || null
-          }],
-          headers: { Prefer: 'resolution=merge-duplicates' }
-        });
-        if(context.status || context.notes || context.hidden){
-          const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
-            body: [{
-              player_key: key,
-              ...metaPayload
-            }],
-            headers: { Prefer: 'resolution=merge-duplicates' }
-          });
-        }
-        break;
-      }
-      case 'updateRoster': {
-        const key = rosterKey(context.rosterKey || context.name);
-        if(!key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
-        if(context.status || context.notes){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
-            body: [{
-              player_key: key,
-              ...metaPayload
-            }],
-            headers: { Prefer: 'resolution=merge-duplicates' }
-          });
-        }else{
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-            method: 'DELETE'
-          });
-        }
-
-        if(context.custom){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-            method: 'PATCH',
-            body: {
-              status: sanitizeOptional(context.status) || null,
-              notes: sanitizeOptional(context.notes) || null
-            }
-          });
-        }
-        if(context.hidden){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-            method: 'DELETE'
-          });
-        }
-        break;
-      }
-      case 'removeRosterExtra': {
-        const key = rosterKey(context.rosterKey || context.name);
-        if(!key){
-          await replaceSupabaseTablesState(state);
-          break;
-        }
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-          method: 'DELETE'
-        });
-        await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?player_key=eq.${encodeURIComponent(key)}`, {
-          method: 'DELETE'
-        });
-        const availabilityKey = sanitizeName(context.availabilityKey || context.name || context.rosterKey || '');
-        if(availabilityKey){
-          await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?player_key=eq.${encodeURIComponent(availabilityKey)}`, {
-            method: 'DELETE'
-          });
-        }
-        break;
-      }
-      default:
-        await replaceSupabaseTablesState(state);
-    }
-  }catch(err){
-    console.error('Supabase tables update failed', err);
-    throw err;
-  }
-
-  return loadStateFromSupabaseTables();
-}
-
-async function replaceSupabaseTablesState(state){
-  const sessions = Array.isArray(state.sessions) ? state.sessions : [];
-  await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}?id=not.is.null`, {
-    method: 'DELETE'
-  });
-  if(sessions.length > 0){
-    const sessionRows = sessions.map((session)=>({
-      id: sanitizeOptional(session.id),
-      title: sanitizeOptional(session.title) || null,
-      dm: sanitizeOptional(session.dm) || null,
-      date: sanitizeOptional(session.date) || null,
-      capacity: Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : null,
-      finale: session.finale != null ? Boolean(session.finale) : null
-    }));
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSIONS_TABLE)}`, {
-      body: sessionRows,
-      headers: { Prefer: 'resolution=merge-duplicates' }
-    });
-  }
-
-  for(const session of sessions){
-    const sessionId = sanitizeOptional(session.id);
-    if(!sessionId){
-      continue;
-    }
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}?session_id=eq.${encodeURIComponent(sessionId)}`, {
-      method: 'DELETE'
-    });
-    if(Array.isArray(session.players) && session.players.length){
-      const rows = session.players.map((player)=>({
-        session_id: sessionId,
-        player_key: rosterKey(player && (player.key || player.character || player.name)),
-        player_name: sanitizeName(player && (player.character || player.name || player.playerName || ''))
-      })).filter(row => row.player_key);
-      await supabaseMutate(`${encodeURIComponent(SUPABASE_SESSION_PLAYERS_TABLE)}`, {
-        body: rows,
-        headers: { Prefer: 'resolution=ignore-duplicates' }
-      });
-    }
-  }
-
-  await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}?player_key=not.is.null`, {
-    method: 'DELETE'
-  });
-  const extrasRows = Array.isArray(state.rosterExtras)
-    ? state.rosterExtras.map((item)=>({
-        player_key: rosterKey(item.key || item.name),
-        name: sanitizeName(item.name),
-        status: sanitizeOptional(item.status) || null,
-        notes: sanitizeOptional(item.notes) || null
-      }))
-    : [];
-  if(extrasRows.length){
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_EXTRAS_TABLE)}`, {
-      body: extrasRows,
-      headers: { Prefer: 'resolution=merge-duplicates' }
-    });
-  }
-
-  await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}?player_key=not.is.null`, {
-    method: 'DELETE'
-  });
-  const metaRows = state.rosterMeta && typeof state.rosterMeta === 'object'
-    ? Object.entries(state.rosterMeta).map(([rawKey, value])=>({
-        player_key: rosterKey(rawKey),
-        ...encodeRosterMeta(value && value.status, value && value.notes, value && value.hidden)
-      }))
-    : [];
-  if(metaRows.length){
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
-      body: metaRows,
-      headers: { Prefer: 'resolution=merge-duplicates' }
-    });
-  }
-
-  await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}?player_key=not.is.null`, {
-    method: 'DELETE'
-  });
-  const availabilityRows = [];
-  if(state.availability && typeof state.availability === 'object'){
-    Object.entries(state.availability).forEach(([rawKey, dates])=>{
-      const key = rosterKey(rawKey);
-      if(!key || !dates || typeof dates !== 'object'){
-        return;
-      }
-      Object.entries(dates).forEach(([date, value])=>{
-        if(value && AVAIL_DATES.includes(date)){
-          availabilityRows.push({
-            player_key: key,
-            player_name: sanitizeName(rawKey),
-            date: sanitizeOptional(date),
-            available: true
-          });
-        }
-      });
-    });
-  }
-  if(availabilityRows.length){
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_AVAILABILITY_TABLE)}`, {
-      body: availabilityRows,
-      headers: { Prefer: 'resolution=merge-duplicates' }
-    });
-  }
-
-  await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}?player_key=not.is.null`, {
-    method: 'DELETE'
-  });
-  const buildRows = state.buildCards && typeof state.buildCards === 'object'
-    ? Object.entries(state.buildCards).map(([rawKey, card])=>({
-        player_key: rosterKey(rawKey),
-        class: card && card.class ? sanitizeOptional(card.class) : null,
-        university: card && card.university ? sanitizeOptional(card.university) : null,
-        character_name: card && card.characterName ? sanitizeName(card.characterName) : null
-      }))
-    : [];
-  if(buildRows.length){
-    await supabaseMutate(`${encodeURIComponent(SUPABASE_BUILD_CARDS_TABLE)}`, {
-      body: buildRows,
-      headers: { Prefer: 'resolution=merge-duplicates' }
-    });
-  }
-}
-
-async function loadStateFromSupabase(){
-  const url = `${SUPABASE_REST_URL}?id=eq.${encodeURIComponent(SUPABASE_ROW_ID)}&select=state`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      Accept: 'application/json'
-    }
-  });
-
-  if(res.status === 404){
-    const initial = normaliseState(DEFAULT_STATE);
-    await insertStateToSupabase(initial);
-    return initial;
-  }
-
-  if(!res.ok){
-    const body = await res.text();
-    throw new Error(`Supabase select failed (${res.status}): ${body}`);
-  }
-
-  const rows = await res.json();
-  const record = Array.isArray(rows) ? rows[0] : null;
-
-  if(!record || !record.state){
-    const initial = normaliseState(DEFAULT_STATE);
-    await insertStateToSupabase(initial);
-    return initial;
-  }
-
-  return normaliseState(record.state);
-}
-
-async function saveStateToSupabase(state){
-  await insertStateToSupabase(state);
-}
-
-async function insertStateToSupabase(state){
-  if(!SUPABASE_REST_URL){
-    return;
-  }
-
-  const payload = {
-    id: SUPABASE_ROW_ID,
-    state,
-    updated_at: new Date().toISOString()
-  };
-
-  const res = await fetch(SUPABASE_REST_URL, {
-    method: 'POST',
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Prefer: 'return=minimal,resolution=merge-duplicates'
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if(!res.ok){
-    const body = await res.text();
-    throw new Error(`Supabase insert failed (${res.status}): ${body}`);
-  }
-}
 
 function httpError(status, message){
   const err = new Error(message);
