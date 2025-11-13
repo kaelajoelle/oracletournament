@@ -10,6 +10,7 @@
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
     "dev": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --watch",
     "build": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --minify",
+    "lint:api": "eslint \"api/**/*.js\" \"scripts/**/*.js\" --max-warnings=0",
     "lint:frontend": "eslint \"site/**/*.{js,jsx,ts,tsx,html}\" --ignore-pattern \"site/dist/**\" --max-warnings=0"
   },
   "dependencies": {
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "esbuild": "^0.27.0",
-    "eslint": "^9.0.0"
+    "eslint": "^9.0.0",
+    "supertest": "^6.3.3"
   }
 }

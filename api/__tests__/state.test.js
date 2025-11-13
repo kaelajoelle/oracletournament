@@ -1,3 +1,5 @@
+const assert = require('node:assert/strict');
+const test = require('node:test');
 const fs = require('fs/promises');
 const os = require('os');
 const path = require('path');
@@ -10,49 +12,54 @@ async function createStateFile(initialState){
   return { dir, filePath };
 }
 
-describe('GET /api/state', () => {
-  afterEach(() => {
-    delete process.env.DATA_PATH;
-    jest.resetModules();
-  });
+test('GET /api/state merges stored data with default sessions', async (t) => {
+  const partialState = {
+    sessions: [
+      {
+        id: 's1',
+        title: 'Custom Session 1',
+        players: [
+          { character: 'Zia', key: 'zia' }
+        ]
+      }
+    ]
+  };
 
-  it('merges stored data with default sessions', async () => {
-    const partialState = {
-      sessions: [
-        {
-          id: 's1',
-          title: 'Custom Session 1',
-          players: [
-            { character: 'Zia', key: 'zia' }
-          ]
-        }
-      ]
-    };
-
-    const { filePath } = await createStateFile(partialState);
+  const { filePath } = await createStateFile(partialState);
+  const originalDataPath = process.env.DATA_PATH;
+  
+  try {
     process.env.DATA_PATH = filePath;
-
+    
+    // Clear the require cache for server module to pick up new DATA_PATH
+    delete require.cache[require.resolve('../server')];
+    
     const app = require('../server');
     const response = await request(app).get('/api/state');
 
-    expect(response.status).toBe(200);
+    assert.equal(response.status, 200);
     const { state } = response.body;
-    expect(state.sessions).toBeDefined();
+    assert.ok(state.sessions);
 
     const customSession = state.sessions.find(session => session.id === 's1');
-    expect(customSession).toBeDefined();
-    expect(customSession.title).toBe('Custom Session 1');
-    expect(customSession.players).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ key: 'zia', character: 'Zia' })
-      ])
-    );
+    assert.ok(customSession);
+    assert.equal(customSession.title, 'Custom Session 1');
+    assert.ok(customSession.players.some(p => p.key === 'zia' && p.character === 'Zia'));
 
     const expectedSessionCount = require('../server').DEFAULT_STATE.sessions.length;
-    expect(state.sessions).toHaveLength(expectedSessionCount);
+    assert.equal(state.sessions.length, expectedSessionCount);
 
     const fallbackSession = state.sessions.find(session => session.id === 's2');
-    expect(fallbackSession).toBeDefined();
-    expect(Array.isArray(fallbackSession.players)).toBe(true);
-  });
+    assert.ok(fallbackSession);
+    assert.ok(Array.isArray(fallbackSession.players));
+  } finally {
+    // Restore original DATA_PATH
+    if (originalDataPath !== undefined) {
+      process.env.DATA_PATH = originalDataPath;
+    } else {
+      delete process.env.DATA_PATH;
+    }
+    // Clear the require cache again to ensure clean state
+    delete require.cache[require.resolve('../server')];
+  }
 });

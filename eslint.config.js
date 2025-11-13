@@ -22,13 +22,14 @@ module.exports = [
     files: ['site/**/*.js'],
     languageOptions: {
       ecmaVersion: 2021,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...globals.browser
       }
     },
     rules: {
-      'no-unused-vars': 'off'
+      'no-unused-vars': 'off',
+      'no-empty': ['error', { allowEmptyCatch: true }]
     }
   },
   {
