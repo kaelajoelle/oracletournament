@@ -64,6 +64,35 @@ create table if not exists public.comments (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.player_access (
+  player_key text primary key,
+  display_name text not null,
+  access_code_hash text not null,
+  last_login_at timestamptz,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
+create unique index if not exists player_access_hash_key on public.player_access (access_code_hash);
+
+create or replace function public.set_player_access_updated_at()
+returns trigger as $$
+begin
+  new.updated_at = timezone('utc', now());
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists set_player_access_updated_at on public.player_access;
+create trigger set_player_access_updated_at
+  before update on public.player_access
+  for each row
+  execute procedure public.set_player_access_updated_at();
+
+create or replace view public.player_access_overview as
+  select player_key, display_name, last_login_at, created_at, updated_at
+  from public.player_access;
+
 insert into public.sessions (id, title, dm, date, capacity, finale)
 values
   ('s1', 'Session 01', 'Kaela & Tory', '2025-12-21', 6, false),
@@ -88,6 +117,7 @@ alter table public.roster_meta enable row level security;
 alter table public.availability enable row level security;
 alter table public.build_cards enable row level security;
 alter table public.comments enable row level security;
+alter table public.player_access enable row level security;
 
 drop policy if exists "service role sessions" on public.sessions;
 create policy "service role sessions" on public.sessions
@@ -127,6 +157,12 @@ create policy "service role build cards" on public.build_cards
 
 drop policy if exists "service role comments" on public.comments;
 create policy "service role comments" on public.comments
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+drop policy if exists "service role player access" on public.player_access;
+create policy "service role player access" on public.player_access
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');

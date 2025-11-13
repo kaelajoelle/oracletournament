@@ -121,23 +121,52 @@
     function showMessage(text) {
       status.textContent = text || '';
     }
-    form.addEventListener('submit', (event) => {
-      event.preventDefault();
-      const key = (input.value || '').trim().toLowerCase();
-      if(!key){
+    const submitButton = form.querySelector('button[type="submit"]');
+    async function authenticate(code){
+      const cleanCode = (code || '').trim();
+      if(!cleanCode){
         showMessage('Enter your access code.');
         input.focus();
         return;
       }
-      try {
-        localStorage.setItem(STORAGE_KEY, key);
-      } catch (err) {
-        console.error('Unable to save player key', err);
-        showMessage('Saving the code failed. Check your browser settings.');
-        return;
+      if(submitButton){
+        submitButton.disabled = true;
       }
-      showMessage('Loading…');
-      window.location.href = './index.html';
+      showMessage('Checking your code…');
+      try {
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessCode: cleanCode })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if(!response.ok){
+          throw new Error(payload.error || 'Unable to validate that code.');
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, payload.playerKey);
+        } catch (err) {
+          console.error('Unable to save player key', err);
+          showMessage('Saving the code failed. Check your browser settings.');
+          if(submitButton){
+            submitButton.disabled = false;
+          }
+          return;
+        }
+        showMessage(`Welcome, ${payload.displayName || payload.playerKey}! Redirecting…`);
+        window.location.href = './index.html';
+      } catch (err) {
+        console.error('Access code validation failed', err);
+        showMessage(err.message || 'Unable to validate that code.');
+        if(submitButton){
+          submitButton.disabled = false;
+        }
+      }
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      authenticate(input.value);
     });
     if(guestButton){
       guestButton.addEventListener('click', () => {
