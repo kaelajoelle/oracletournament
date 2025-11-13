@@ -2414,14 +2414,11 @@ function downloadAvailabilityCSV() {
      STEPS
   ======================= */
 const STEPS = [
-  {key:'intro',       title:'Welcome',                hint:'Overview & updates'},
-  {key:'sessions',    title:'Availability',           hint:'Mark who can attend'},
-  {key:'core',        title:'Core 5e Setup',          hint:'Stats, species, class'},
-  {key:'university',  title:'University & Feat',      hint:'Select your college'},
-  {key:'extras',      title:'Job & Extracurriculars', hint:'Schedule & flavour'},
-  {key:'personality', title:'Personality & Prompt',   hint:'Backstory beats'},
-  {key:'join',        title:'Join a Session',         hint:'Reserve a seat'},
-  {key:'summary',     title:'Summary & Export',       hint:'Share or download'}
+  {key:'intro',     title:'Welcome',          hint:'Overview & updates'},
+  {key:'sessions',  title:'Availability',     hint:'Mark who can attend'},
+  {key:'builder',   title:'Character Builder',hint:'Core, college, flavour'},
+  {key:'join',      title:'Join a Session',   hint:'Reserve a seat'},
+  {key:'summary',   title:'Summary & Export', hint:'Share or download'}
 ];
 
 
@@ -2533,11 +2530,8 @@ const STEPS = [
     el.innerHTML='';
     const step = STEPS[currentStep].key;
     let panelEl = null;
-    if(step==='core') panelEl = panelCore();
-    if(step==='university') panelEl = panelUniversity();
-    if(step==='extras') panelEl = panelExtras();
+    if(step==='builder') panelEl = panelBuilder();
     if(step==='sessions') panelEl = panelSessions();
-    if(step==='personality') panelEl = panelPersonality();
     if(step==='summary') panelEl = panelSummary();
     if(step==='intro') panelEl = panelIntro();
     if(step==='join') panelEl = panelJoin();
@@ -3211,53 +3205,145 @@ function panelSessions(){
 
   p.querySelector('#csv_export').onclick = downloadAvailabilityCSV;
   p.querySelector('#back_sessions').onclick = () => { activateStep(STEPS.findIndex(s => s.key === 'intro')); };
-  p.querySelector('#next_sessions').onclick = () => { activateStep(STEPS.findIndex(s => s.key === 'core')); };
+  p.querySelector('#next_sessions').onclick = () => { activateStep(STEPS.findIndex(s => s.key === 'builder')); };
 
   return p;
 }
 
 
-  function panelCore(){
-    const p = document.createElement('div'); p.className='panel';
+  function panelBuilder(){
+    const p = document.createElement('div');
+    p.className = 'panel';
     p.innerHTML = `
-      <h2>Core 5e Setup</h2>
-      <div class="callout" aria-label="Character creation instructions">
-        <strong>Quick build checklist:</strong>
-        <ul>
-          <li>Enter your <strong>player name</strong> and <strong>character name</strong>.</li>
-          <li>Pick a race, class, background, level, and ability score method.</li>
-          <li>Select starting equipment — class kit or 50 gp.</li>
-          <li>Need a refresher? Try the <a href="https://dnd.wizards.com/resources/character-sheets" target="_blank" rel="noreferrer">official D&D 5e character sheets</a>.</li>
-        </ul>
+      <h2>Character Builder</h2>
+      <div class="card">
+        <p>Complete each accordion below. Save a section once you’ve filled the fields — you can revisit and update any time.</p>
       </div>
-      <div class="grid cols-2">
-        <div><label>Player Name</label><input id="core_player" placeholder="e.g., Kaela" /></div>
-        <div><label>Character Name</label><input id="core_name" placeholder="e.g., Aria Winterborn" /></div>
-        <div><label>Level</label><select id="core_level"></select></div>
-        <div><label>Race</label><input id="core_race" placeholder="Any 5e race" /></div>
-        <div><label>Class</label><input id="core_class" placeholder="Any 5e class" /></div>
-        <div><label>Background</label><input id="core_background" placeholder="PHB/Custom" /></div>
-        <div>
-          <label>Ability Scores</label>
-          <div class="row">
-            <select id="ability_method">
-              <option value="standard">Standard Array (15,14,13,12,10,8)</option>
-              <option value="manual">Manual Entry</option>
-            </select>
-            <select id="equipment">
-              <option value="class">Class Starting Equipment</option>
-              <option value="50gp">50 gp</option>
-            </select>
+      <details class="builder-section" open>
+        <summary>
+          <span>Core 5e Setup</span>
+          <small class="muted">Stats, species, class</small>
+        </summary>
+        <div class="section-body">
+          <div class="callout" aria-label="Character creation instructions">
+            <strong>Quick build checklist:</strong>
+            <ul>
+              <li>Enter your <strong>player name</strong> and <strong>character name</strong>.</li>
+              <li>Pick a race, class, background, level, and ability score method.</li>
+              <li>Select starting equipment — class kit or 50 gp.</li>
+              <li>Need a refresher? Try the <a href="https://dnd.wizards.com/resources/character-sheets" target="_blank" rel="noreferrer">official D&D 5e character sheets</a>.</li>
+            </ul>
+          </div>
+          <div class="grid cols-2">
+            <div><label>Player Name</label><input id="core_player" placeholder="e.g., Kaela" /></div>
+            <div><label>Character Name</label><input id="core_name" placeholder="e.g., Aria Winterborn" /></div>
+            <div><label>Level</label><select id="core_level"></select></div>
+            <div><label>Race</label><input id="core_race" placeholder="Any 5e race" /></div>
+            <div><label>Class</label><input id="core_class" placeholder="Any 5e class" /></div>
+            <div><label>Background</label><input id="core_background" placeholder="PHB/Custom" /></div>
+            <div>
+              <label>Ability Scores</label>
+              <div class="row">
+                <select id="ability_method">
+                  <option value="standard">Standard Array (15,14,13,12,10,8)</option>
+                  <option value="manual">Manual Entry</option>
+                </select>
+                <select id="equipment">
+                  <option value="class">Class Starting Equipment</option>
+                  <option value="50gp">50 gp</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="ability_box" class="two" style="margin-top:10px"></div>
+          <div class="section-actions">
+            <button class="primary" id="save_core">Save Core Setup</button>
+            <span class="muted" data-save-note="core"></span>
           </div>
         </div>
-      </div>
-      <div id="ability_box" class="two" style="margin-top:10px"></div>
+      </details>
+      <details class="builder-section">
+        <summary>
+          <span>University & Feat</span>
+          <small class="muted">Select your college</small>
+        </summary>
+        <div class="section-body">
+          <div class="grid cols-2">
+            <div>
+              <label>Choose University</label>
+              <select id="uni"></select>
+            </div>
+            <div>
+              <label>Strixhaven Initiate — Spellcasting Ability</label>
+              <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
+            </div>
+          </div>
+          <div id="uni_info" class="card" style="margin-top:10px"></div>
+          <div class="section-actions">
+            <button class="primary" id="save_university">Save University</button>
+            <span class="muted" data-save-note="university"></span>
+          </div>
+        </div>
+      </details>
+      <details class="builder-section">
+        <summary>
+          <span>Job & Extracurriculars</span>
+          <small class="muted">Schedule & flavour</small>
+        </summary>
+        <div class="section-body">
+          <div class="grid cols-2">
+            <div>
+              <label>Job (optional, 5 gp/week)</label>
+              <select id="job"><option value="">— None —</option>${DATA.jobs.map(j=>`<option value="${j.key}">${j.name}</option>`).join('')}</select>
+            </div>
+            <div>
+              <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
+              <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
+            </div>
+          </div>
+          <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
+          <div class="section-actions">
+            <button class="primary" id="save_extras">Save Job & Clubs</button>
+            <span class="muted" data-save-note="extras"></span>
+          </div>
+        </div>
+      </details>
+      <details class="builder-section">
+        <summary>
+          <span>Personality & Prompt</span>
+          <small class="muted">Backstory beats</small>
+        </summary>
+        <div class="section-body">
+          <div class="grid cols-2">
+            <div><label>Traits (1–2)</label><textarea id="traits" rows="3" placeholder="e.g., Curious, dry humour"></textarea></div>
+            <div><label>Ideal</label><textarea id="ideal" rows="3" placeholder="e.g., Knowledge must be shared."></textarea></div>
+            <div><label>Bond / Friend / Rival</label><textarea id="bond" rows="3" placeholder="Name someone you’re tied to (or opposed to)"></textarea></div>
+            <div><label>Goal</label><textarea id="goal" rows="3" placeholder="What do you want from the Oracle Trials?"></textarea></div>
+          </div>
+          <div class="card" style="margin-top:10px">
+            <div class="kicker">Quick-Start Character Prompt</div>
+            <div id="prompt_box" class="flex" style="margin-top:6px"></div>
+          </div>
+          <div class="section-actions">
+            <button class="primary" id="save_personality">Save Personality</button>
+            <span class="muted" data-save-note="personality"></span>
+          </div>
+        </div>
+      </details>
       <div class="controls">
-        <div class="left"></div>
-        <div class="right"><button class="primary" id="next_core">Next →</button></div>
+        <div class="left"><button id="back_builder">← Back</button></div>
+        <div class="right"><button class="primary" id="next_builder">Next →</button></div>
       </div>
     `;
 
+    function markSaved(section, msg){
+      const target = p.querySelector(`[data-save-note="${section}"]`);
+      if(target){
+        target.textContent = msg;
+      }
+    }
+
+    // Core setup
     const levelSel = p.querySelector('#core_level');
     DATA.levels.forEach(l=>{ const o=document.createElement('option'); o.value=l; o.textContent=l; levelSel.appendChild(o); });
 
@@ -3294,9 +3380,13 @@ function panelSessions(){
     p.querySelector('#ability_method').value = s.abilityMethod;
     p.querySelector('#equipment').value = s.equipment;
     drawAbilityInputs();
+    const abilities = ['STR','DEX','CON','INT','WIS','CHA'];
+    abilities.forEach(ab=>{
+      const el = box.querySelector(`[data-ab="${ab}"]`);
+      if(el){ el.value = s.abilities?.[ab] ?? el.value; }
+    });
 
-    p.querySelector('#next_core').onclick = ()=>{
-      const abilities = ['STR','DEX','CON','INT','WIS','CHA'];
+    p.querySelector('#save_core').onclick = ()=>{
       const abObj = {};
       abilities.forEach(ab=>{
         const el = box.querySelector(`[data-ab="${ab}"]`);
@@ -3313,31 +3403,10 @@ function panelSessions(){
         abilities: abObj,
         equipment: p.querySelector('#equipment').value
       };
-      activateStep(STEPS.findIndex(s=>s.key==='university'));
+      markSaved('core','Core details saved.');
     };
-    return p;
-  }
 
-  function panelUniversity(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>University & Feat</h2>
-      <div class="grid cols-2">
-        <div>
-          <label>Choose University</label>
-          <select id="uni"></select>
-        </div>
-        <div>
-          <label>Strixhaven Initiate — Spellcasting Ability</label>
-          <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-        </div>
-      </div>
-      <div id="uni_info" class="card" style="margin-top:10px"></div>
-      <div class="controls">
-        <div class="left"><button id="back_u">← Back</button></div>
-        <div class="right"><button class="primary" id="next_u">Next →</button></div>
-      </div>
-    `;
+    // University
     const sel=p.querySelector('#uni');
     sel.innerHTML = `<option value="">— Select —</option>`+DATA.universities.map(u=>`<option value="${u.key}">${u.name}</option>`).join('');
     function drawInfo(){
@@ -3365,8 +3434,7 @@ function panelSessions(){
     sel.value = State.data.university.key || '';
     p.querySelector('#spell_ability').value = State.data.university.spellAbility || 'INT';
     drawInfo();
-    p.querySelector('#back_u').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='core'));};
-    p.querySelector('#next_u').onclick=()=>{
+    p.querySelector('#save_university').onclick = ()=>{
       State.data.university={ key: sel.value, spellAbility: p.querySelector('#spell_ability').value };
       if(!State.data.university.key){ alert('Pick a university to continue.'); return; }
       if(!State.data.feats.find(f=>f.name==='Strixhaven Initiate')){
@@ -3374,31 +3442,10 @@ function panelSessions(){
       } else {
         State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
       }
-      activateStep(STEPS.findIndex(s=>s.key==='extras'));
+      markSaved('university','University saved.');
     };
-    return p;
-  }
 
-  function panelExtras(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>Job & Extracurriculars</h2>
-      <div class="grid cols-2">
-        <div>
-          <label>Job (optional, 5 gp/week)</label>
-          <select id="job"><option value="">— None —</option>${DATA.jobs.map(j=>`<option value="${j.key}">${j.name}</option>`).join('')}</select>
-        </div>
-        <div>
-          <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
-          <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
-        </div>
-      </div>
-      <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
-      <div class="controls">
-        <div class="left"><button id="back_e">← Back</button></div>
-        <div class="right"><button class="primary" id="next_e">Next →</button></div>
-      </div>
-    `;
+    // Extras
     const clubWrap = p.querySelector('#clublist');
     function drawClubs(){
       clubWrap.innerHTML='';
@@ -3436,35 +3483,14 @@ function panelSessions(){
     clubWrap.addEventListener('change', readExtras);
     readExtras();
 
-    p.querySelector('#back_e').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='university'));};
-    p.querySelector('#next_e').onclick=()=>{
+    p.querySelector('#save_extras').onclick = ()=>{
       const {job, clubs} = readExtras();
       State.data.extras.job = job;
       State.data.extras.clubs = clubs;
-      activateStep(STEPS.findIndex(s=>s.key==='personality'));
+      markSaved('extras','Schedule saved.');
     };
-    return p;
-  }
 
-  function panelPersonality(){
-    const p=document.createElement('div'); p.className='panel';
-    p.innerHTML=`
-      <h2>Personality & Prompt</h2>
-      <div class="grid cols-2">
-        <div><label>Traits (1–2)</label><textarea id="traits" rows="3" placeholder="e.g., Curious, dry humour"></textarea></div>
-        <div><label>Ideal</label><textarea id="ideal" rows="3" placeholder="e.g., Knowledge must be shared."></textarea></div>
-        <div><label>Bond / Friend / Rival</label><textarea id="bond" rows="3" placeholder="Name someone you’re tied to (or opposed to)"></textarea></div>
-        <div><label>Goal</label><textarea id="goal" rows="3" placeholder="What do you want from the Oracle Trials?"></textarea></div>
-      </div>
-      <div class="card" style="margin-top:10px">
-        <div class="kicker">Quick-Start Character Prompt</div>
-        <div id="prompt_box" class="flex" style="margin-top:6px"></div>
-      </div>
-      <div class="controls">
-        <div class="left"><button id="back_p">← Back</button></div>
-        <div class="right"><button class="primary" id="next_p">Next →</button></div>
-      </div>
-    `;
+    // Personality
     const quickPrompts = [
       {u:'Lorehold', text:'A cheerful necro-historian who argues with ghosts about footnotes.'},
       {u:'Prismari', text:'A kinetic dancer who keeps leaving frost footprints after cantrips.'},
@@ -3472,12 +3498,12 @@ function panelSessions(){
       {u:'Silverquill', text:'A sunny orator who spotlights corruption with literal light.'},
       {u:'Witherbloom', text:'A swamp witch medic who collects bones “for research.”'}
     ];
-    const box=p.querySelector('#prompt_box');
+    const boxPrompts=p.querySelector('#prompt_box');
     quickPrompts.forEach(q=>{
       const b=document.createElement('button'); b.className='pill'; b.type='button';
       b.innerHTML = `<span>${q.u}</span><span>•</span><span>${q.text}</span>`;
-      b.onclick=()=>{ State.data.personality.prompt = q.text; Array.from(box.children).forEach(x=>x.classList.remove('success')); b.classList.add('success'); };
-      box.appendChild(b);
+      b.onclick=()=>{ State.data.personality.prompt = q.text; Array.from(boxPrompts.children).forEach(x=>x.classList.remove('success')); b.classList.add('success'); };
+      boxPrompts.appendChild(b);
       if(State.data.personality.prompt===q.text) b.classList.add('success');
     });
 
@@ -3486,8 +3512,7 @@ function panelSessions(){
     p.querySelector('#bond').value = State.data.personality.bond||'';
     p.querySelector('#goal').value = State.data.personality.goal||'';
 
-    p.querySelector('#back_p').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='extras'));};
-    p.querySelector('#next_p').onclick=()=>{
+    p.querySelector('#save_personality').onclick=()=>{
       State.data.personality={
         traits: p.querySelector('#traits').value.trim(),
         ideal: p.querySelector('#ideal').value.trim(),
@@ -3495,8 +3520,12 @@ function panelSessions(){
         goal: p.querySelector('#goal').value.trim(),
         prompt: State.data.personality.prompt||''
       };
-      activateStep(STEPS.findIndex(s=>s.key==='summary'));
+      markSaved('personality','Personality saved.');
     };
+
+    p.querySelector('#back_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='sessions')); };
+    p.querySelector('#next_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='join')); };
+
     return p;
   }
     function panelJoin(){
@@ -3579,7 +3608,7 @@ function panelSessions(){
     }
   });
 
-  p.querySelector('#back_join').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='personality')); };
+  p.querySelector('#back_join').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='builder')); };
   p.querySelector('#to_summary').onclick= ()=>{ activateStep(STEPS.findIndex(s=>s.key==='summary')); };
   return p;
 }
@@ -3633,7 +3662,7 @@ function panelSessions(){
         </div>
       </div>
     `;
-    p.querySelector('#back_s').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='personality'));};
+    p.querySelector('#back_s').onclick=()=>{activateStep(STEPS.findIndex(s=>s.key==='builder'));};
     p.querySelector('#save_s').onclick=()=>State.save();
     p.querySelector('#export_s').onclick=()=>State.export();
     p.querySelector('#pdf_s').onclick=()=>window.print();
