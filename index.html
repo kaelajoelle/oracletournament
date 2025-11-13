@@ -999,6 +999,14 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     color:#3b1111;
   }
 
+  .status-note{
+    margin-top:0.5rem;
+    font-size:0.95rem;
+    color:var(--muted);
+  }
+  .status-note[data-tone="success"]{ color:#1b7048; }
+  .status-note[data-tone="error"]{ color:#a01919; }
+
 
   </style>
 </head>
@@ -1035,6 +1043,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
         <button id="btnExport" class="primary">Export JSON</button>
         <button id="btnClear" class="danger">Clear Local Data</button>
       </div>
+      <p id="draftStatus" class="status-note" role="status" aria-live="polite">
+        Saves sync to the Oracle Archives when you're online; otherwise they stay in this browser.
+      </p>
     </div>
   </div>
 </main>
@@ -1305,6 +1316,20 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       end(){ pending = Math.max(0, pending - 1); update(); },
       setError(message){ lastError = message || 'Network request failed.'; update(); },
       clearError(){ lastError = ''; update(); }
+    };
+  })();
+
+  const DraftStatus = (function(){
+    const el = document.getElementById('draftStatus');
+    function set(message, tone='info'){
+      if(!el) return;
+      el.textContent = message;
+      el.dataset.tone = tone;
+    }
+    return {
+      info(message){ set(message, 'info'); },
+      success(message){ set(message, 'success'); },
+      error(message){ set(message, 'error'); }
     };
   })();
 
@@ -1881,6 +1906,57 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   /* =======================
      STATE
   ======================= */
+  const LocalDraftStore = {
+    key: 'oracleTrialsSave',
+    read(){
+      try{
+        const raw = localStorage.getItem(this.key);
+        if(!raw) return null;
+        return JSON.parse(raw);
+      }catch(err){
+        console.warn('Local draft read failed', err);
+        return null;
+      }
+    },
+    write(data){
+      try{
+        localStorage.setItem(this.key, JSON.stringify(data));
+      }catch(err){
+        console.warn('Local draft write failed', err);
+      }
+    },
+    clear(){
+      try{ localStorage.removeItem(this.key); }catch(err){ console.warn('Local draft clear failed', err); }
+    }
+  };
+
+  function cloneDraftData(data){
+    try{
+      return JSON.parse(JSON.stringify(data || {}));
+    }catch(err){
+      console.warn('Draft clone failed', err);
+      return {};
+    }
+  }
+
+  const CharacterDraftsApi = {
+    async saveDraft(data){
+      const encoded = encodeURIComponent(CURRENT_PLAYER_KEY);
+      const response = await apiFetch(`/api/characters/${encoded}`, {
+        method: 'PUT',
+        body: JSON.stringify({ data })
+      });
+      return response && response.draft ? response.draft : null;
+    },
+    async loadDraft(){
+      const encoded = encodeURIComponent(CURRENT_PLAYER_KEY);
+      const response = await apiFetch(`/api/characters/${encoded}`, {
+        headers: { Accept: 'application/json' }
+      });
+      return response && response.draft ? response.draft : null;
+    }
+  };
+
   const State = {
     data:{
       meta:{version:'0.5-stable'},
@@ -1892,8 +1968,67 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       exams:{ notes:'', studyRerolls:0, results:[] }
     },
     sessions: [],
-    save(){ localStorage.setItem('oracleTrialsSave', JSON.stringify(this.data)); alert('Draft saved to your browser.'); },
-    load(){ const raw=localStorage.getItem('oracleTrialsSave'); if(!raw){alert('No save found.');return;} this.data=JSON.parse(raw); renderAll(); alert('Draft loaded.'); },
+    async save(){
+      const snapshot = cloneDraftData(this.data);
+      LocalDraftStore.write(snapshot);
+      let remoteDraft = null;
+      let remoteError = null;
+      if(!IS_GUEST_SESSION){
+        try{
+          remoteDraft = await CharacterDraftsApi.saveDraft(snapshot);
+        }catch(err){
+          remoteError = err;
+          console.warn('Remote draft save failed', err);
+        }
+      }
+      if(remoteDraft){
+        DraftStatus.success('Draft synced to the Oracle Archives and backed up in this browser.');
+        return true;
+      }
+      if(remoteError){
+        DraftStatus.error('Online save failed; your draft is stored in this browser only.');
+      }else if(IS_GUEST_SESSION){
+        DraftStatus.info('Guest saves stay in this browser. Enter your access code to sync online.');
+      }else{
+        DraftStatus.info('Saved locally. Reconnect to sync with the Oracle Archives.');
+      }
+      return false;
+    },
+    async load(){
+      let remoteError = null;
+      if(!IS_GUEST_SESSION){
+        try{
+          const remoteDraft = await CharacterDraftsApi.loadDraft();
+          if(remoteDraft && remoteDraft.data){
+            this.data = cloneDraftData(remoteDraft.data);
+            LocalDraftStore.write(this.data);
+            renderAll();
+            DraftStatus.success('Draft loaded from the Oracle Archives.');
+            return true;
+          }
+        }catch(err){
+          remoteError = err;
+          console.warn('Remote draft load failed', err);
+        }
+      }
+      const localDraft = LocalDraftStore.read();
+      if(localDraft){
+        this.data = cloneDraftData(localDraft);
+        renderAll();
+        if(remoteError){
+          DraftStatus.error('Loaded browser backup after the Oracle Archives could not be reached.');
+        }else{
+          DraftStatus.info('Loaded the draft stored in this browser.');
+        }
+        return true;
+      }
+      DraftStatus.error(remoteError ? 'No drafts found online or offline. Save your character first.' : 'No saved drafts yet.');
+      const alertMessage = remoteError
+        ? 'Could not load any drafts from the Oracle Archives or this browser. Save a character once you are back online.'
+        : 'No saved draft found. Create and save a character first.';
+      alert(alertMessage);
+      return false;
+    },
     export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); }
   };
 
@@ -3723,7 +3858,7 @@ function panelSessions(){
     const clr=document.getElementById('btnClear');
     if(clr){ clr.onclick=()=>{
       if(confirm('Clear all local data for this app?')){
-        localStorage.removeItem('oracleTrialsSave');
+        LocalDraftStore.clear();
         localStorage.removeItem('oracleOfflineState');
         alert('Local data cleared. Reloading…');
         location.reload();

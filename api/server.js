@@ -13,12 +13,16 @@ const DATA_PATH = process.env.DATA_PATH
 const COMMENTS_DATA_PATH = process.env.COMMENTS_DATA_PATH
   ? path.resolve(process.env.COMMENTS_DATA_PATH)
   : path.join(path.dirname(DATA_PATH), 'comments.json');
+const CHARACTER_DRAFTS_PATH = process.env.CHARACTER_DRAFTS_PATH
+  ? path.resolve(process.env.CHARACTER_DRAFTS_PATH)
+  : path.join(path.dirname(DATA_PATH), 'character_drafts.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'oracle_state';
 const SUPABASE_ROW_ID = process.env.SUPABASE_ROW_ID || 'shared';
 const SUPABASE_STORAGE_MODE = (process.env.SUPABASE_STORAGE_MODE || 'json').toLowerCase();
+const SUPABASE_CHARACTER_DRAFTS_TABLE = process.env.SUPABASE_CHARACTER_DRAFTS_TABLE || 'character_drafts';
 
 const ROSTER_META_HIDDEN_SENTINEL = '__hidden__::';
 let supabaseMetaSupportsHidden = true;
@@ -326,6 +330,125 @@ async function saveState(state, context) {
   }
 
   return normalised;
+}
+
+function normaliseCharacterDraftData(input){
+  if(!input || typeof input !== 'object'){
+    return {};
+  }
+  try{
+    return JSON.parse(JSON.stringify(input));
+  }catch(err){
+    console.warn('Failed to serialise draft payload', err);
+    return {};
+  }
+}
+
+async function readCharacterDraftStore(){
+  try{
+    const raw = await fs.readFile(CHARACTER_DRAFTS_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if(parsed && typeof parsed === 'object'){
+      const drafts = parsed.drafts && typeof parsed.drafts === 'object' ? parsed.drafts : {};
+      return { version: 1, drafts };
+    }
+  }catch(err){
+    if(err && err.code === 'ENOENT'){
+      return { version: 1, drafts: {} };
+    }
+    throw err;
+  }
+  return { version: 1, drafts: {} };
+}
+
+async function writeCharacterDraftStore(store){
+  const safe = {
+    version: 1,
+    drafts: store && typeof store.drafts === 'object' ? store.drafts : {}
+  };
+  await fs.writeFile(CHARACTER_DRAFTS_PATH, JSON.stringify(safe, null, 2));
+  return safe;
+}
+
+async function getCharacterDraftFromFile(playerKey){
+  const store = await readCharacterDraftStore();
+  const entry = store.drafts[playerKey];
+  if(!entry){
+    return null;
+  }
+  return {
+    playerKey,
+    data: normaliseCharacterDraftData(entry.data),
+    updatedAt: entry.updatedAt || entry.updated_at || null,
+    source: 'file'
+  };
+}
+
+async function saveCharacterDraftToFile(playerKey, draftData){
+  const store = await readCharacterDraftStore();
+  const data = normaliseCharacterDraftData(draftData);
+  const updatedAt = new Date().toISOString();
+  store.drafts[playerKey] = {
+    data,
+    updatedAt
+  };
+  await writeCharacterDraftStore(store);
+  return {
+    playerKey,
+    data,
+    updatedAt,
+    source: 'file'
+  };
+}
+
+async function getCharacterDraftFromSupabase(playerKey){
+  if(!hasSupabase){
+    return null;
+  }
+  const table = encodeURIComponent(SUPABASE_CHARACTER_DRAFTS_TABLE);
+  const path = `${table}?player_key=eq.${encodeURIComponent(playerKey)}&select=data,updated_at&limit=1`;
+  const rows = await supabaseQuery(path, { fallback: [] });
+  const row = Array.isArray(rows) ? rows[0] : null;
+  if(!row){
+    return null;
+  }
+  return {
+    playerKey,
+    data: normaliseCharacterDraftData(row.data),
+    updatedAt: row.updated_at || row.updatedAt || null,
+    source: 'remote'
+  };
+}
+
+async function saveCharacterDraftToSupabase(playerKey, draftData){
+  const table = encodeURIComponent(SUPABASE_CHARACTER_DRAFTS_TABLE);
+  const payload = [{ player_key: playerKey, data: normaliseCharacterDraftData(draftData) }];
+  const response = await supabaseMutate(table, {
+    body: payload,
+    headers: { Prefer: 'resolution=merge-duplicates,return=representation' },
+    expectJson: true
+  });
+  const row = Array.isArray(response) ? response[0] : null;
+  return {
+    playerKey,
+    data: row && row.data ? normaliseCharacterDraftData(row.data) : payload[0].data,
+    updatedAt: (row && (row.updated_at || row.updatedAt)) || new Date().toISOString(),
+    source: 'remote'
+  };
+}
+
+async function getCharacterDraft(playerKey){
+  if(hasSupabase){
+    return getCharacterDraftFromSupabase(playerKey);
+  }
+  return getCharacterDraftFromFile(playerKey);
+}
+
+async function saveCharacterDraft(playerKey, draftData){
+  if(hasSupabase){
+    return saveCharacterDraftToSupabase(playerKey, draftData);
+  }
+  return saveCharacterDraftToFile(playerKey, draftData);
 }
 
 async function loadStateFromFile(){
