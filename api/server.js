@@ -906,7 +906,7 @@ async function saveStateToSupabaseTables(state, context = {}){
           await replaceSupabaseTablesState(state);
           break;
         }
-        await updatePlayerAccessDisplayName(key, context.name);
+        const metaPayload = encodeRosterMeta(context.status, context.notes, context.hidden);
         if(context.status || context.notes){
           await supabaseMutate(`${encodeURIComponent(SUPABASE_ROSTER_META_TABLE)}`, {
             body: [{
