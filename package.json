@@ -6,11 +6,22 @@
   "scripts": {
     "start": "node api/server.js",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
-    "supabase:seed:tables": "node scripts/seed-supabase-tables.js"
+    "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
+    "lint": "npm run lint:api && npm run lint:frontend",
+    "lint:api": "eslint api scripts",
+    "lint:frontend": "eslint site --ext .js",
+    "test": "jest"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "node-fetch": "^2.6.13"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
   }
 }
