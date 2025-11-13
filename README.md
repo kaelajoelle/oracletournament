@@ -7,6 +7,17 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 * Node.js 18+
 * npm
 
+## Development workflow
+
+The repository now ships with linting and unit tests so you can catch regressions early:
+
+* `npm run lint:api` – runs ESLint with the Node.js rule-set against everything under `api/` and `scripts/`.
+* `npm run lint:frontend` – lints the browser-facing configuration under `site/`.
+* `npm run lint` – convenience script that runs both of the commands above.
+* `npm test` – executes the Jest test suite, which currently includes a smoke test for the `/api/state` merge logic.
+
+All of these commands are executed automatically in CI (see [`.github/workflows/ci.yml`](.github/workflows/ci.yml)) for every push and pull request so contributors get fast feedback.
+
 ## Running the datastore API
 
 1. Install dependencies:
