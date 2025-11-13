@@ -1069,6 +1069,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   const PlayerIdentity = (()=>{
     const STORAGE_KEY = 'player_key';
+    const GUEST_KEY = 'guest';
     function read(){
       try{
         return (localStorage.getItem(STORAGE_KEY) || '').trim().toLowerCase();
@@ -1094,10 +1095,20 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       const roster = getRosterList({ includeHidden: true });
       return roster.find(entry => entry.key === key) || null;
     }
-    return { getKey: read, requireKey, clear, getRosterEntry };
+    function isGuest(){
+      return read() === GUEST_KEY;
+    }
+    return { getKey: read, requireKey, clear, getRosterEntry, isGuest, getGuestKey: () => GUEST_KEY };
   })();
 
   const CURRENT_PLAYER_KEY = PlayerIdentity.requireKey();
+  const IS_GUEST_SESSION = PlayerIdentity.isGuest();
+  const READ_ONLY_NOTICE = 'Guest accounts can browse but cannot change shared data. Use your personal access code to keep editing.';
+  function requireWritable(action='perform this action'){
+    if(IS_GUEST_SESSION){
+      throw new Error(`Guest accounts cannot ${action}. ${READ_ONLY_NOTICE}`);
+    }
+  }
 
   const DEFAULT_SHARED_STATE = {
     sessions: [],
@@ -1430,6 +1441,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
 
   const Backend = {
     async joinSession(sessionId, payload){
+      requireWritable('join sessions');
       const rosterEntry = PlayerIdentity.getRosterEntry();
       const body = {
         ...payload,
@@ -1447,6 +1459,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async leaveSession(sessionId, payload){
+      requireWritable('leave sessions');
       const body = {
         ...payload,
         playerKey: payload?.playerKey || CURRENT_PLAYER_KEY
@@ -1461,6 +1474,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async setAvailability(payload){
+      requireWritable('update availability');
       const rosterEntry = PlayerIdentity.getRosterEntry();
       const body = {
         ...payload,
@@ -1477,6 +1491,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async addRosterExtra(payload){
+      requireWritable('add roster entries');
       const res = await apiFetch('/api/roster/extras', {
         method:'POST',
         body: JSON.stringify(payload)
@@ -1487,6 +1502,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async updateRosterEntry(key, payload){
+      requireWritable('edit the roster');
       const res = await apiFetch(`/api/roster/${encodeURIComponent(key)}`, {
         method:'PATCH',
         body: JSON.stringify(payload)
@@ -1497,6 +1513,7 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
       return res;
     },
     async removeRosterExtra(key){
+      requireWritable('remove roster entries');
       const res = await apiFetch(`/api/roster/extras/${encodeURIComponent(key)}`, {
         method:'DELETE'
       });
@@ -1557,6 +1574,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   }
 
   async function addRosterExtra(name, status='', notes=''){
+    if(IS_GUEST_SESSION){
+      return {ok:false, msg: READ_ONLY_NOTICE};
+    }
     const cleanName = sanitizeName(name);
     if(!cleanName) return {ok:false, msg:'Name is required.'};
     const key = rosterKey(cleanName);
@@ -1572,6 +1592,9 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   }
 
   async function updateRosterDetails(key, entry, status, notes, hiddenOverride){
+    if(IS_GUEST_SESSION){
+      throw new Error(READ_ONLY_NOTICE);
+    }
     const cleanKey = rosterKey(key);
     if(!cleanKey) return;
     const cleanStatus = sanitizeOptional(status);
@@ -1587,11 +1610,17 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   }
 
   async function setRosterHidden(entry, hidden){
+    if(IS_GUEST_SESSION){
+      throw new Error(READ_ONLY_NOTICE);
+    }
     if(!entry || !entry.key) return;
     await updateRosterDetails(entry.key, entry, entry.status, entry.notes, hidden);
   }
 
   async function removeRosterExtra(key){
+    if(IS_GUEST_SESSION){
+      throw new Error(READ_ONLY_NOTICE);
+    }
     const cleanKey = rosterKey(key);
     if(!cleanKey) return;
     await Backend.removeRosterExtra(cleanKey);
@@ -1957,6 +1986,7 @@ function setupCommentBoard(root){
 
   let statusTimer = 0;
   const submitButton = form.querySelector('button[type="submit"]');
+  const commentsReadOnly = IS_GUEST_SESSION;
 
   const announce = (message, tone='success')=>{
     if(!status) return;
@@ -1969,6 +1999,24 @@ function setupCommentBoard(root){
 
   if(status){
     status.hidden = true;
+  }
+
+  if(commentsReadOnly){
+    [textarea, playerInput, characterInput, sessionInput].forEach((inputEl)=>{
+      if(inputEl){
+        inputEl.disabled = true;
+        inputEl.setAttribute('aria-disabled', 'true');
+      }
+    });
+    if(submitButton){
+      submitButton.disabled = true;
+      submitButton.title = READ_ONLY_NOTICE;
+      submitButton.textContent = 'Comments disabled for guests';
+    }
+    const note = document.createElement('p');
+    note.className = 'muted';
+    note.textContent = READ_ONLY_NOTICE;
+    form.appendChild(note);
   }
 
   const formatStamp = (iso)=>{
@@ -2092,6 +2140,10 @@ function setupCommentBoard(root){
       if(entry.pending){
         remove.textContent = 'Posting…';
         remove.disabled = true;
+      }else if(commentsReadOnly){
+        remove.textContent = 'Delete';
+        remove.disabled = true;
+        remove.title = READ_ONLY_NOTICE;
       }else{
         remove.textContent = 'Delete';
         remove.addEventListener('click', ()=>{
@@ -2126,6 +2178,10 @@ function setupCommentBoard(root){
   };
 
   const handleDelete = async (entry)=>{
+    if(commentsReadOnly){
+      announce(READ_ONLY_NOTICE, 'error');
+      return;
+    }
     if(!entry || !entry.id) return;
     const ok = (typeof confirm === 'function') ? confirm('Delete this comment?') : true;
     if(!ok) return;
@@ -2145,6 +2201,10 @@ function setupCommentBoard(root){
 
   form.addEventListener('submit', async (event)=>{
     event.preventDefault();
+    if(commentsReadOnly){
+      announce(READ_ONLY_NOTICE, 'error');
+      return;
+    }
     const textValue = (textarea.value || '').trim();
     if(!textValue){
       announce('Comment text is required.', 'error');
@@ -2769,6 +2829,14 @@ function panelSessions(){
   const rosterFeedback = p.querySelector('#roster_feedback');
   const removedCard = p.querySelector('#removed_roster_card');
   const removedList = p.querySelector('#removed_roster_list');
+  const rosterReadOnly = IS_GUEST_SESSION;
+
+  if(rosterReadOnly && quickForm){
+    quickForm.querySelectorAll('input, textarea, button').forEach((el)=>{
+      el.disabled = true;
+      el.setAttribute('aria-disabled', 'true');
+    });
+  }
 
   let inlineEditorState = { key: null, mode: null };
   let inlineTriggerFocus = null;
@@ -2785,6 +2853,10 @@ function panelSessions(){
     rosterFeedback.hidden = false;
     if(variant === 'error') rosterFeedback.classList.add('error');
     if(variant === 'success') rosterFeedback.classList.add('success');
+  }
+
+  if(rosterReadOnly){
+    showRosterFeedback(READ_ONLY_NOTICE, 'info');
   }
 
   function describeTriggerButton(btn){
@@ -2835,6 +2907,9 @@ function panelSessions(){
   }
 
   function renderInlineEditorRow(entry){
+    if(rosterReadOnly){
+      return '';
+    }
     if(inlineEditorState.key !== entry.key || !inlineEditorState.mode){
       return '';
     }
@@ -2854,6 +2929,11 @@ function panelSessions(){
 
   function renderRemovedRoster(){
     if(!removedCard || !removedList) return;
+    if(rosterReadOnly){
+      removedCard.hidden = true;
+      removedList.innerHTML = '';
+      return;
+    }
     const hiddenEntries = getHiddenRosterEntries();
     if(!hiddenEntries.length){
       removedList.innerHTML = '';
@@ -2895,16 +2975,17 @@ function panelSessions(){
         metaBits.push(`<span class="note-pill">${escapeHTML(entry.notes)}</span>`);
       }
       const metaLine = metaBits.length ? `<div class="name-meta">${metaBits.join(' ')}</div>` : '';
-      const actions = `<div class="name-actions">
+      const actions = rosterReadOnly ? '' : `<div class="name-actions">
         <button type="button" class="link-button" data-edit="${entry.key}" data-name="${escapeAttr(entry.name)}">Edit</button>
         <button type="button" class="link-button danger" data-remove="${entry.key}" data-name="${escapeAttr(entry.name)}" data-remove-type="${entry.custom ? 'custom' : 'base'}">Remove</button>
       </div>`;
       const cells = AVAIL_DATES.map((d)=>{
         const checked = rowAvail[d] ? ' checked' : '';
-        return `<td><input data-key="${entry.key}" data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}></td>`;
+        const disabledAttr = rosterReadOnly ? ' disabled' : '';
+        return `<td><input data-key="${entry.key}" data-name="${escapeAttr(entry.name)}" data-date="${d}" type="checkbox"${checked}${disabledAttr}></td>`;
       }).join('');
       const mainRow = `<tr><td class="avail-name"><strong>${escapeHTML(entry.name)}</strong>${metaLine}${actions}</td>${cells}</tr>`;
-      const inlineRow = renderInlineEditorRow(entry);
+      const inlineRow = rosterReadOnly ? '' : renderInlineEditorRow(entry);
       return inlineRow ? `${mainRow}${inlineRow}` : mainRow;
     }).join('');
     rbody.innerHTML = rows;
@@ -2942,111 +3023,113 @@ function panelSessions(){
 
   renderAvailabilityTable();
 
-  // Save on change
-  rbody.addEventListener('change', async (e) => {
-    const cb = e.target.closest('input[type="checkbox"][data-key][data-name]');
-    if(!cb) return;
-    const key = cb.getAttribute('data-key');
-    const name = cb.getAttribute('data-name');
-    const date = cb.getAttribute('data-date');
-    const newValue = cb.checked;
-    try{
-      await Backend.setAvailability({ name, playerName: name, playerKey: key, date, available: newValue });
-      renderAvailabilityTable({ focus:{ key, name, date }, scrollLeft: tableScroll.scrollLeft });
-    }catch(err){
-      cb.checked = !newValue;
-      alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
-    }
-  });
+  if(!rosterReadOnly){
+    // Save on change
+    rbody.addEventListener('change', async (e) => {
+      const cb = e.target.closest('input[type="checkbox"][data-key][data-name]');
+      if(!cb) return;
+      const key = cb.getAttribute('data-key');
+      const name = cb.getAttribute('data-name');
+      const date = cb.getAttribute('data-date');
+      const newValue = cb.checked;
+      try{
+        await Backend.setAvailability({ name, playerName: name, playerKey: key, date, available: newValue });
+        renderAvailabilityTable({ focus:{ key, name, date }, scrollLeft: tableScroll.scrollLeft });
+      }catch(err){
+        cb.checked = !newValue;
+        alert(`Failed to update availability: ${err && err.message ? err.message : 'Request failed.'}`);
+      }
+    });
 
-  rbody.addEventListener('click', (event) => {
-    const editBtn = event.target.closest('button[data-edit]');
-    if(editBtn){
-      const key = editBtn.getAttribute('data-edit');
-      const roster = getRosterList();
-      const entry = roster.find(r=>r.key === key);
-      if(!entry) return;
-      if(inlineEditorState.key === key && inlineEditorState.mode === 'edit'){
-        inlineEditorState = { key: null, mode: null };
-        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+    rbody.addEventListener('click', (event) => {
+      const editBtn = event.target.closest('button[data-edit]');
+      if(editBtn){
+        const key = editBtn.getAttribute('data-edit');
+        const roster = getRosterList();
+        const entry = roster.find(r=>r.key === key);
+        if(!entry) return;
+        if(inlineEditorState.key === key && inlineEditorState.mode === 'edit'){
+          inlineEditorState = { key: null, mode: null };
+          renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+          return;
+        }
+        inlineTriggerFocus = describeTriggerButton(editBtn);
+        inlineEditorState = { key, mode: 'edit' };
+        pendingFocus = () => {
+          const form = Array.from(rbody.querySelectorAll('form[data-inline-form]')).find(f => f.dataset.mode === 'edit' && f.dataset.key === key);
+          if(!form) return null;
+          return form.querySelector('[data-editor-input="status"]') || form.querySelector('[data-editor-input="notes"]');
+        };
+        showRosterFeedback();
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
         return;
       }
-      inlineTriggerFocus = describeTriggerButton(editBtn);
-      inlineEditorState = { key, mode: 'edit' };
-      pendingFocus = () => {
-        const form = Array.from(rbody.querySelectorAll('form[data-inline-form]')).find(f => f.dataset.mode === 'edit' && f.dataset.key === key);
-        if(!form) return null;
-        return form.querySelector('[data-editor-input="status"]') || form.querySelector('[data-editor-input="notes"]');
-      };
-      showRosterFeedback();
-      renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
-      return;
-    }
-    const removeBtn = event.target.closest('button[data-remove]');
-    if(removeBtn){
-      const key = removeBtn.getAttribute('data-remove');
-      const roster = getRosterList();
-      const entry = roster.find(r=>r.key === key);
-      if(!entry) return;
-      if(inlineEditorState.key === key && inlineEditorState.mode === 'remove'){
-        inlineEditorState = { key: null, mode: null };
-        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+      const removeBtn = event.target.closest('button[data-remove]');
+      if(removeBtn){
+        const key = removeBtn.getAttribute('data-remove');
+        const roster = getRosterList();
+        const entry = roster.find(r=>r.key === key);
+        if(!entry) return;
+        if(inlineEditorState.key === key && inlineEditorState.mode === 'remove'){
+          inlineEditorState = { key: null, mode: null };
+          renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+          return;
+        }
+        inlineTriggerFocus = describeTriggerButton(removeBtn);
+        inlineEditorState = { key, mode: 'remove' };
+        pendingFocus = () => {
+          const form = Array.from(rbody.querySelectorAll('form[data-inline-form]')).find(f => f.dataset.mode === 'remove' && f.dataset.key === key);
+          if(!form) return null;
+          return form.querySelector('[data-confirm]') || form.querySelector('button[type="submit"]');
+        };
+        showRosterFeedback();
+        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
         return;
       }
-      inlineTriggerFocus = describeTriggerButton(removeBtn);
-      inlineEditorState = { key, mode: 'remove' };
-      pendingFocus = () => {
-        const form = Array.from(rbody.querySelectorAll('form[data-inline-form]')).find(f => f.dataset.mode === 'remove' && f.dataset.key === key);
-        if(!form) return null;
-        return form.querySelector('[data-confirm]') || form.querySelector('button[type="submit"]');
-      };
-      showRosterFeedback();
-      renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft });
-      return;
-    }
-    const cancelBtn = event.target.closest('button[data-cancel]');
-    if(cancelBtn){
-      const form = cancelBtn.closest('form[data-inline-form]');
-      if(form){
-        inlineEditorState = { key: null, mode: null };
-        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+      const cancelBtn = event.target.closest('button[data-cancel]');
+      if(cancelBtn){
+        const form = cancelBtn.closest('form[data-inline-form]');
+        if(form){
+          inlineEditorState = { key: null, mode: null };
+          renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+        }
       }
-    }
-  });
+    });
 
-  rbody.addEventListener('submit', async (event) => {
-    const form = event.target.closest('form[data-inline-form]');
-    if(!form) return;
-    event.preventDefault();
-    const mode = form.dataset.mode;
-    const key = form.dataset.key;
-    const roster = getRosterList({ includeHidden: true });
-    const entry = roster.find(r=>r.key === key);
-    if(!entry){
-      setInlineMessage(form, 'Roster entry not found.', 'error');
-      return;
-    }
-    setInlineMessage(form);
-    try{
-      if(mode === 'edit'){
-        const statusValue = form.elements.status ? form.elements.status.value : '';
-        const notesValue = form.elements.notes ? form.elements.notes.value : '';
-        await updateRosterDetails(key, entry, statusValue, notesValue);
-        inlineEditorState = { key: null, mode: null };
-        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
-        showRosterFeedback(`Saved updates for ${entry.name}.`, 'success');
-      } else if(mode === 'remove'){
-        await setRosterHidden(entry, true);
-        inlineEditorState = { key: null, mode: null };
-        renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
-        showRosterFeedback(`${entry.name} is now hidden. Restore hidden entries below.`, 'success');
+    rbody.addEventListener('submit', async (event) => {
+      const form = event.target.closest('form[data-inline-form]');
+      if(!form) return;
+      event.preventDefault();
+      const mode = form.dataset.mode;
+      const key = form.dataset.key;
+      const roster = getRosterList({ includeHidden: true });
+      const entry = roster.find(r=>r.key === key);
+      if(!entry){
+        setInlineMessage(form, 'Roster entry not found.', 'error');
+        return;
       }
-    }catch(err){
-      setInlineMessage(form, err && err.message ? err.message : 'Request failed. Please try again.', 'error');
-    }
-  });
+      setInlineMessage(form);
+      try{
+        if(mode === 'edit'){
+          const statusValue = form.elements.status ? form.elements.status.value : '';
+          const notesValue = form.elements.notes ? form.elements.notes.value : '';
+          await updateRosterDetails(key, entry, statusValue, notesValue);
+          inlineEditorState = { key: null, mode: null };
+          renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+          showRosterFeedback(`Saved updates for ${entry.name}.`, 'success');
+        } else if(mode === 'remove'){
+          await setRosterHidden(entry, true);
+          inlineEditorState = { key: null, mode: null };
+          renderAvailabilityTable({ scrollLeft: tableScroll.scrollLeft, restoreFocus: true });
+          showRosterFeedback(`${entry.name} is now hidden. Restore hidden entries below.`, 'success');
+        }
+      }catch(err){
+        setInlineMessage(form, err && err.message ? err.message : 'Request failed. Please try again.', 'error');
+      }
+    });
+  }
 
-  if(removedList){
+  if(removedList && !rosterReadOnly){
     removedList.addEventListener('click', async (event)=>{
       const restoreBtn = event.target.closest('button[data-restore]');
       if(!restoreBtn) return;
@@ -3067,16 +3150,21 @@ function panelSessions(){
 
   const addBtn = p.querySelector('#add_person');
   if(addBtn){
-    addBtn.onclick = () => {
-      inlineEditorState = { key: null, mode: null };
-      showRosterFeedback();
-      if(quickNameInput){
-        quickNameInput.focus();
-      }
-    };
+    if(rosterReadOnly){
+      addBtn.disabled = true;
+      addBtn.title = READ_ONLY_NOTICE;
+    }else{
+      addBtn.onclick = () => {
+        inlineEditorState = { key: null, mode: null };
+        showRosterFeedback();
+        if(quickNameInput){
+          quickNameInput.focus();
+        }
+      };
+    }
   }
 
-  if(quickForm){
+  if(quickForm && !rosterReadOnly){
     quickForm.addEventListener('submit', async (event)=>{
       event.preventDefault();
       showRosterFeedback();
@@ -3418,6 +3506,7 @@ function panelSessions(){
     <div class="card">
       <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
     </div>
+    ${IS_GUEST_SESSION ? '<div class="card" role="note"><p class="muted">Guest mode is read-only. Use your personal access code to reserve a seat.</p></div>' : ''}
     <div id="join_list" class="grid"></div>
     <div class="controls">
       <div class="left"><button id="back_join">← Back</button></div>
@@ -3426,12 +3515,16 @@ function panelSessions(){
   `;
 
   const wrap = p.querySelector('#join_list');
-  renderSessionCards(wrap, {readOnly:false}); // shows real “Add my character” button
+  renderSessionCards(wrap, {readOnly: IS_GUEST_SESSION}); // hides the join button when read-only
 
   // click handlers for join + ics
   wrap.addEventListener('click', (ev)=>{
     const addBtn = ev.target.closest('button.primary[data-id]');
     if(addBtn){
+      if(IS_GUEST_SESSION){
+        alert(READ_ONLY_NOTICE);
+        return;
+      }
       const id = addBtn.getAttribute('data-id');
       const s = (State.sessions||[]).find(x=>x.id===id);
       const name = (State.data.core.name||'').trim();
@@ -3470,7 +3563,7 @@ function panelSessions(){
         build:{ class: klass, university: uniName }
       })
         .then(()=>{
-          renderSessionCards(wrap, {readOnly:false});
+          renderSessionCards(wrap, {readOnly: IS_GUEST_SESSION});
           alert(`Added ${name} to ${s.title}.`);
         })
         .catch((err)=>{
@@ -3546,31 +3639,37 @@ function panelSessions(){
     p.querySelector('#pdf_s').onclick=()=>window.print();
     const publishBtn = p.querySelector('#publish_roster');
     if(publishBtn){
-      publishBtn.onclick = async ()=>{
-        const name = sanitizeName(State.data?.core?.name);
-        if(!name){ alert('Give your character a name in Core Setup first.'); return; }
-        const key = rosterKey(name);
-        const noteParts = [];
-        if(State.data?.core?.class) noteParts.push(State.data.core.class);
-        const uniName = uni ? uni.name : (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name || '');
-        if(uniName) noteParts.push(uniName);
-        const notes = noteParts.join(' • ');
-        const status = 'Interested';
-        if(rosterHasKey(key)){
-          const roster = getRosterList();
-          const entry = roster.find(r=>r.key===key) || {name, custom:false};
-          try{
-            await updateRosterDetails(key, entry, status, notes);
-            alert(`${name} is already on the roster. Updated their status and notes.`);
-          }catch(err){
-            alert(`Failed to update roster entry: ${err && err.message ? err.message : 'Request failed.'}`);
+      if(IS_GUEST_SESSION){
+        publishBtn.disabled = true;
+        publishBtn.title = READ_ONLY_NOTICE;
+        publishBtn.textContent = 'Roster editing disabled for guests';
+      }else{
+        publishBtn.onclick = async ()=>{
+          const name = sanitizeName(State.data?.core?.name);
+          if(!name){ alert('Give your character a name in Core Setup first.'); return; }
+          const key = rosterKey(name);
+          const noteParts = [];
+          if(State.data?.core?.class) noteParts.push(State.data.core.class);
+          const uniName = uni ? uni.name : (DATA.universities.find(u=>u.key===State.data?.university?.key)?.name || '');
+          if(uniName) noteParts.push(uniName);
+          const notes = noteParts.join(' • ');
+          const status = 'Interested';
+          if(rosterHasKey(key)){
+            const roster = getRosterList();
+            const entry = roster.find(r=>r.key===key) || {name, custom:false};
+            try{
+              await updateRosterDetails(key, entry, status, notes);
+              alert(`${name} is already on the roster. Updated their status and notes.`);
+            }catch(err){
+              alert(`Failed to update roster entry: ${err && err.message ? err.message : 'Request failed.'}`);
+            }
+          } else {
+            const result = await addRosterExtra(name, status, notes);
+            if(!result.ok){ alert(result.msg); return; }
+            alert(`${name} added to the availability roster.`);
           }
-        } else {
-          const result = await addRosterExtra(name, status, notes);
-          if(!result.ok){ alert(result.msg); return; }
-          alert(`${name} added to the availability roster.`);
-        }
-      };
+        };
+      }
     }
     return p;
   }

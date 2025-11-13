@@ -41,6 +41,8 @@ const SUPABASE_REST_URL = hasSupabase
   ? `${SUPABASE_REST_BASE}/${SUPABASE_TABLE}`
   : null;
 
+const GUEST_PLAYER_KEY = 'guest';
+
 const AVAIL_DATES = [
   '2025-12-21','2025-12-22','2025-12-23',
   '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
@@ -80,6 +82,16 @@ function sanitizeOptional(value){
 
 function rosterKey(name){
   return sanitizeName(name).toLowerCase();
+}
+
+function isGuestKey(value){
+  return rosterKey(value) === GUEST_PLAYER_KEY;
+}
+
+function assertNotGuestKey(key){
+  if(isGuestKey(key)){
+    throw httpError(403, 'Guest sessions are read-only. Use your personal access code to make changes.');
+  }
 }
 
 function decodeRosterMeta(status, notes, hiddenFlag){
@@ -1125,6 +1137,7 @@ app.post('/api/sessions/:id/join', async (req, res) => {
   if(!playerKey){
     return handleError(res, httpError(400, 'Access code is required.'));
   }
+  assertNotGuestKey(playerKey);
 
   try{
     const state = await loadState();
@@ -1185,6 +1198,7 @@ app.post('/api/sessions/:id/leave', async (req, res) => {
   if(!playerKey){
     return handleError(res, httpError(400, 'Access code is required.'));
   }
+  assertNotGuestKey(playerKey);
   try{
     const state = await loadState();
     const session = state.sessions.find(s => s.id === sessionId);
@@ -1223,6 +1237,7 @@ app.post('/api/availability', async (req, res) => {
   if(!playerKey){
     return handleError(res, httpError(400, 'Access code is required.'));
   }
+  assertNotGuestKey(playerKey);
   if(!AVAIL_DATES.includes(date)){
     return handleError(res, httpError(400, 'Date is not in the availability schedule.'));
   }
