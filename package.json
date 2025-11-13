@@ -5,6 +5,7 @@
   "main": "api/server.js",
   "scripts": {
     "start": "node api/server.js",
+    "test": "node --test",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js"
   },
