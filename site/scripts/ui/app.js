@@ -966,7 +966,7 @@ import { ensureAppConfig } from '../services/config.js';
       alert(alertMessage);
       return false;
     },
-    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9\-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); }
+    export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); }
   };
 
   SharedState.subscribe(()=>{

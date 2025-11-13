@@ -416,6 +416,8 @@ async function saveCharacterDraftToSupabase(playerKey, draftData){
   };
 }
 
+// Reserved for future use
+// eslint-disable-next-line no-unused-vars
 async function getCharacterDraft(playerKey){
   if(hasSupabase){
     return getCharacterDraftFromSupabase(playerKey);
@@ -423,6 +425,7 @@ async function getCharacterDraft(playerKey){
   return getCharacterDraftFromFile(playerKey);
 }
 
+// eslint-disable-next-line no-unused-vars
 async function saveCharacterDraft(playerKey, draftData){
   if(hasSupabase){
     return saveCharacterDraftToSupabase(playerKey, draftData);

@@ -54,7 +54,7 @@ async function main(){
   try{
     const payload = JSON.parse(text);
     console.log('Supabase response:', payload);
-  }catch(err){
+  }catch{
     if(text){
       console.log('Supabase response:', text);
     }
