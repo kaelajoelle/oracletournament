@@ -64,6 +64,12 @@ create table if not exists public.comments (
   created_at timestamptz not null default timezone('utc', now())
 );
 
+create table if not exists public.character_drafts (
+  player_key text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 insert into public.sessions (id, title, dm, date, capacity, finale)
 values
   ('s1', 'Session 01', 'Kaela & Tory', '2025-12-21', 6, false),
@@ -88,6 +94,7 @@ alter table public.roster_meta enable row level security;
 alter table public.availability enable row level security;
 alter table public.build_cards enable row level security;
 alter table public.comments enable row level security;
+alter table public.character_drafts enable row level security;
 
 drop policy if exists "service role sessions" on public.sessions;
 create policy "service role sessions" on public.sessions
@@ -127,6 +134,12 @@ create policy "service role build cards" on public.build_cards
 
 drop policy if exists "service role comments" on public.comments;
 create policy "service role comments" on public.comments
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+drop policy if exists "service role character drafts" on public.character_drafts;
+create policy "service role character drafts" on public.character_drafts
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');
