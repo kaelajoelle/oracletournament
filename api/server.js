@@ -1,7 +1,10 @@
+const path = require('path');
+require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env'), override: false });
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
-const path = require('path');
 const { randomUUID, createHash } = require('crypto');
 
 const { createStorageAdapter } = require('./storage');

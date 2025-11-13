@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 const fs = require('fs/promises');
 const path = require('path');
+require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env'), override: false });
 
 const server = require('../api/server');
 const { normaliseState, replaceSupabaseTablesState } = server;

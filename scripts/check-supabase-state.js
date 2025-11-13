@@ -1,5 +1,9 @@
 #!/usr/bin/env node
 
+const path = require('path');
+require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env'), override: false });
+
 const server = require('../api/server');
 const { normaliseState } = server;
 

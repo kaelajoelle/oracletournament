@@ -20,21 +20,64 @@ All of these commands are executed automatically in CI (see [`.github/workflows/
 
 ## Running the datastore API
 
-1. Install dependencies:
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/<your-org>/oracletournament.git
+   cd oracletournament
+   ```
+
+2. **Install dependencies**
 
    ```bash
    npm install
    ```
 
-   > The container image used for automated checks may not have access to npm, so run this command in your own environment.
+   > The container used by automated checks might not have internet access, so run the install locally.
 
-2. Start the API:
+3. **Configure environment variables**
+
+   * Copy [`.env.example`](.env.example) to `.env` and fill in any values you need (Supabase credentials, alternative data paths, etc.).
+   * If you plan to run the Supabase helper scripts, also copy [`scripts/.env.example`](scripts/.env.example) to `scripts/.env`. Keeping a separate file lets you use deployment-only credentials for bootstrapping and seeding tasks.
+
+4. **Configure the frontend API base URL**
 
    ```bash
-   npm start
+   cp site/app-config.example.js site/app-config.js
+   # edit site/app-config.js so apiBaseUrl matches your Express server
    ```
 
-   The server listens on port `8787` by default and exposes endpoints under `/api` for sessions, roster extras, availability, and build cards. The backing data file lives at `api/state.json`.
+   During local development the default `http://localhost:8787/api` is perfect, so you can keep the example file as-is.
+
+## Local development workflow
+
+### Run the dev servers
+
+Launch both the Express API (port `8787`) and a static dev server for the HTML files (port `4173`) with one command:
+
+```bash
+npm run dev
+```
+
+The `concurrently` task leaves logs from both processes in your terminal. Visit [http://localhost:4173](http://localhost:4173) to load `index.html` while the API continues to answer under `http://localhost:8787/api`.
+
+Need only the API? Run `npm start` instead.
+
+### Run Supabase scripts
+
+The helper scripts (`npm run supabase:bootstrap`, `npm run supabase:seed:tables`, etc.) read environment variables from both `.env` and `scripts/.env`. Keep `scripts/.env` up to date if you rotate service role keys or change Supabase table names.
+
+## Building for production
+
+1. Build the static frontend bundle:
+
+   ```bash
+   npm run build
+   ```
+
+   The script copies `index.html`, `login.html`, and the `site/` assets into `dist/`, ready for deployment to a CDN or object store.
+
+2. Deploy the Express API wherever you host Node apps (Render, Railway, Fly.io, etc.). Install dependencies (`npm install --omit=dev`), provide the same `.env` values, and run `npm start`. Because the frontend and backend are separate processes you can deploy and scale them independently.
 
 ## Using the web UI
 
