@@ -40,6 +40,13 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 
 * The UI shows a banner while requests are in flight and whenever the network fails. When the API is unreachable the app falls back to the most recent cached state stored in `localStorage`.
 
+### Front-end bundle
+
+* The JavaScript that used to live inline inside `index.html` now resides under `site/scripts/` (split between `ui/` and `services/`).
+* Run `npm run dev` while editing those files to keep `site/dist/app.js` rebuilt with esbuild's watch mode.
+* Run `npm run build` for a one-off production bundle (the command also emits `site/dist/app.js.map`).
+* `index.html` already points at the generated bundle, so always build once before opening the page or deploying it to static hosting.
+
 ### Offline cache
 
 `localStorage` still keeps a read-only cache (`oracleOfflineState`) so you can review the latest shared data when you are offline. Mutations require a successful round-trip to the API and will surface an error message if the network is unavailable.

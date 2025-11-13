@@ -6,11 +6,16 @@
   "scripts": {
     "start": "node api/server.js",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
-    "supabase:seed:tables": "node scripts/seed-supabase-tables.js"
+    "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
+    "dev": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --watch",
+    "build": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --minify"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "node-fetch": "^2.6.13"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
   }
 }
