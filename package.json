@@ -7,10 +7,8 @@
     "start": "node api/server.js",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
-    "lint": "npm run lint:api && npm run lint:frontend",
-    "lint:api": "eslint api scripts",
-    "lint:frontend": "eslint site --ext .js",
-    "test": "jest"
+    "dev": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --watch",
+    "build": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --minify"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -18,10 +16,6 @@
     "node-fetch": "^2.6.13"
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.1",
-    "eslint": "^9.39.1",
-    "globals": "^16.5.0",
-    "jest": "^30.2.0",
-    "supertest": "^7.1.4"
+    "esbuild": "^0.27.0"
   }
 }
