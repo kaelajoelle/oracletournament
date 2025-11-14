@@ -1,0 +1,46 @@
+{
+  "sessions": [
+    { "id": "s1", "date": "2025-12-21", "title": "Session 01", "dm": "Kaela & Tory", "capacity": 6, "players": ["Aria"], "finale": false },
+    { "id": "s2", "date": "2025-12-22", "title": "Session 02", "dm": "Kaela & Tory", "capacity": 6, "players": [], "finale": false },
+    { "id": "s3", "date": "2025-12-26", "title": "Session 03", "dm": "Kaela & Tory", "capacity": 6, "players": [], "finale": false },
+    { "id": "s4", "date": "2025-12-27", "title": "Session 04", "dm": "Kaela & Tory", "capacity": 6, "players": [], "finale": false },
+    { "id": "s5", "date": "2025-12-28", "title": "Session 05", "dm": "Kaela & Tory", "capacity": 6, "players": [], "finale": false },
+    { "id": "s6", "date": "2025-12-29", "title": "Session 06", "dm": "Kaela & Tory", "capacity": 6, "players": [], "finale": false },
+    { "id": "finale", "date": "2026-01-01", "title": "Grand Finale", "dm": "Kaela & Tory", "capacity": 8, "players": [], "finale": true }
+  ],
+  "rosterExtras": [
+    { "key": "amy", "name": "Amy", "status": "YES!", "notes": "", "custom": true },
+    { "key": "becca", "name": "Becca", "status": "Yes", "notes": "", "custom": true },
+    { "key": "evan", "name": "Evan", "status": "", "notes": "", "custom": true },
+    { "key": "melissa", "name": "Melissa", "status": "", "notes": "", "custom": true },
+    { "key": "nicole", "name": "Nicole", "status": "Yes", "notes": "", "custom": true },
+    { "key": "nova", "name": "Nova", "status": "", "notes": "", "custom": true },
+    { "key": "spencer", "name": "Spencer", "status": "Yes", "notes": "", "custom": true },
+    { "key": "tasia", "name": "Tasia", "status": "Interested", "notes": "Bard • Prismari", "custom": true },
+    { "key": "tory", "name": "Tory", "status": "Co-DM", "notes": "", "custom": true },
+    { "key": "trevor", "name": "Trevor", "status": "YES", "notes": "", "custom": true }
+  ],
+  "rosterMeta": {
+    "trevor": { "status": "YES", "notes": "", "hidden": false },
+    "tory": { "status": "Co-DM", "notes": "", "hidden": false },
+    "amy": { "status": "YES!", "notes": "", "hidden": false },
+    "nicole": { "status": "Yes", "notes": "", "hidden": false },
+    "spencer": { "status": "Yes", "notes": "", "hidden": false },
+    "becca": { "status": "Yes", "notes": "", "hidden": false }
+  },
+  "availability": {
+    "nicole": { "2025-12-26": true, "2026-01-01": true, "2025-12-27": true },
+    "spencer": { "2025-12-26": true, "2025-12-27": true, "2026-01-01": true },
+    "becca": { "2025-12-27": true, "2025-12-28": true },
+    "evan": { "2025-12-27": true, "2025-12-28": true },
+    "nova": { "2025-12-21": true, "2025-12-22": true, "2025-12-23": true, "2025-12-26": true, "2025-12-27": true, "2025-12-28": true, "2025-12-29": true, "2026-01-01": true },
+    "melissa": { "2025-12-21": true, "2025-12-23": true, "2025-12-22": true, "2025-12-26": true, "2025-12-27": true, "2025-12-29": true, "2026-01-01": true },
+    "trevor": { "2025-12-22": true, "2025-12-27": true, "2025-12-28": true, "2025-12-29": true, "2026-01-01": true },
+    "tory": { "2025-12-21": true, "2025-12-22": true, "2025-12-23": true, "2025-12-27": true, "2025-12-28": true, "2025-12-29": true, "2026-01-01": true, "2025-12-26": true },
+    "kaela": { "2025-12-21": true, "2025-12-22": true, "2025-12-23": true, "2025-12-26": true, "2025-12-27": true, "2025-12-28": true, "2025-12-29": true, "2026-01-01": true },
+    "amy": { "2025-12-21": true, "2025-12-23": true, "2025-12-22": true, "2025-12-26": true, "2025-12-27": true, "2025-12-28": true, "2025-12-29": true, "2026-01-01": true }
+  },
+  "buildCards": {
+    "aria": { "class": "Bard/Druid", "university": "Silverquill", "characterName": "Aria" }
+  }
+}
