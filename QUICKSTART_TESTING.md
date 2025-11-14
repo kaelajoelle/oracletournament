@@ -2,6 +2,8 @@
 
 This guide walks you through setting up and testing a player access account.
 
+**Want a complete production example?** See [EXAMPLE_SETUP.md](EXAMPLE_SETUP.md) for a full tournament setup with multiple players.
+
 ## Step 1: Configure Supabase
 
 1. Make sure you've run the Supabase schema setup:

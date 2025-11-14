@@ -2,6 +2,8 @@
 
 This guide explains how to create and manage player access codes for the Oracle Tournament application.
 
+**Looking for a complete example?** See [EXAMPLE_SETUP.md](EXAMPLE_SETUP.md) for a step-by-step walkthrough with a real tournament scenario.
+
 ## Overview
 
 The application uses a personal access code system where each player has:
