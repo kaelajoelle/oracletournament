@@ -133,55 +133,55 @@ alter table public.player_access enable row level security;
 drop policy if exists "service role sessions" on public.sessions;
 create policy "service role sessions" on public.sessions
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role session players" on public.session_players;
 create policy "service role session players" on public.session_players
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role roster extras" on public.roster_extras;
 create policy "service role roster extras" on public.roster_extras
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role roster meta" on public.roster_meta;
 create policy "service role roster meta" on public.roster_meta
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role availability" on public.availability;
 create policy "service role availability" on public.availability
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role build cards" on public.build_cards;
 create policy "service role build cards" on public.build_cards
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role comments" on public.comments;
 create policy "service role comments" on public.comments
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role character drafts" on public.character_drafts;
 create policy "service role character drafts" on public.character_drafts
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role player access" on public.player_access;
 create policy "service role player access" on public.player_access
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 commit;
