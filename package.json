@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node api/server.js",
     "test": "node --test",
+    "validate:env": "node scripts/validate-env.js",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
     "player-access:list": "node scripts/manage-player-access.js list",

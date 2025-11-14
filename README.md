@@ -18,6 +18,7 @@ This project now includes a lightweight Node.js API that keeps shared availabili
 
 The repository now ships with linting and unit tests so you can catch regressions early:
 
+* `npm run validate:env` – validates your `.env` configuration to ensure all required variables are set correctly.
 * `npm run lint:api` – runs ESLint with the Node.js rule-set against everything under `api/` and `scripts/`.
 * `npm run lint:frontend` – lints the browser-facing configuration under `site/`.
 * `npm run lint` – convenience script that runs both of the commands above.
@@ -46,6 +47,7 @@ All of these commands are executed automatically in CI (see [`.github/workflows/
 
    * Copy [`.env.example`](.env.example) to `.env` and fill in any values you need (Supabase credentials, alternative data paths, etc.).
    * If you plan to run the Supabase helper scripts, also copy [`scripts/.env.example`](scripts/.env.example) to `scripts/.env`. Keeping a separate file lets you use deployment-only credentials for bootstrapping and seeding tasks.
+   * Validate your configuration with `npm run validate:env` to ensure all required variables are set correctly.
 
 4. **Configure the frontend API base URL**
 

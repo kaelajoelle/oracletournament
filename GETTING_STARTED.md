@@ -26,6 +26,9 @@ cp .env.example .env
 # SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 # SUPABASE_STORAGE_MODE=tables
 # PLAYER_ACCESS_ADMIN_TOKEN=any-secret-token-you-choose
+
+# Validate your configuration
+npm run validate:env
 ```
 
 ### Step 2: Create a test account

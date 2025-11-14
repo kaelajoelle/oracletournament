@@ -27,6 +27,11 @@ SUPABASE_STORAGE_MODE=tables
 PLAYER_ACCESS_ADMIN_TOKEN=my-super-secret-admin-token-12345
 ```
 
+Validate your configuration:
+```bash
+npm run validate:env
+```
+
 ### 2. Create Player Accounts
 
 Run these commands to create access codes for all players:
