@@ -2,6 +2,13 @@
 
 This project now includes a lightweight Node.js API that keeps shared availability, roster, and session data in sync for everyone using the builder.
 
+## Quick Start
+
+**New to the project?** See [QUICKSTART_TESTING.md](QUICKSTART_TESTING.md) for a step-by-step guide to:
+- Set up Supabase
+- Create test player accounts
+- Test the login flow
+
 ## Prerequisites
 
 * Node.js 18+
