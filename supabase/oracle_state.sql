@@ -38,17 +38,17 @@ alter table public.character_drafts enable row level security;
 -- the table usable if you ever issue a restricted service key.
 create policy "service role full access" on public.oracle_state
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role player access" on public.player_access;
 create policy "service role player access" on public.player_access
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
 
 drop policy if exists "service role character drafts" on public.character_drafts;
 create policy "service role character drafts" on public.character_drafts
   for all
-  using (auth.role() = 'service_role')
-  with check (auth.role() = 'service_role');
+  using ((auth.jwt() ->> 'role') = 'service_role')
+  with check ((auth.jwt() ->> 'role') = 'service_role');
