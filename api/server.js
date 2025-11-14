@@ -827,6 +827,53 @@ app.get('/api/admin/player-access', async (req, res) => {
   }
 });
 
+app.post('/api/admin/player-access', async (req, res) => {
+  try{
+    if(!PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(503, 'Player directory access is disabled.');
+    }
+    const providedToken = sanitizeOptional(req.header('x-admin-token') || req.body?.adminToken);
+    if(providedToken !== PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(401, 'Unauthorized');
+    }
+    if(!canUsePlayerAccess){
+      throw httpError(503, 'Player directory is unavailable.');
+    }
+    const displayName = sanitizeName(req.body?.displayName || req.body?.name);
+    const accessCode = sanitizeOptional(req.body?.accessCode || req.body?.code);
+    if(!displayName){
+      throw httpError(400, 'Display name is required.');
+    }
+    if(!accessCode){
+      throw httpError(400, 'Access code is required.');
+    }
+    const playerKey = rosterKey(displayName);
+    const accessCodeHash = hashAccessCode(accessCode);
+    const now = new Date().toISOString();
+    const record = {
+      player_key: playerKey,
+      display_name: displayName,
+      access_code_hash: accessCodeHash,
+      created_at: now,
+      updated_at: now
+    };
+    await supabaseMutate(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}`, {
+      method: 'POST',
+      body: record,
+      headers: { 'Prefer': 'return=minimal' }
+    });
+    res.status(201).json({
+      playerKey,
+      displayName,
+      accessCode,
+      message: 'Player access created successfully'
+    });
+  }catch(err){
+    console.error('create player access failed', err);
+    handleError(res, err);
+  }
+});
+
 app.get('/api/comments', async (req, res) => {
   try{
     const comments = await getComments();
