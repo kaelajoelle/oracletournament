@@ -2,6 +2,13 @@
 
 This project now includes a lightweight Node.js API that keeps shared availability, roster, and session data in sync for everyone using the builder.
 
+## Quick Start
+
+**New to the project?** See [QUICKSTART_TESTING.md](QUICKSTART_TESTING.md) for a step-by-step guide to:
+- Set up Supabase
+- Create test player accounts
+- Test the login flow
+
 ## Prerequisites
 
 * Node.js 18+
@@ -67,6 +74,22 @@ Need only the API? Run `npm start` instead.
 
 The helper scripts (`npm run supabase:bootstrap`, `npm run supabase:seed:tables`, etc.) read environment variables from both `.env` and `scripts/.env`. Keep `scripts/.env` up to date if you rotate service role keys or change Supabase table names.
 
+### Set up player access codes
+
+After creating your Supabase tables, you need to add player access records so users can log in. See [PLAYER_ACCESS_SETUP.md](PLAYER_ACCESS_SETUP.md) for detailed instructions.
+
+Quick start:
+
+```bash
+# Create a test account
+node scripts/manage-player-access.js add "Tester" "test123"
+
+# List all players
+npm run player-access:list
+```
+
+Each player needs a display name and access code. The script will hash the code and store it securely in the `player_access` table.
+
 ## Building for production
 
 1. Build the static frontend bundle:
@@ -110,12 +133,15 @@ The helper scripts (`npm run supabase:bootstrap`, `npm run supabase:seed:tables`
 Endpoint | Method | Description
 ---------|--------|------------
 `/api/state` | GET | Returns all shared data (sessions, roster extras, meta, availability, build cards).
+`/api/login` | POST | Authenticate with an access code. Body: `{ accessCode }`. Returns `{ playerKey, displayName }`.
 `/api/sessions/:id/join` | POST | Add a character to a session. Body: `{ name, playerKey, playerName?, build: { class, university } }`.
 `/api/sessions/:id/leave` | POST | Remove a character from a session. Body: `{ playerKey, characterName? }`.
 `/api/availability` | POST | Toggle availability for a person/date. Body: `{ playerKey, playerName?, date, available }`.
 `/api/roster/extras` | POST | Add a custom roster entry. Body: `{ name, status?, notes? }`.
 `/api/roster/:key` | PATCH | Update status/notes for roster entries (base or custom). Body: `{ status?, notes?, custom? }`.
 `/api/roster/extras/:key` | DELETE | Remove a custom roster entry.
+`/api/admin/player-access` | GET | List all player access records. Requires `PLAYER_ACCESS_ADMIN_TOKEN` in header or query.
+`/api/admin/player-access` | POST | Create a new player access record. Body: `{ adminToken, displayName, accessCode }`.
 
 All routes return the full state payload on success so the client can refresh its cache.
 

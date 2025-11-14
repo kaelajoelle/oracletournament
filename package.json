@@ -8,6 +8,8 @@
     "test": "node --test",
     "supabase:bootstrap": "node scripts/bootstrap-supabase.js",
     "supabase:seed:tables": "node scripts/seed-supabase-tables.js",
+    "player-access:list": "node scripts/manage-player-access.js list",
+    "player-access:add": "node scripts/manage-player-access.js add",
     "dev": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --watch",
     "build": "esbuild site/scripts/main.js --bundle --outfile=site/dist/app.js --format=iife --sourcemap --target=es2019 --minify",
     "lint:api": "eslint \"api/**/*.js\" \"scripts/**/*.js\" --max-warnings=0",
