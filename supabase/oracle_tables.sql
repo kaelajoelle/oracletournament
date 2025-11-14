@@ -5,6 +5,16 @@ create extension if not exists "pgcrypto";
 
 begin;
 
+-- Create player_access table first since other tables will reference it
+create table if not exists public.player_access (
+  player_key text primary key,
+  display_name text not null,
+  access_code_hash text not null,
+  last_login_at timestamptz,
+  created_at timestamptz not null default timezone('utc', now()),
+  updated_at timestamptz not null default timezone('utc', now())
+);
+
 create table if not exists public.sessions (
   id text primary key,
   title text not null,
@@ -17,14 +27,14 @@ create table if not exists public.sessions (
 
 create table if not exists public.session_players (
   session_id text not null references public.sessions(id) on delete cascade,
-  player_key text not null,
+  player_key text not null references public.player_access(player_key) on delete cascade,
   player_name text not null,
   joined_at timestamptz not null default timezone('utc', now()),
   primary key (session_id, player_key)
 );
 
 create table if not exists public.roster_extras (
-  player_key text primary key,
+  player_key text primary key references public.player_access(player_key) on delete cascade,
   name text not null,
   status text,
   notes text,
@@ -32,14 +42,14 @@ create table if not exists public.roster_extras (
 );
 
 create table if not exists public.roster_meta (
-  player_key text primary key,
+  player_key text primary key references public.player_access(player_key) on delete cascade,
   status text,
   notes text,
   updated_at timestamptz not null default timezone('utc', now())
 );
 
 create table if not exists public.availability (
-  player_key text not null,
+  player_key text not null references public.player_access(player_key) on delete cascade,
   player_name text not null,
   date text not null,
   available boolean not null default true,
@@ -48,7 +58,7 @@ create table if not exists public.availability (
 );
 
 create table if not exists public.build_cards (
-  player_key text primary key,
+  player_key text primary key references public.player_access(player_key) on delete cascade,
   class text,
   university text,
   character_name text,
@@ -64,11 +74,11 @@ create table if not exists public.comments (
   created_at timestamptz not null default timezone('utc', now())
 );
 
-create table if not exists public.player_access (
-  player_key text primary key,
-  display_name text not null,
-  access_code_hash text not null,
-  last_login_at timestamptz,
+create table if not exists public.character_drafts (
+  id text primary key,
+  player_key text not null references public.player_access(player_key) on delete cascade,
+  character_name text,
+  draft_data jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   updated_at timestamptz not null default timezone('utc', now())
 );
@@ -117,6 +127,7 @@ alter table public.roster_meta enable row level security;
 alter table public.availability enable row level security;
 alter table public.build_cards enable row level security;
 alter table public.comments enable row level security;
+alter table public.character_drafts enable row level security;
 alter table public.player_access enable row level security;
 
 drop policy if exists "service role sessions" on public.sessions;
@@ -157,6 +168,12 @@ create policy "service role build cards" on public.build_cards
 
 drop policy if exists "service role comments" on public.comments;
 create policy "service role comments" on public.comments
+  for all
+  using (auth.role() = 'service_role')
+  with check (auth.role() = 'service_role');
+
+drop policy if exists "service role character drafts" on public.character_drafts;
+create policy "service role character drafts" on public.character_drafts
   for all
   using (auth.role() = 'service_role')
   with check (auth.role() = 'service_role');

@@ -141,9 +141,11 @@ If you would rather keep the shared state in Supabase instead of the local JSON 
 1. In the Supabase dashboard open **SQL Editor** (or use the Supabase CLI) and execute one of the bundled schema files:
 
    * [`supabase/oracle_state.sql`](supabase/oracle_state.sql) — keeps everything in a single JSON row. This is the closest match to the original `state.json` workflow.
-   * [`supabase/oracle_tables.sql`](supabase/oracle_tables.sql) — creates normalized tables (`sessions`, `session_players`, `roster_extras`, `roster_meta`, `availability`, and `build_cards`) and seeds the default sessions.
+   * [`supabase/oracle_tables.sql`](supabase/oracle_tables.sql) — creates normalized tables with proper foreign key constraints connecting all player data to the authentication layer. **Recommended for production.**
 
-   Feel free to modify the SQL before running it if you want different table names or initial data. Supabase automatically stores your edits, so you do not need to run any bootstrap scripts from this repository.
+   **Important:** The schemas now include foreign key constraints that connect all player data tables to the `player_access` authentication table. See [`supabase/SCHEMA_DOCUMENTATION.md`](supabase/SCHEMA_DOCUMENTATION.md) for details on table relationships and user flow.
+
+   If you're migrating from an older schema, see [`supabase/MIGRATION_GUIDE.md`](supabase/MIGRATION_GUIDE.md) for step-by-step migration instructions.
 1. Run the bundled bootstrap script once to create and seed the table:
 
    ```bash
