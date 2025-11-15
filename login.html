@@ -4,6 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Enter Access Code · Oracle Trials</title>
+  
+  <!-- Load API configuration -->
+  <script src="./site/app-config.js"></script>
+  
   <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -121,6 +125,21 @@
     function showMessage(text) {
       status.textContent = text || '';
     }
+    
+    function getApiBaseUrl() {
+      const configured = window.APP_CONFIG && typeof window.APP_CONFIG.apiBaseUrl === 'string' 
+        ? window.APP_CONFIG.apiBaseUrl.trim() 
+        : '';
+      if (configured) {
+        return configured;
+      }
+      const sameOrigin = window.location.origin 
+        ? `${window.location.origin.replace(/\/$/, '')}/api` 
+        : '/api';
+      console.warn('[login] APP_CONFIG.apiBaseUrl not configured; defaulting to', sameOrigin);
+      return sameOrigin;
+    }
+    
     const submitButton = form.querySelector('button[type="submit"]');
     async function authenticate(code){
       const cleanCode = (code || '').trim();
@@ -134,7 +153,8 @@
       }
       showMessage('Checking your code…');
       try {
-        const response = await fetch('/api/login', {
+        const apiBaseUrl = getApiBaseUrl();
+        const response = await fetch(`${apiBaseUrl}/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ accessCode: cleanCode })
