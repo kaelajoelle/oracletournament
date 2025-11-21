@@ -287,6 +287,10 @@ function createSupabaseTablesAdapter(options = {}) {
           await replaceState(normalised);
           break;
         }
+        const playerName = sanitizeName(context.playerName || context.name);
+        if (playerName) {
+          await updatePlayerAccessDisplayName(key, playerName);
+        }
         const dates = Array.isArray(context.dates) ? context.dates : AVAIL_DATES;
         await supabaseMutate(`${encodeURIComponent(availabilityTable)}?player_key=eq.${encodeURIComponent(key)}`, {
           method: 'DELETE',
@@ -296,7 +300,7 @@ function createSupabaseTablesAdapter(options = {}) {
           if (context.availability && context.availability[date]) {
             payload.push({
               player_key: key,
-              player_name: sanitizeName(context.playerName || context.name),
+              player_name: playerName,
               date,
               available: true,
             });
