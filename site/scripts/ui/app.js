@@ -767,7 +767,6 @@ import { ensureAppConfig } from '../services/config.js';
   { name: 'Erin',         status: 'Yes', key: 'erin2627' },
   { name: 'Trevor',       status: 'Yes', key: 'trev2227' },
   { name: 'Amy',          status: 'Yes', key: 'amyoracle' },
-  { name: 'Bela',         status: 'Pending', key: 'bela2025' },
   { name: 'Nicole',       status: 'Yes', key: 'nicole2627' },
   { name: 'Spencer',      status: 'Yes', key: 'spence2627' },
   { name: 'Marvin',       status: 'Pending', key: 'marv2025' },
@@ -783,6 +782,7 @@ import { ensureAppConfig } from '../services/config.js';
   { name: 'Nova',         status: 'Yes', key: 'nova_any' },
   { name: 'Melissa',      status: 'Yes', key: 'melissa_not28' },
   { name: 'Josh',         status: 'Yes', key: 'josh222729' },
+  { name: 'Marilyn',      status: 'Pending', key: 'marilyn2025' },
     ],
     sessions:[
     
