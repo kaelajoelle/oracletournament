@@ -756,18 +756,40 @@ import { ensureAppConfig } from '../services/config.js';
       {key:'intramural', name:'Intramural Fields', skills:['Athletics','Acrobatics']}
     ],
     roster:[
-      {name:'Amy', status:'Yes', key:'amy456'},
-      {name:'Kaela', status:'Yes', key:'kaela123'},
-      {name:'Trevor', status:'Yes', key:'trev789'}
+       { name: 'Kaela',        status: 'Yes', key: 'kaela123' },
+
+  { name: 'Tory DM',      status: 'Yes', key: 'torydm123' },
+  { name: 'Mike',         status: 'Pending', key: 'mike2025' },
+  { name: 'Megan',        status: 'Pending', key: 'megan2025' },
+  { name: 'Jocelyn',      status: 'Pending', key: 'joss2025' },
+  { name: 'Emory',        status: 'Pending', key: 'emory2025' },
+  { name: 'Snack Erin',   status: 'Yes', key: 'snacks' },
+  { name: 'Erin',         status: 'Yes', key: 'erin2627' },
+  { name: 'Trevor',       status: 'Yes', key: 'trev2227' },
+  { name: 'Amy',          status: 'Yes', key: 'amyoracle' },
+  { name: 'Bela',         status: 'Pending', key: 'bela2025' },
+  { name: 'Nicole',       status: 'Yes', key: 'nicole2627' },
+  { name: 'Spencer',      status: 'Yes', key: 'spence2627' },
+  { name: 'Marvin',       status: 'Pending', key: 'marv2025' },
+  { name: 'Megan E',      status: 'Pending', key: 'megane2025' },
+  { name: 'Jordan',       status: 'Pending', key: 'jordan2025' },
+  { name: 'Becca',        status: 'Yes', key: 'becca2728' },
+  { name: 'Evan',         status: 'Yes', key: 'evan2728' },
+  { name: 'Lyric',        status: 'Pending', key: 'lyric2025' },
+  { name: 'Lazarus',      status: 'Yes', key: 'laz_kids' },
+  { name: 'Aramis',       status: 'Pending', key: 'aramis2025' },
+  { name: 'James',        status: 'Pending', key: 'james2025' },
+  { name: 'David',        status: 'Pending', key: 'david2025' },
+  { name: 'Nova',         status: 'Yes', key: 'nova_any' },
+  { name: 'Melissa',      status: 'Yes', key: 'melissa_not28' },
+  { name: 'Josh',         status: 'Yes', key: 'josh222729' },
     ],
     sessions:[
-      {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
-      {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+    
+      {id:'s2', date:'2025-12-22', title:'Oracle Trials I', dm:'Kaela & Tory', capacity:5, players:[]},
+      {id:'s4', date:'2025-12-27', title:'Oracle Trials II', dm:'Kaela & Tory', capacity:5, players:[]},
+      {id:'s6', date:'2025-12-29', title:'Oracle Trials II', dm:'Kaela & Tory', capacity:5, players:[]},
+      {id:'finale', date:'2026-01-01', title:'Oracle Trials: Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
     ]
   };
 
