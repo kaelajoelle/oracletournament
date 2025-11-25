@@ -2617,7 +2617,7 @@ function panelSessions(){
       markSaved('personality','Personality saved.');
     };
 
-    p.querySelector('#back_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='sessions')); };
+    p.querySelector('#back_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='intro')); };
     p.querySelector('#next_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='join')); };
 
     return p;
