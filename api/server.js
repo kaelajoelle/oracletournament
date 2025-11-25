@@ -530,7 +530,8 @@ async function fetchPlayerAccessByCode(code){
   if(!canUsePlayerAccess){
     throw httpError(503, 'Player login is not configured.');
   }
-  const hash = hashAccessCode(code);
+  const cleanCode = sanitizeOptional(code);
+  const hash = hashAccessCode(cleanCode);
   if(!hash){
     throw httpError(400, 'Access code is required.');
   }
