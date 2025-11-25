@@ -86,12 +86,15 @@ create table if not exists public.character_drafts (
 create unique index if not exists player_access_hash_key on public.player_access (access_code_hash);
 
 create or replace function public.set_player_access_updated_at()
-returns trigger as $$
+returns trigger
+set search_path = public
+language plpgsql
+as $$
 begin
   new.updated_at = timezone('utc', now());
   return new;
 end;
-$$ language plpgsql;
+$$;
 
 drop trigger if exists set_player_access_updated_at on public.player_access;
 create trigger set_player_access_updated_at

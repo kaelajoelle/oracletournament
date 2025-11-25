@@ -41,6 +41,13 @@ const SUPABASE_AVAILABILITY_TABLE = process.env.SUPABASE_AVAILABILITY_TABLE || '
 const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
 const SUPABASE_COMMENTS_TABLE = process.env.SUPABASE_COMMENTS_TABLE || 'comments';
 const SUPABASE_PLAYER_ACCESS_TABLE = process.env.SUPABASE_PLAYER_ACCESS_TABLE || 'player_access';
+const SUPABASE_ACCESS_CODE_HASH_COLUMNS = (process.env.SUPABASE_ACCESS_CODE_HASH_COLUMNS || 'access_code_hash')
+  .split(',')
+  .map((value) => String(value || '').trim())
+  .filter(Boolean);
+const SUPABASE_ACCESS_CODE_COLUMNS = SUPABASE_ACCESS_CODE_HASH_COLUMNS.length
+  ? SUPABASE_ACCESS_CODE_HASH_COLUMNS
+  : ['access_code_hash', 'access_code'];
 const PLAYER_ACCESS_ADMIN_TOKEN = process.env.PLAYER_ACCESS_ADMIN_TOKEN || '';
 
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -526,20 +533,57 @@ async function fetchPlayerAccessByCode(code){
   if(!canUsePlayerAccess){
     throw httpError(503, 'Player login is not configured.');
   }
-  const hash = hashAccessCode(code);
+  const cleanCode = sanitizeOptional(code);
+  const hash = hashAccessCode(cleanCode);
   if(!hash){
     throw httpError(400, 'Access code is required.');
   }
-  const filters = [
-    `access_code_hash=eq.${encodeURIComponent(hash)}`,
-    'select=player_key,display_name,last_login_at,created_at,updated_at'
-  ];
-  const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?${filters.join('&')}`, { fallback: [] });
-  const record = Array.isArray(rows) ? rows[0] : null;
-  if(!record){
-    throw httpError(401, 'Invalid access code.');
+
+  const columns = SUPABASE_ACCESS_CODE_COLUMNS;
+
+  let lastError = null;
+  let missingColumnAttempts = 0;
+
+  for(const column of columns){
+    const attempts = [hash];
+    if(cleanCode && cleanCode !== hash){
+      attempts.push(cleanCode);
+    }
+
+    for(const candidate of attempts){
+      const filters = [
+        `${encodeURIComponent(column)}=eq.${encodeURIComponent(candidate)}`,
+        'select=player_key,display_name,last_login_at,created_at,updated_at'
+      ];
+
+      try{
+        const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?${filters.join('&')}`, { fallback: [] });
+        const record = Array.isArray(rows) ? rows[0] : null;
+        if(record){
+          return normalisePlayerAccess(record);
+        }
+      }catch(err){
+        lastError = err;
+        const message = String(err.message || '').toLowerCase();
+        if(message.includes('does not exist') && message.includes(column.toLowerCase())){
+          missingColumnAttempts += 1;
+          console.warn(`Configured access code hash column is missing in Supabase: ${column}`);
+          break;
+        }
+        throw err;
+      }
+    }
   }
-  return normalisePlayerAccess(record);
+
+  if(missingColumnAttempts === columns.length && columns.length > 0){
+    throw httpError(503, 'Player login is misconfigured. None of the configured access code hash columns exist in Supabase.');
+  }
+
+  if(lastError){
+    console.warn('Access code lookup failed using configured columns', lastError);
+  }
+
+  throw httpError(401, 'Invalid access code.');
 }
 
 async function recordPlayerAccessLogin(playerKey){
