@@ -45,9 +45,6 @@ const SUPABASE_ACCESS_CODE_HASH_COLUMNS = (process.env.SUPABASE_ACCESS_CODE_HASH
   .split(',')
   .map((value) => String(value || '').trim())
   .filter(Boolean);
-const SUPABASE_ACCESS_CODE_COLUMNS = SUPABASE_ACCESS_CODE_HASH_COLUMNS.length
-  ? SUPABASE_ACCESS_CODE_HASH_COLUMNS
-  : ['access_code_hash', 'access_code'];
 const PLAYER_ACCESS_ADMIN_TOKEN = process.env.PLAYER_ACCESS_ADMIN_TOKEN || '';
 
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -538,44 +535,38 @@ async function fetchPlayerAccessByCode(code){
   if(!hash){
     throw httpError(400, 'Access code is required.');
   }
-
-  const columns = SUPABASE_ACCESS_CODE_COLUMNS;
+  const hashColumns = SUPABASE_ACCESS_CODE_HASH_COLUMNS.length
+    ? SUPABASE_ACCESS_CODE_HASH_COLUMNS
+    : ['access_code_hash'];
 
   let lastError = null;
   let missingColumnAttempts = 0;
 
-  for(const column of columns){
-    const attempts = [hash];
-    if(cleanCode && cleanCode !== hash){
-      attempts.push(cleanCode);
-    }
+  for(const column of hashColumns){
+    const filters = [
+      `${encodeURIComponent(column)}=eq.${encodeURIComponent(hash)}`,
+      'select=player_key,display_name,last_login_at,created_at,updated_at'
+    ];
 
-    for(const candidate of attempts){
-      const filters = [
-        `${encodeURIComponent(column)}=eq.${encodeURIComponent(candidate)}`,
-        'select=player_key,display_name,last_login_at,created_at,updated_at'
-      ];
-
-      try{
-        const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?${filters.join('&')}`, { fallback: [] });
-        const record = Array.isArray(rows) ? rows[0] : null;
-        if(record){
-          return normalisePlayerAccess(record);
-        }
-      }catch(err){
-        lastError = err;
-        const message = String(err.message || '').toLowerCase();
-        if(message.includes('does not exist') && message.includes(column.toLowerCase())){
-          missingColumnAttempts += 1;
-          console.warn(`Configured access code hash column is missing in Supabase: ${column}`);
-          break;
-        }
-        throw err;
+    try{
+      const rows = await supabaseQuery(`${encodeURIComponent(SUPABASE_PLAYER_ACCESS_TABLE)}?${filters.join('&')}`, { fallback: [] });
+      const record = Array.isArray(rows) ? rows[0] : null;
+      if(record){
+        return normalisePlayerAccess(record);
       }
+    }catch(err){
+      lastError = err;
+      const message = String(err.message || '').toLowerCase();
+      if(message.includes('does not exist') && message.includes(column.toLowerCase())){
+        missingColumnAttempts += 1;
+        console.warn(`Configured access code hash column is missing in Supabase: ${column}`);
+        continue;
+      }
+      throw err;
     }
   }
 
-  if(missingColumnAttempts === columns.length && columns.length > 0){
+  if(missingColumnAttempts === hashColumns.length && hashColumns.length > 0){
     throw httpError(503, 'Player login is misconfigured. None of the configured access code hash columns exist in Supabase.');
   }
 
