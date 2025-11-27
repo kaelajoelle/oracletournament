@@ -48,6 +48,9 @@ create table if not exists public.roster_meta (
   updated_at timestamptz not null default timezone('utc', now())
 );
 
+-- NOTE: The availability table is deprecated and no longer used by the application.
+-- It is kept here for backward compatibility with existing databases.
+-- New installations may omit this table. Existing installations can drop it manually if desired.
 create table if not exists public.availability (
   player_key text not null references public.player_access(player_key) on delete cascade,
   player_name text not null,
