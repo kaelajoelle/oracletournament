@@ -101,7 +101,8 @@ function normalizePlayerKey(value) {
 }
 
 /**
- * Extract standard build fields from an OracleCharacterBuild object
+ * Extract standard build fields from an OracleCharacterBuild object.
+ * Field precedence: characterName is preferred over character_name (camelCase first).
  * @param {object} build - The build object
  * @returns {object} Extracted fields
  */
@@ -114,10 +115,15 @@ function extractBuildFields(build) {
     };
   }
 
+  // Prefer camelCase (characterName) over snake_case (character_name) for consistency
+  const charName = build.characterName !== undefined 
+    ? build.characterName 
+    : build.character_name;
+
   return {
     class: sanitizeOptional(build.class) || null,
     university: sanitizeOptional(build.university) || null,
-    characterName: sanitizeOptional(build.characterName || build.character_name) || null,
+    characterName: sanitizeOptional(charName) || null,
   };
 }
 
@@ -164,7 +170,7 @@ async function saveOracleBuild(supabase, playerKey, build) {
       class: fields.class,
       university: fields.university,
       character_name: fields.characterName,
-      build_data: build || null,
+      build_data: build != null ? build : null,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'player_key' });
 

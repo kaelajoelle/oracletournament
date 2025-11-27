@@ -40,7 +40,10 @@ function createMockSupabase(options = {}) {
           }),
         }),
         order: (column, opts) => ({
-          then: async (resolve) => resolve({ data: selectAllData, error: selectAllError }),
+          // Supabase returns errors in response object, doesn't throw
+          then: (resolve) => {
+            return resolve({ data: selectAllData, error: selectAllError });
+          },
         }),
       }),
     }),
@@ -85,7 +88,7 @@ function createAsyncMockSupabase(options = {}) {
             chainable._order = { column, opts };
             return chainable;
           },
-          // Direct await resolution
+          // Direct await resolution - Supabase returns errors in response, doesn't throw
           then: (resolve) => {
             return resolve({ data: selectAllData, error: selectAllError });
           },
