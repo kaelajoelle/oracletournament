@@ -33,12 +33,6 @@ All of the following tables have foreign key constraints to `player_access.playe
 - **Relationship**: One player can have one build card
 - **ON DELETE**: CASCADE (if player is deleted, their build card is deleted)
 
-#### `availability`
-- **Purpose**: Tracks which dates players are available for sessions
-- **Foreign Key**: `player_key → player_access.player_key`
-- **Relationship**: One player can have multiple availability entries (one per date)
-- **ON DELETE**: CASCADE (if player is deleted, their availability is deleted)
-
 #### `roster_extras`
 - **Purpose**: Custom roster entries added by administrators
 - **Foreign Key**: `player_key → player_access.player_key`
@@ -94,21 +88,15 @@ All of the following tables have foreign key constraints to `player_access.playe
 3. User can update their class, university, and character name
 4. Changes are saved back to `build_cards` table
 
-### 3. Setting Availability
-1. User marks which dates they're available
-2. System creates/updates records in `availability` table
-3. Each record links to their `player_key`
-
-### 4. Joining Sessions
+### 3. Joining Sessions
 1. User selects a session to join
 2. System creates a record in `session_players` table
 3. Record links `player_key` (from player_access) to `session_id` (from sessions)
 4. This establishes the many-to-many relationship
 
-### 5. Data Integrity
+### 4. Data Integrity
 If a player account is deleted from `player_access`:
 - Their build card is automatically removed (`build_cards`)
-- Their availability is cleared (`availability`)
 - They're removed from all sessions (`session_players`)
 - Their roster metadata is deleted (`roster_meta`)
 - Their character draft is deleted (`character_drafts`)
@@ -138,8 +126,6 @@ player_access (Central Authentication)
     |-- player_key (PK)
     |
     +-- build_cards.player_key (FK, CASCADE)
-    |
-    +-- availability.player_key (FK, CASCADE)
     |
     +-- roster_extras.player_key (FK, CASCADE)
     |
@@ -171,6 +157,14 @@ If you have existing data before these foreign key constraints were added:
 1. Ensure all `player_key` values in dependent tables exist in `player_access`
 2. Clean up any orphaned records before applying constraints
 3. Consider adding players to `player_access` for any orphaned data you want to keep
+
+## Deprecated Tables
+
+The `availability` table is deprecated and no longer used by the application. New installations may omit this table. Existing installations can drop it manually:
+
+```sql
+DROP TABLE IF EXISTS public.availability;
+```
 
 ## Future Enhancements
 
