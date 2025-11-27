@@ -37,7 +37,6 @@ const SUPABASE_SESSIONS_TABLE = process.env.SUPABASE_SESSIONS_TABLE || 'sessions
 const SUPABASE_SESSION_PLAYERS_TABLE = process.env.SUPABASE_SESSION_PLAYERS_TABLE || 'session_players';
 const SUPABASE_ROSTER_EXTRAS_TABLE = process.env.SUPABASE_ROSTER_EXTRAS_TABLE || 'roster_extras';
 const SUPABASE_ROSTER_META_TABLE = process.env.SUPABASE_ROSTER_META_TABLE || 'roster_meta';
-const SUPABASE_AVAILABILITY_TABLE = process.env.SUPABASE_AVAILABILITY_TABLE || 'availability';
 const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
 const SUPABASE_COMMENTS_TABLE = process.env.SUPABASE_COMMENTS_TABLE || 'comments';
 const SUPABASE_PLAYER_ACCESS_TABLE = process.env.SUPABASE_PLAYER_ACCESS_TABLE || 'player_access';
@@ -60,12 +59,6 @@ const SUPABASE_REST_URL = hasSupabase
 
 const GUEST_PLAYER_KEY = 'guest';
 
-const AVAIL_DATES = [
-  '2025-12-21','2025-12-22','2025-12-23',
-  '2025-12-26','2025-12-27','2025-12-28','2025-12-29',
-  '2026-01-01'
-];
-
 const DEFAULT_SESSIONS = [
   {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
   {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
@@ -80,7 +73,6 @@ const DEFAULT_STATE = {
   sessions: DEFAULT_SESSIONS,
   rosterExtras: [],
   rosterMeta: {},
-  availability: {},
   buildCards: {}
 };
 
@@ -277,21 +269,6 @@ function normaliseState(state){
     });
   }
 
-  const availability = {};
-  if(state && typeof state.availability === 'object'){
-    Object.entries(state.availability).forEach(([rawKey, dates])=>{
-      const key = rosterKey(rawKey);
-      if(!key || !dates || typeof dates !== 'object') return;
-      const row = {};
-      Object.entries(dates).forEach(([date, value])=>{
-        if(AVAIL_DATES.includes(date)){
-          row[date] = Boolean(value);
-        }
-      });
-      availability[key] = row;
-    });
-  }
-
   const buildCards = {};
   if(state && typeof state.buildCards === 'object'){
     Object.entries(state.buildCards).forEach(([rawKey, card])=>{
@@ -311,7 +288,6 @@ function normaliseState(state){
     sessions,
     rosterExtras,
     rosterMeta,
-    availability,
     buildCards
   };
 }
@@ -637,7 +613,6 @@ const storage = createStorageAdapter({
     rosterKey,
     decodeRosterMeta,
     encodeRosterMeta,
-    AVAIL_DATES,
     supabaseQuery,
     supabaseMutate,
     updatePlayerAccessDisplayName,
@@ -646,7 +621,6 @@ const storage = createStorageAdapter({
       sessionPlayersTable: SUPABASE_SESSION_PLAYERS_TABLE,
       rosterExtrasTable: SUPABASE_ROSTER_EXTRAS_TABLE,
       rosterMetaTable: SUPABASE_ROSTER_META_TABLE,
-      availabilityTable: SUPABASE_AVAILABILITY_TABLE,
       buildCardsTable: SUPABASE_BUILD_CARDS_TABLE,
     },
     getMetaSupportsHidden: () => supabaseMetaSupportsHidden,
@@ -1059,47 +1033,6 @@ app.post('/api/sessions/:id/leave', async (req, res) => {
   }
 });
 
-app.post('/api/availability', async (req, res) => {
-  const playerKey = rosterKey(req.body?.playerKey || req.body?.key || req.body?.name);
-  const playerName = sanitizeName(req.body?.playerName || req.body?.name);
-  const date = sanitizeOptional(req.body?.date);
-  const available = Boolean(req.body?.available);
-
-  if(!playerKey){
-    return handleError(res, httpError(400, 'Access code is required.'));
-  }
-  assertNotGuestKey(playerKey);
-  if(!AVAIL_DATES.includes(date)){
-    return handleError(res, httpError(400, 'Date is not in the availability schedule.'));
-  }
-
-  try{
-    const state = await loadState();
-    const key = playerKey;
-    state.availability[key] = state.availability[key] || {};
-    if(available){
-      state.availability[key][date] = true;
-    }else{
-      delete state.availability[key][date];
-      if(Object.keys(state.availability[key]).length === 0){
-        delete state.availability[key];
-      }
-    }
-    const updated = await saveState(state, {
-      action: 'setAvailability',
-      playerName,
-      playerKey,
-      availabilityKey: key,
-      date,
-      available
-    });
-    res.json({ state: updated });
-  }catch(err){
-    console.error('availability failed', err);
-    handleError(res, err);
-  }
-});
-
 app.post('/api/roster/extras', async (req, res) => {
   const name = sanitizeName(req.body?.name);
   const status = sanitizeOptional(req.body?.status);
@@ -1160,9 +1093,6 @@ app.patch('/api/roster/:key', async (req, res) => {
         };
       }
     }
-    if(hidden){
-      delete state.availability[key];
-    }
     const updated = await saveState(state, {
       action: 'updateRoster',
       rosterKey: key,
@@ -1187,19 +1117,13 @@ app.delete('/api/roster/extras/:key', async (req, res) => {
   try{
     const state = await loadState();
     const existing = state.rosterExtras.find(entry => entry.key === key);
-    const availabilityKey = existing ? existing.key : key;
     state.rosterExtras = state.rosterExtras.filter(entry => entry.key !== key);
     if(state.rosterMeta[key]){
       delete state.rosterMeta[key];
     }
-    delete state.availability[key];
-    if(availabilityKey && availabilityKey !== key){
-      delete state.availability[availabilityKey];
-    }
     const updated = await saveState(state, {
       action: 'removeRosterExtra',
       rosterKey: key,
-      availabilityKey
     });
     res.json({ state: updated });
   }catch(err){

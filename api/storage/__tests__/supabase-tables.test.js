@@ -26,7 +26,6 @@ const tables = {
   sessionPlayersTable: 'session_players',
   rosterExtrasTable: 'roster_extras',
   rosterMetaTable: 'roster_meta',
-  availabilityTable: 'availability',
   buildCardsTable: 'build_cards',
 };
 
@@ -39,7 +38,6 @@ function createAdapter(overrides = {}) {
     rosterKey,
     decodeRosterMeta,
     encodeRosterMeta,
-    AVAIL_DATES: ['2025-12-21'],
     supabaseQuery: overrides.supabaseQuery,
     supabaseMutate: overrides.supabaseMutate || (async () => {}),
     updatePlayerAccessDisplayName: overrides.updatePlayerAccessDisplayName || (async () => {}),
@@ -63,9 +61,6 @@ test('supabase tables adapter fetchState merges tables', async () => {
     if (path.startsWith('roster_meta')) {
       return [{ player_key: 'hero', status: 'Active', notes: 'memo', hidden: true }];
     }
-    if (path.startsWith('availability')) {
-      return [{ player_key: 'hero', player_name: 'Hero', date: '2025-12-21', available: true }];
-    }
     if (path.startsWith('build_cards')) {
       return [{ player_key: 'hero', class: 'Wizard', university: 'Arcana', character_name: 'Hero' }];
     }
@@ -77,7 +72,6 @@ test('supabase tables adapter fetchState merges tables', async () => {
   assert.equal(state.sessions[0].players.includes('Hero'), true);
   assert.equal(state.rosterExtras[0].name, 'Extra');
   assert.equal(state.rosterMeta.hero.hidden, true);
-  assert.equal(state.availability.hero['2025-12-21'], true);
   assert.equal(state.buildCards.hero.class, 'Wizard');
 });
 
@@ -129,7 +123,6 @@ test('supabase tables adapter replaceState writes to all tables', async () => {
     ],
     rosterExtras: [{ key: 'extra1', name: 'Extra' }],
     rosterMeta: { hero: { status: 'Active' } },
-    availability: { hero: { '2025-12-21': true } },
     buildCards: { hero: { class: 'Wizard' } },
   });
 
@@ -138,6 +131,5 @@ test('supabase tables adapter replaceState writes to all tables', async () => {
   assert.ok(paths.includes('session_players'));
   assert.ok(paths.includes('roster_extras'));
   assert.ok(paths.includes('roster_meta'));
-  assert.ok(paths.includes('availability'));
   assert.ok(paths.includes('build_cards'));
 });
