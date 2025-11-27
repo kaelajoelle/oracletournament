@@ -65,6 +65,7 @@ create table if not exists public.build_cards (
   class text,
   university text,
   character_name text,
+  build_data jsonb,
   updated_at timestamptz not null default timezone('utc', now())
 );
 

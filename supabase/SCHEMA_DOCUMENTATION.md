@@ -32,6 +32,15 @@ All of the following tables have foreign key constraints to `player_access.playe
 - **Foreign Key**: `player_key → player_access.player_key`
 - **Relationship**: One player can have one build card
 - **ON DELETE**: CASCADE (if player is deleted, their build card is deleted)
+- **Key Columns**:
+  - `player_key` (TEXT, PK) - unique player identifier
+  - `class` (TEXT) - character class
+  - `university` (TEXT) - character university
+  - `character_name` (TEXT) - character name
+  - `build_data` (JSONB) - full OracleCharacterBuild object for complete persistence
+  - `updated_at` (TIMESTAMPTZ) - last update timestamp
+
+**API Helpers**: See `api/oracleBuilds.js` for save/load utility functions.
 
 #### `roster_extras`
 - **Purpose**: Custom roster entries added by administrators
