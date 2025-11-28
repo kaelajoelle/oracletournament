@@ -101,34 +101,59 @@ function normalizePlayerKey(value) {
 }
 
 /**
- * Extract standard build fields from an OracleCharacterBuild object.
- * Field precedence: characterName is preferred over character_name.
- * This matches JavaScript naming conventions used throughout the API layer.
+ * Extract standard build fields from an OracleCharacterBuild-like object.
+ *
+ * Tailored to the Oracle Builder shape:
+ * - Core fields may live under build.core (e.g., core.name, core.class)
+ * - University may be a plain string (build.university = 'lorehold')
+ *   or an object (build.university.key / build.university.name)
+ * - Legacy/alternate fields: build.college, build.school
+ *
+ * Field precedence:
+ * - characterName > character_name > core.name
+ * - class (top-level) > core.class
+ * - university (string) > university.key > university.name > college > school
+ *
  * @param {object} build - The build object
- * @returns {object} Extracted fields
+ * @returns {{ class: string|null, university: string|null, characterName: string|null }}
  */
 function extractBuildFields(build) {
   if (!build || typeof build !== 'object') {
-    return {
-      class: null,
-      university: null,
-      characterName: null,
-    };
+    return { class: null, university: null, characterName: null };
   }
 
-  // Prefer camelCase (characterName) as used in the API layer,
-  // with fallback to snake_case (character_name) from database columns
-  const charName = build.characterName !== undefined 
-    ? build.characterName 
-    : build.character_name;
+  const core = (build.core && typeof build.core === 'object') ? build.core : {};
+  const uniObj = (build.university && typeof build.university === 'object') ? build.university : {};
+
+  // Character name precedence
+  const rawCharacterName =
+    (build.characterName !== undefined ? build.characterName : undefined) ??
+    (build.character_name !== undefined ? build.character_name : undefined) ??
+    core.name;
+
+  // Class precedence
+  const rawClass =
+    (build.class !== undefined ? build.class : undefined) ??
+    core.class;
+
+  // University precedence
+  let rawUniversity;
+  if (typeof build.university === 'string') {
+    rawUniversity = build.university;
+  } else {
+    rawUniversity =
+      (uniObj.key !== undefined ? uniObj.key : undefined) ??
+      (uniObj.name !== undefined ? uniObj.name : undefined) ??
+      (build.college !== undefined ? build.college : undefined) ??
+      (build.school !== undefined ? build.school : undefined);
+  }
 
   return {
-    class: sanitizeOptional(build.class) || null,
-    university: sanitizeOptional(build.university) || null,
-    characterName: sanitizeOptional(charName) || null,
+    class: sanitizeOptional(rawClass) || null,
+    university: sanitizeOptional(rawUniversity) || null,
+    characterName: sanitizeOptional(rawCharacterName) || null,
   };
 }
-
 /**
  * Save a full Oracle character build to Supabase (upsert by player_key).
  * 
