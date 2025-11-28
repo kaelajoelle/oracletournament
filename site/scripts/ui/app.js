@@ -938,14 +938,19 @@ import { ensureAppConfig } from '../services/config.js';
       
       if(!IS_GUEST_SESSION){
         // Persist to Supabase via /api/builds endpoint (fire-and-forget)
+        DraftStatus.info('Draft saved locally. Syncing to the Oracle Archives…');
         saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot).then(ok => {
           if(ok){
             console.info('Build synced to Oracle Archives via /api/builds');
+            DraftStatus.success('Draft saved locally and synced to the Oracle Archives.');
+          } else {
+            console.warn('Build sync returned false');
+            DraftStatus.info('Draft saved locally. Sync to Oracle Archives may have failed.');
           }
         }).catch(err => {
           console.warn('Build persistence failed', err);
+          DraftStatus.info('Draft saved locally. Sync to Oracle Archives failed.');
         });
-        DraftStatus.success('Draft saved locally and syncing to the Oracle Archives.');
         return true;
       }
       
@@ -973,10 +978,11 @@ import { ensureAppConfig } from '../services/config.js';
             DraftStatus.success('Draft loaded from the Oracle Archives.');
             return true;
           }
+          // No saved build found in remote - fall through to "no drafts" message
         }catch(err){
           console.warn('Failed to load saved build from /api/builds', err);
-          DraftStatus.error('Unable to reach the Oracle Archives. No local draft found.');
-          alert('Could not load any drafts from the Oracle Archives or this browser. Save a character once you are back online.');
+          DraftStatus.error('Network error: Unable to reach the Oracle Archives.');
+          alert('Network error when contacting the Oracle Archives. No local draft found either. Save a character once you are back online.');
           return false;
         }
       }
