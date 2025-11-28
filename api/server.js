@@ -74,6 +74,11 @@ const GUEST_PLAYER_KEY = 'guest';
  * Loads canonical sessions from state.json at startup.
  * This is the single source of truth for session definitions.
  * Falls back to an empty array if the file is missing or malformed.
+ * 
+ * Note: Uses synchronous file reading intentionally - this runs once at module
+ * initialization when the event loop isn't processing requests yet. The file is
+ * small (typically <10KB) and this ensures DEFAULT_SESSIONS is available
+ * immediately for storage adapter configuration.
  */
 function loadCanonicalSessions() {
   try {

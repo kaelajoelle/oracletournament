@@ -1071,8 +1071,8 @@ function renderSessionCards(container, opts={readOnly:false}){
     .forEach(s=>{
       const filled = (s.players||[]).length;
       const full = filled>=s.capacity;
-      // Check if current player is in this session
-      const playerInSession = sessionHasPlayer(s, CURRENT_PLAYER_KEY);
+      // Check if current player is in this session (handles null/undefined CURRENT_PLAYER_KEY safely)
+      const playerInSession = CURRENT_PLAYER_KEY ? sessionHasPlayer(s, CURRENT_PLAYER_KEY) : false;
       const roster = filled
         ? (Array.isArray(s.players) ? s.players : []).map(player=>{
             const b = player && player.key ? builds[player.key] : null;
