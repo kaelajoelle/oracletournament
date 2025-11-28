@@ -2364,17 +2364,24 @@ Grand Oracle Trial: January 1</strong></p>
       NetworkStatus.setError('Unable to reach the shared datastore. Showing cached data if available.');
     }
     // Load saved Oracle build for the current player
+    // Only load from remote if no local draft exists (to avoid overwriting unsaved local changes)
     if(!IS_GUEST_SESSION && CURRENT_PLAYER_KEY){
-      try{
-        const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
-        if(savedBuild && typeof savedBuild === 'object'){
-          // Hydrate State.data with the saved build
-          State.data = cloneDraftData(savedBuild);
-          LocalDraftStore.write(State.data);
-          console.info('Loaded saved build for player:', CURRENT_PLAYER_KEY);
+      const localDraft = LocalDraftStore.read();
+      if(!localDraft){
+        try{
+          const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
+          if(savedBuild && typeof savedBuild === 'object'){
+            // Hydrate State.data with the saved build
+            State.data = cloneDraftData(savedBuild);
+            LocalDraftStore.write(State.data);
+            console.info('Loaded saved build for player:', CURRENT_PLAYER_KEY);
+          }
+        }catch(err){
+          console.warn('Failed to load saved build for player', err);
         }
-      }catch(err){
-        console.warn('Failed to load saved build for player', err);
+      }else{
+        // Local draft exists, use it instead of loading from remote
+        State.data = cloneDraftData(localDraft);
       }
     }
     renderAll();
