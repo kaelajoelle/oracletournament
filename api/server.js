@@ -1,4 +1,5 @@
 const path = require('path');
+
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
@@ -9,9 +10,6 @@ const { createStorageAdapter } = require('./storage');
 const { saveOracleBuild, loadOracleBuild, extractBuildFields } = require('./oracleBuilds');
 const { createClient } = require('@supabase/supabase-js');
 
-const fetch = global.fetch || require('node-fetch');
-
-// Import centralized configuration
 const {
   PORT,
   DATA_PATH,
@@ -20,7 +18,9 @@ const {
   BUILDS_DATA_PATH,
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_TABLE,
   SUPABASE_ROW_ID,
+  SUPABASE_STORAGE_MODE,
   SUPABASE_CHARACTER_DRAFTS_TABLE,
   SUPABASE_SESSIONS_TABLE,
   SUPABASE_SESSION_PLAYERS_TABLE,
@@ -34,10 +34,10 @@ const {
   hasSupabase,
   useSupabaseTables,
   canUsePlayerAccess,
-  SUPABASE_REST_BASE,
-  SUPABASE_REST_URL,
   logConfigSummary,
 } = require('./config');
+
+const fetch = global.fetch || require('node-fetch');
 
 const ROSTER_META_HIDDEN_SENTINEL = '__hidden__::';
 let supabaseMetaSupportsHidden = true;
@@ -45,6 +45,13 @@ let supabaseMetaSupportsHidden = true;
 // Supabase client for build persistence (using oracleBuilds helpers)
 const supabaseClient = hasSupabase
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  : null;
+
+const SUPABASE_REST_BASE = hasSupabase
+  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
+  : null;
+const SUPABASE_REST_URL = hasSupabase
+  ? `${SUPABASE_REST_BASE}/${SUPABASE_TABLE}`
   : null;
 
 const GUEST_PLAYER_KEY = 'guest';
@@ -676,8 +683,18 @@ async function updatePlayerAccessDisplayName(playerKey, displayName){
   }
 }
 
+// Decide storage mode:
+// - If Supabase tables are configured, use 'supabaseTables'.
+// - Else if Supabase is available, use 'supabaseJson'.
+// - Else fall back to legacy local file storage.
+const storageMode = useSupabaseTables
+  ? 'supabaseTables'
+  : hasSupabase
+    ? 'supabaseJson'
+    : 'file';
+
 const storage = createStorageAdapter({
-  mode: useSupabaseTables ? 'supabaseTables' : hasSupabase ? 'supabaseJson' : 'file',
+  mode: storageMode,
   file: {
     dataPath: DATA_PATH,
     defaultState: DEFAULT_STATE,
@@ -1404,11 +1421,10 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-if(require.main === module){
-  // Log configuration summary on startup (skip when running tests)
-  if(process.env.NODE_ENV !== 'test'){
-    logConfigSummary();
-  }
+if (require.main === module) {
+  // Optional config summary on startup for easier debugging
+  logConfigSummary();
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Oracle Tournament API listening on port ${PORT}`);
   });
