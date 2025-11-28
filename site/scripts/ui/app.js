@@ -2027,7 +2027,7 @@ Grand Oracle Trial: January 1</strong></p>
         equipment: p.querySelector('#equipment').value
       };
       markSaved('core','Core details saved.');
-      // Persist the full build to Supabase (does not block UI; errors logged to console)
+      // Persist the full build (does not block UI; errors logged to console)
       State.save().catch(err => console.error('Failed to persist core setup', err));
     };
 
