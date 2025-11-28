@@ -947,9 +947,6 @@ import { ensureAppConfig } from '../services/config.js';
             console.warn('Build sync returned false');
             DraftStatus.info('Draft saved locally. Sync to Oracle Archives may have failed.');
           }
-        }).catch(err => {
-          console.warn('Build persistence failed', err);
-          DraftStatus.info('Draft saved locally. Sync to Oracle Archives failed.');
         });
         return true;
       }
