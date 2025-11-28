@@ -69,8 +69,8 @@ import { sessionHasPlayer } from '../lib/sessionsClient.js';
       return { key: rosterKey(entry), character };
     }
     if(typeof entry !== 'object') return null;
-    const character = sanitizeName(entry.character || entry.characterName || entry.name || entry.player_name || '');
-    const keySource = entry.key || entry.playerKey || entry.player_key || entry.code || entry.id || character;
+    const character = sanitizeName(entry.character || entry.characterName || entry.character_name || entry.name || entry.player_name || '');
+    const keySource = entry.key || entry.playerKey || entry.player_key || entry.code || entry.id || entry.player_id || character;
     const key = rosterKey(keySource);
     if(!key && !character){
       return null;
@@ -741,66 +741,13 @@ import { sessionHasPlayer } from '../lib/sessionsClient.js';
   { name: 'Josh',         status: 'Yes', key: 'josh222729' },
   { name: 'Marilyn',      status: 'Pending', key: 'marilyn2025' },
     ],
-    sessions:[
-      // These are fallback sessions used when API is unavailable
-      // The canonical source of truth is api/state.json, served via /api/sessions
-      {
-        id:'trial1',
-        date:'2025-12-22',
-        title:'Trial I: The Bog Expedition',
-        theme:'Resilience & Compassion',
-        focus:'Problem-solving, teamwork, and moral decisions under pressure.',
-        setting:'Witherbloom\'s Detention Bog.',
-        premise:'Assist Witherbloom faculty in recovering lost alchemical crates.',
-        dm:'Kaela & Tory',
-        capacity:6,
-        players:[]
-      },
-      {
-        id:'trial2',
-        date:'2025-12-27',
-        title:'Trial II: The Masquerade of Mirrors',
-        theme:'Wisdom & Integrity',
-        focus:'Deception, charm, and truth-seeking.',
-        setting:'The Winter Masquerade Ball (Silverquill × Prismari).',
-        premise:'Attend an extravagant gala where factions vie for influence.',
-        dm:'Kaela & Tory',
-        capacity:6,
-        players:[]
-      },
-      {
-        id:'trial3',
-        date:'2025-12-29',
-        title:'Trial III: The Trial of the Ruins',
-        theme:'Courage & Judgement',
-        focus:'Exploration, strategy, and moral courage.',
-        setting:'The Fortress Badlands.',
-        premise:'Retrieve relics from ancient battlefields — a test of bravery.',
-        dm:'Kaela & Tory',
-        capacity:6,
-        players:[]
-      },
-      {
-        id:'finale',
-        date:'2026-01-01',
-        title:'Finale: The Oracle\'s Convergence',
-        theme:'Unity, Insight & Destiny',
-        focus:'Hybrid roleplay + tournament-style mini-games.',
-        setting:'The Oracle Tower materializes as the new year\'s bells ring.',
-        premise:'Chaos erupts as the unstable Oracle spirit manifests. Challenges of insight, power, and heart determine the Oracle\'s Apprentice.',
-        dm:'Kaela & Tory',
-        capacity:12,
-        finale:true,
-        players:[]
-      }
-    ]
+    sessions:[]
   };
 
   // Always render roster A→Z without risk to source order
   DATA.roster = [...DATA.roster].sort((a,b)=>a.name.localeCompare(b.name,'en'));
   BASE_ROSTER_KEYS = new Set(DATA.roster.map(r=>rosterKey(r.key || r.name)));
 
-  SharedState.useFallbackSessions(DATA.sessions);
   SharedState.useDefaultFallback();
 
   // Optional quick rule examples
