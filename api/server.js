@@ -103,7 +103,7 @@ function loadCanonicalSessions() {
       }).filter(Boolean);
     }
   } catch (err) {
-    console.warn('Failed to load canonical sessions from state.json:', err.message);
+    console.error('Failed to load canonical sessions from state.json:', err.message);
   }
   return [];
 }
