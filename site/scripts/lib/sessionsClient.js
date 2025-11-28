@@ -82,7 +82,16 @@ export function sessionHasPlayer(session, playerKey) {
   
   const players = Array.isArray(session.players) ? session.players : [];
   return players.some(player => {
-    const key = String(player?.key || player?.playerKey || '').trim().toLowerCase();
+    // Check multiple possible backend field names for player identification
+    const key = String(
+      player?.key ||
+      player?.playerKey ||
+      player?.player_key ||
+      player?.code ||
+      player?.id ||
+      player?.player_id ||
+      ''
+    ).trim().toLowerCase();
     return key === normalizedKey;
   });
 }
