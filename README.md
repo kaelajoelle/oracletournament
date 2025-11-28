@@ -119,6 +119,19 @@ Each player needs a display name and access code. The script will hash the code 
 
 * The UI shows a banner while requests are in flight and whenever the network fails. When the API is unreachable the app falls back to the most recent cached state stored in `localStorage`.
 
+### Frontend structure
+
+The frontend is a single-page application with the following layout:
+
+| Directory/File | Purpose |
+|----------------|---------|
+| `site/scripts/` | Frontend source code (split between `ui/`, `services/`, and `lib/`). |
+| `site/dist/` | Build output directory for bundled/minified JavaScript (`app.js`, `app.js.map`). |
+| `index.html` | Main entry point for the Oracle Builder UI. |
+| `login.html` | Player login page for access code authentication. |
+
+The entry point HTML files (`index.html`, `login.html`) already contain the correct `<script src="...">` references to load the bundled application from `site/dist/app.js`. No URL changes are needed when deploying.
+
 ### Front-end bundle
 
 * The JavaScript that used to live inline inside `index.html` now resides under `site/scripts/` (split between `ui/` and `services/`).

@@ -1,8 +1,4 @@
 const path = require('path');
-require('dotenv').config();
-require('dotenv').config({ path: path.join(__dirname, '.env'), override: false });
-require('dotenv').config({ path: path.join(__dirname, '..', 'scripts', '.env'), override: false });
-
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
@@ -15,57 +11,40 @@ const { createClient } = require('@supabase/supabase-js');
 
 const fetch = global.fetch || require('node-fetch');
 
-const PORT = process.env.PORT || 8787;
-const DATA_PATH = process.env.DATA_PATH
-  ? path.resolve(process.env.DATA_PATH)
-  : path.join(__dirname, 'state.json');
-const COMMENTS_DATA_PATH = process.env.COMMENTS_DATA_PATH
-  ? path.resolve(process.env.COMMENTS_DATA_PATH)
-  : path.join(path.dirname(DATA_PATH), 'comments.json');
-const CHARACTER_DRAFTS_PATH = process.env.CHARACTER_DRAFTS_PATH
-  ? path.resolve(process.env.CHARACTER_DRAFTS_PATH)
-  : path.join(path.dirname(DATA_PATH), 'character_drafts.json');
-const BUILDS_DATA_PATH = process.env.BUILDS_DATA_PATH
-  ? path.resolve(process.env.BUILDS_DATA_PATH)
-  : path.join(path.dirname(DATA_PATH), 'builds_data.json');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_TABLE = process.env.SUPABASE_TABLE || 'oracle_state';
-const SUPABASE_ROW_ID = process.env.SUPABASE_ROW_ID || 'shared';
-const SUPABASE_STORAGE_MODE = (process.env.SUPABASE_STORAGE_MODE || 'json').toLowerCase();
-const SUPABASE_CHARACTER_DRAFTS_TABLE = process.env.SUPABASE_CHARACTER_DRAFTS_TABLE || 'character_drafts';
+// Import centralized configuration
+const {
+  PORT,
+  DATA_PATH,
+  COMMENTS_DATA_PATH,
+  CHARACTER_DRAFTS_PATH,
+  BUILDS_DATA_PATH,
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  SUPABASE_ROW_ID,
+  SUPABASE_CHARACTER_DRAFTS_TABLE,
+  SUPABASE_SESSIONS_TABLE,
+  SUPABASE_SESSION_PLAYERS_TABLE,
+  SUPABASE_ROSTER_EXTRAS_TABLE,
+  SUPABASE_ROSTER_META_TABLE,
+  SUPABASE_BUILD_CARDS_TABLE,
+  SUPABASE_COMMENTS_TABLE,
+  SUPABASE_PLAYER_ACCESS_TABLE,
+  SUPABASE_ACCESS_CODE_HASH_COLUMNS,
+  PLAYER_ACCESS_ADMIN_TOKEN,
+  hasSupabase,
+  useSupabaseTables,
+  canUsePlayerAccess,
+  SUPABASE_REST_BASE,
+  SUPABASE_REST_URL,
+  logConfigSummary,
+} = require('./config');
 
 const ROSTER_META_HIDDEN_SENTINEL = '__hidden__::';
 let supabaseMetaSupportsHidden = true;
 
-const SUPABASE_SESSIONS_TABLE = process.env.SUPABASE_SESSIONS_TABLE || 'sessions';
-const SUPABASE_SESSION_PLAYERS_TABLE = process.env.SUPABASE_SESSION_PLAYERS_TABLE || 'session_players';
-const SUPABASE_ROSTER_EXTRAS_TABLE = process.env.SUPABASE_ROSTER_EXTRAS_TABLE || 'roster_extras';
-const SUPABASE_ROSTER_META_TABLE = process.env.SUPABASE_ROSTER_META_TABLE || 'roster_meta';
-const SUPABASE_BUILD_CARDS_TABLE = process.env.SUPABASE_BUILD_CARDS_TABLE || 'build_cards';
-const SUPABASE_COMMENTS_TABLE = process.env.SUPABASE_COMMENTS_TABLE || 'comments';
-const SUPABASE_PLAYER_ACCESS_TABLE = process.env.SUPABASE_PLAYER_ACCESS_TABLE || 'player_access';
-const SUPABASE_ACCESS_CODE_HASH_COLUMNS = (process.env.SUPABASE_ACCESS_CODE_HASH_COLUMNS || 'access_code_hash')
-  .split(',')
-  .map((value) => String(value || '').trim())
-  .filter(Boolean);
-const PLAYER_ACCESS_ADMIN_TOKEN = process.env.PLAYER_ACCESS_ADMIN_TOKEN || '';
-
-const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
-const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
-const canUsePlayerAccess = hasSupabase && Boolean(SUPABASE_PLAYER_ACCESS_TABLE);
-
 // Supabase client for build persistence (using oracleBuilds helpers)
 const supabaseClient = hasSupabase
   ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-  : null;
-
-const SUPABASE_REST_BASE = hasSupabase
-  ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
-  : null;
-const SUPABASE_REST_URL = hasSupabase
-  ? `${SUPABASE_REST_BASE}/${SUPABASE_TABLE}`
   : null;
 
 const GUEST_PLAYER_KEY = 'guest';
@@ -1426,6 +1405,10 @@ app.use((req, res) => {
 });
 
 if(require.main === module){
+  // Log configuration summary on startup (skip when running tests)
+  if(process.env.NODE_ENV !== 'test'){
+    logConfigSummary();
+  }
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Oracle Tournament API listening on port ${PORT}`);
   });
