@@ -17,6 +17,7 @@
     "lint:frontend": "eslint \"site/**/*.{js,jsx,ts,tsx,html}\" --ignore-pattern \"site/dist/**\" --max-warnings=0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.86.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.19.2",
