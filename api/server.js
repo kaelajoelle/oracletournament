@@ -70,14 +70,75 @@ const SUPABASE_REST_URL = hasSupabase
 const GUEST_PLAYER_KEY = 'guest';
 
 const DEFAULT_SESSIONS = [
-  {id:'s1', date:'2025-12-21', title:'Session 01', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'s2', date:'2025-12-22', title:'Session 02', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'s3', date:'2025-12-26', title:'Session 03', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'s4', date:'2025-12-27', title:'Session 04', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'s5', date:'2025-12-28', title:'Session 05', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'s6', date:'2025-12-29', title:'Session 06', dm:'Kaela & Tory', capacity:6, players:[]},
-  {id:'finale', date:'2026-01-01', title:'Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+  {
+    id: 'trial1',
+    date: '2025-12-22',
+    title: 'Trial I: The Bog Expedition',
+    theme: 'Resilience & Compassion',
+    focus: 'Problem-solving, teamwork, and moral decisions under pressure.',
+    setting: 'Witherbloom’s Detention Bog.',
+    premise: 'Assist Witherbloom faculty in recovering lost alchemical crates.',
+    dm: 'Kaela & Tory',
+    capacity: 6,
+    players: [
+      { key: 'amy', character: 'Amy', playerName: 'Amy' },
+      { key: 'trevor', character: 'Trevor', playerName: 'Trevor' },
+      { key: 'marilyn', character: 'Marilyn', playerName: 'Marilyn' },
+      { key: 'jocelyn', character: 'Jocelyn', playerName: 'Jocelyn' },
+      { key: 'emory', character: 'Emory', playerName: 'Emory' },
+    ],
+  },
+  {
+    id: 'trial2',
+    date: '2025-12-27',
+    title: 'Trial II: The Masquerade of Mirrors',
+    theme: 'Wisdom & Integrity',
+    focus: 'Deception, charm, and truth-seeking.',
+    setting: 'The Winter Masquerade Ball (Silverquill × Prismari).',
+    premise: 'Attend an extravagant gala where factions vie for influence.',
+    dm: 'Kaela & Tory',
+    capacity: 6,
+    players: [
+      { key: 'melissa', character: 'Melissa', playerName: 'Melissa' },
+      { key: 'becca', character: 'Becca', playerName: 'Becca' },
+      { key: 'evan', character: 'Evan', playerName: 'Evan' },
+      { key: 'erin', character: 'Erin', playerName: 'Erin' },
+      { key: 'nicole', character: 'Nicole', playerName: 'Nicole' },
+      { key: 'spencer', character: 'Spencer', playerName: 'Spencer' },
+    ],
+  },
+  {
+    id: 'trial3',
+    date: '2025-12-29',
+    title: 'Trial III: The Trial of the Ruins',
+    theme: 'Courage & Judgement',
+    focus: 'Exploration, strategy, and moral courage.',
+    setting: 'The Fortress Badlands.',
+    premise: 'Retrieve relics from ancient battlefields — a test of bravery.',
+    dm: 'Kaela & Tory',
+    capacity: 6,
+    players: [
+      { key: 'josh', character: 'Josh', playerName: 'Josh' },
+      { key: 'nova', character: 'Nova', playerName: 'Nova' },
+      { key: 'snack erin', character: 'Snack Erin', playerName: 'Snack Erin' },
+      { key: 'colby', character: 'Colby', playerName: 'Colby' },
+    ],
+  },
+  {
+    id: 'finale',
+    date: '2026-01-01',
+    title: 'Finale: The Oracle’s Convergence',
+    theme: 'Unity, Insight & Destiny',
+    focus: 'Hybrid roleplay + tournament-style mini-games.',
+    setting: 'The Oracle Tower materializes as the new year’s bells ring.',
+    premise: 'Chaos erupts as the unstable Oracle spirit manifests. Challenges of insight, power, and heart determine the Oracle’s Apprentice.',
+    dm: 'Kaela & Tory',
+    capacity: 12,
+    players: [],
+    finale: true,
+  },
 ];
+
 
 const DEFAULT_STATE = {
   sessions: DEFAULT_SESSIONS,
