@@ -1151,7 +1151,7 @@ app.get('/api/builds', async (req, res) => {
       .order('player_key', { ascending: true });
     if (error) {
       console.error('list builds failed', error);
-      return res.status(500).json({ error: error.message || 'Failed to list builds' });
+      throw httpError(500, error.message || 'Failed to list builds');
     }
     res.json(data || []);
   } catch (err) {
