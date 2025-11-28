@@ -1139,27 +1139,6 @@ app.delete('/api/roster/extras/:key', async (req, res) => {
 });
 
 // === Oracle Build Persistence API ===
-// GET /api/builds - List all saved build summaries
-app.get('/api/builds', async (req, res) => {
-  try {
-    if (!supabaseClient) {
-      throw httpError(503, 'Build persistence is not configured.');
-    }
-    const { data, error } = await supabaseClient
-      .from('build_cards')
-      .select('player_key, character_name, class, university, updated_at')
-      .order('player_key', { ascending: true });
-    if (error) {
-      console.error('list builds failed', error);
-      throw httpError(500, error.message || 'Failed to list builds');
-    }
-    res.json(data || []);
-  } catch (err) {
-    console.error('list builds failed', err);
-    handleError(res, err);
-  }
-});
-
 // GET /api/builds/:playerKey - Load a full Oracle build
 app.get('/api/builds/:playerKey', async (req, res) => {
   try {
@@ -1201,10 +1180,8 @@ app.post('/api/builds/:playerKey', async (req, res) => {
     }
     const { error } = await saveOracleBuild(supabaseClient, playerKey, build);
     if (error) {
-      console.error('saveOracleBuild failed', playerKey, error);
       throw httpError(500, error.message || 'Failed to save build.');
     }
-    console.log('Saved build for player', playerKey);
     res.json({ ok: true });
   } catch (err) {
     console.error('save build failed', err);
@@ -1217,7 +1194,7 @@ app.use((req, res) => {
 });
 
 if(require.main === module){
-  app.listen(PORT, '0.0.0.0', () => {
+  app.listen(PORT, () => {
     console.log(`Oracle Tournament API listening on port ${PORT}`);
   });
 }
