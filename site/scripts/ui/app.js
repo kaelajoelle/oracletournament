@@ -850,21 +850,17 @@ import { ensureAppConfig } from '../services/config.js';
     }
   }
 
+  // Legacy CharacterDraftsApi - DEPRECATED
+  // The /api/characters/:playerKey endpoint has been disabled.
+  // Build persistence now uses the new /api/builds/:playerKey endpoints instead.
   const CharacterDraftsApi = {
-    async saveDraft(data){
-      const encoded = encodeURIComponent(CURRENT_PLAYER_KEY);
-      const response = await apiFetch(`/api/characters/${encoded}`, {
-        method: 'PUT',
-        body: JSON.stringify({ data })
-      });
-      return response && response.draft ? response.draft : null;
+    async saveDraft(){
+      console.info('[CharacterDraftsApi] saveDraft is deprecated. Using /api/builds for persistence.');
+      return null;
     },
     async loadDraft(){
-      const encoded = encodeURIComponent(CURRENT_PLAYER_KEY);
-      const response = await apiFetch(`/api/characters/${encoded}`, {
-        headers: { Accept: 'application/json' }
-      });
-      return response && response.draft ? response.draft : null;
+      console.info('[CharacterDraftsApi] loadDraft is deprecated. Using /api/builds for persistence.');
+      return null;
     }
   };
 
@@ -939,66 +935,52 @@ import { ensureAppConfig } from '../services/config.js';
     async save(){
       const snapshot = cloneDraftData(this.data);
       LocalDraftStore.write(snapshot);
-      let remoteDraft = null;
-      let remoteError = null;
+      DraftStatus.info('Draft saved locally.');
+      
       if(!IS_GUEST_SESSION){
-        try{
-          remoteDraft = await CharacterDraftsApi.saveDraft(snapshot);
-        }catch(err){
-          remoteError = err;
-          console.warn('Remote draft save failed', err);
-        }
-        // Also save to the new /api/builds endpoint for full build persistence
-        saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot).catch(err => {
-          console.warn('Build persistence failed', err);
+        // Persist to Supabase via /api/builds endpoint (fire-and-forget)
+        // saveBuildForPlayer handles its own errors and returns boolean
+        saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot).then(ok => {
+          if(ok){
+            console.info('Build synced to Oracle Archives via /api/builds');
+            DraftStatus.success('Draft saved locally and synced to the Oracle Archives.');
+          } else {
+            console.warn('Build sync returned false');
+            DraftStatus.info('Draft saved locally. Sync to Oracle Archives may have failed.');
+          }
         });
-      }
-      if(remoteDraft){
-        DraftStatus.success('Draft synced to the Oracle Archives and backed up in this browser.');
         return true;
       }
-      if(remoteError){
-        DraftStatus.error('Online save failed; your draft is stored in this browser only.');
-      }else if(IS_GUEST_SESSION){
-        DraftStatus.info('Guest saves stay in this browser. Enter your access code to sync online.');
-      }else{
-        DraftStatus.info('Saved locally. Reconnect to sync with the Oracle Archives.');
-      }
-      return false;
+      
+      DraftStatus.info('Guest saves stay in this browser. Enter your access code to sync online.');
+      return true;
     },
     async load(){
-      let remoteError = null;
-      if(!IS_GUEST_SESSION){
-        try{
-          const remoteDraft = await CharacterDraftsApi.loadDraft();
-          if(remoteDraft && remoteDraft.data){
-            this.data = cloneDraftData(remoteDraft.data);
-            LocalDraftStore.write(this.data);
-            renderAll();
-            DraftStatus.success('Draft loaded from the Oracle Archives.');
-            return true;
-          }
-        }catch(err){
-          remoteError = err;
-          console.warn('Remote draft load failed', err);
-        }
-      }
+      // Try local draft first
       const localDraft = LocalDraftStore.read();
       if(localDraft){
         this.data = cloneDraftData(localDraft);
         renderAll();
-        if(remoteError){
-          DraftStatus.error('Loaded browser backup after the Oracle Archives could not be reached.');
-        }else{
-          DraftStatus.info('Loaded the draft stored in this browser.');
-        }
+        DraftStatus.info('Loaded the draft stored in this browser.');
         return true;
       }
-      DraftStatus.error(remoteError ? 'No drafts found online or offline. Save your character first.' : 'No saved drafts yet.');
-      const alertMessage = remoteError
-        ? 'Could not load any drafts from the Oracle Archives or this browser. Save a character once you are back online.'
-        : 'No saved draft found. Create and save a character first.';
-      alert(alertMessage);
+      
+      // If not guest and no local draft, try to load from /api/builds
+      // loadSavedBuildForPlayer handles its own errors and returns null on failure
+      if(!IS_GUEST_SESSION){
+        const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
+        if(savedBuild && typeof savedBuild === 'object'){
+          this.data = cloneDraftData(savedBuild);
+          LocalDraftStore.write(this.data);
+          renderAll();
+          DraftStatus.success('Draft loaded from the Oracle Archives.');
+          return true;
+        }
+        // No saved build found in Oracle Archives - fall through to "no drafts" message
+      }
+      
+      DraftStatus.error('No saved drafts yet.');
+      alert('No saved draft found. Create and save a character first.');
       return false;
     },
     export(){ const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`oracle-trials-${(this.data.core.name||'character').toLowerCase().replace(/[^a-z0-9-]/g,'-')}.json`; a.click(); URL.revokeObjectURL(url); }

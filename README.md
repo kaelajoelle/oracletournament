@@ -141,10 +141,16 @@ Endpoint | Method | Description
 `/api/roster/extras` | POST | Add a custom roster entry. Body: `{ name, status?, notes? }`.
 `/api/roster/:key` | PATCH | Update status/notes for roster entries (base or custom). Body: `{ status?, notes?, custom? }`.
 `/api/roster/extras/:key` | DELETE | Remove a custom roster entry.
+`/api/builds/:playerKey` | GET | Retrieve a saved full character build (JSON). Returns the complete build object or 404 if not found.
+`/api/builds/:playerKey` | POST | Save/replace a full character build. Body is the complete build object (JSON).
 `/api/admin/player-access` | GET | List all player access records. Requires `PLAYER_ACCESS_ADMIN_TOKEN` in header or query.
 `/api/admin/player-access` | POST | Create a new player access record. Body: `{ adminToken, displayName, accessCode }`.
 
 All routes return the full state payload on success so the client can refresh its cache.
+
+### Legacy Draft Endpoint (Deprecated)
+
+The `/api/characters/:playerKey` endpoint has been removed. Previously, this endpoint was intended for draft persistence, but it was never implemented on the server and returned 404 errors. The front-end UI now uses the `/api/builds/:playerKey` endpoints exclusively for build persistence, which are backed by Supabase. If you have older client code that references `/api/characters`, update it to use `/api/builds` instead.
 
 ## Deployment notes
 
