@@ -1202,7 +1202,7 @@ app.post('/api/builds/:playerKey', async (req, res) => {
     const { error } = await saveOracleBuild(supabaseClient, playerKey, build);
     if (error) {
       console.error('saveOracleBuild failed', playerKey, error);
-      return res.status(500).json({ error: error.message || 'Unknown error', details: error });
+      throw httpError(500, error.message || 'Failed to save build.');
     }
     console.log('Saved build for player', playerKey);
     res.json({ ok: true });
