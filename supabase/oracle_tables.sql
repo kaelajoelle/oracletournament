@@ -191,4 +191,25 @@ create policy "service role player access" on public.player_access
   using ((auth.jwt() ->> 'role') = 'service_role')
   with check ((auth.jwt() ->> 'role') = 'service_role');
 
+update public.sessions
+set title = 'Trial I: The Bog Expedition',
+    date  = '2025-12-22'
+where id = 's1';
+
+update public.sessions
+set title = 'Trial II: The Masquerade of Mirrors',
+    date  = '2025-12-27'
+where id = 's2';
+
+update public.sessions
+set title = 'Trial III: The Trial of the Ruins',
+    date  = '2025-12-29'
+where id = 's3';
+
+update public.sessions
+set title    = 'Finale: The Oracle''s Convergence',
+    capacity = 12
+where id = 'finale';
+
+
 commit;
