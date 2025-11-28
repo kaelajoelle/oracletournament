@@ -9,7 +9,7 @@ const fs = require('fs/promises');
 const { randomUUID, createHash } = require('crypto');
 
 const { createStorageAdapter } = require('./storage');
-const { saveOracleBuild, loadOracleBuild } = require('./oracleBuilds');
+const { saveOracleBuild, loadOracleBuild, extractBuildFields } = require('./oracleBuilds');
 const { createClient } = require('@supabase/supabase-js');
 
 const fetch = global.fetch || require('node-fetch');
@@ -434,13 +434,14 @@ async function readLocalBuildStore(){
       const builds = parsed.builds && typeof parsed.builds === 'object' ? parsed.builds : {};
       return { version: 1, builds };
     }
+    // Parsed value was not a valid object, return empty store
+    return { version: 1, builds: {} };
   }catch(err){
     if(err && err.code === 'ENOENT'){
       return { version: 1, builds: {} };
     }
     throw err;
   }
-  return { version: 1, builds: {} };
 }
 
 async function writeLocalBuildStore(store){
@@ -450,7 +451,12 @@ async function writeLocalBuildStore(store){
   };
   try{
     await fs.mkdir(path.dirname(BUILDS_DATA_PATH), { recursive: true });
-  }catch{}
+  }catch(err){
+    // Ignore EEXIST errors for existing directories
+    if(err && err.code !== 'EEXIST'){
+      console.warn('mkdir warning for builds store:', err.message || err);
+    }
+  }
   await fs.writeFile(BUILDS_DATA_PATH, JSON.stringify(safe, null, 2));
   return safe;
 }
@@ -1226,11 +1232,12 @@ app.get('/api/builds', async (req, res) => {
     const store = await readLocalBuildStore();
     const builds = Object.entries(store.builds).map(([playerKey, entry]) => {
       const data = entry.data || {};
+      const fields = extractBuildFields(data);
       return {
         player_key: playerKey,
-        character_name: data.characterName || data.character_name || null,
-        class: data.class || null,
-        university: data.university || null,
+        character_name: fields.characterName,
+        class: fields.class,
+        university: fields.university,
         updated_at: entry.updatedAt || null
       };
     });
