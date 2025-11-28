@@ -862,157 +862,6 @@ import { ensureAppConfig } from '../services/config.js';
       console.info('[CharacterDraftsApi] loadDraft is deprecated. Using /api/builds for persistence.');
       return null;
     }
-    // ... (earlier code above unchanged)
-
-// Legacy Character Draft API (disabled)
-// -------------------------------------
-// These functions used to call /api/characters/:playerKey. They are now no-ops.
-const CharacterDraftsApi = {
-  async saveDraft(data){
-    // Just return a snapshot; do not hit network.
-    console.info('[CharacterDraftsApi.saveDraft] Legacy /api/characters disabled; skipping network call.');
-    return {
-      playerKey: CURRENT_PLAYER_KEY,
-      data: cloneDraftData(data),
-      updatedAt: new Date().toISOString(),
-      source: 'disabled'
-    };
-  },
-  async loadDraft(){
-    console.info('[CharacterDraftsApi.loadDraft] Legacy /api/characters disabled; returning null.');
-    return null;
-  }
-};
-
-// Oracle Build Persistence API (existing helpers remain)
-async function loadSavedBuildForPlayer(playerKey) {
-  if (!playerKey) {
-    console.warn('loadSavedBuildForPlayer: no playerKey provided');
-    return null;
-  }
-  try {
-    const encoded = encodeURIComponent(playerKey);
-    const response = await fetch(withApiBase(`/api/builds/${encoded}`), {
-      headers: { Accept: 'application/json' }
-    });
-    if (response.status === 404) {
-      return null;
-    }
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('loadSavedBuildForPlayer failed:', text);
-      return null;
-    }
-    return await response.json();
-  } catch (err) {
-    console.error('loadSavedBuildForPlayer error:', err);
-    return null;
-  }
-}
-
-async function saveBuildForPlayer(playerKey, build) {
-  if (!playerKey) {
-    console.warn('saveBuildForPlayer: no playerKey provided');
-    return false;
-  }
-  if (!build || typeof build !== 'object') {
-    console.warn('saveBuildForPlayer: invalid build object');
-    return false;
-  }
-  try {
-    const encoded = encodeURIComponent(playerKey);
-    const response = await fetch(withApiBase(`/api/builds/${encoded}`), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(build)
-    });
-    if (!response.ok) {
-      const text = await response.text();
-      console.error('saveBuildForPlayer failed:', text);
-      return false;
-    }
-    return true;
-  } catch (err) {
-    console.error('saveBuildForPlayer error:', err);
-    return false;
-  }
-}
-
-const State = {
-  data:{
-    meta:{version:'0.5-stable'},
-    core:{ playerName:'', name:'', race:'', class:'', background:'', level:4, abilityMethod:'standard', abilities:{STR:15,DEX:14,CON:13,INT:12,WIS:10,CHA:8}, equipment:'class'},
-    university:{ key:'', spellAbility:'INT' },
-    feats:[],
-    extras:{ job:null, clubs:[], studentDice:[] },
-    personality:{ traits:'', ideal:'', bond:'', rival:'', goal:'', prompt:'' },
-    exams:{ notes:'', studyRerolls:0, results:[] }
-  },
-  sessions: [],
-  async save(){
-    const snapshot = cloneDraftData(this.data);
-    LocalDraftStore.write(snapshot);
-
-    if(IS_GUEST_SESSION){
-      DraftStatus.info('Guest save stored in this browser only.');
-      return true;
-    }
-
-    // Fire-and-forget remote build persistence
-    saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot)
-      .then(ok=>{
-        if(ok){
-          DraftStatus.success('Saved locally and synced build to the Oracle Archives.');
-        }else{
-          DraftStatus.info('Saved locally. Remote build sync failed; will retry next save.');
-        }
-      })
-      .catch(err=>{
-        console.warn('Build persistence failed', err);
-        DraftStatus.info('Saved locally. Remote build sync failed; will retry.');
-      });
-
-    return true;
-  },
-  async load(){
-    // Prefer local first
-    const localDraft = LocalDraftStore.read();
-    if(localDraft){
-      this.data = cloneDraftData(localDraft);
-      renderAll();
-      DraftStatus.info('Loaded local draft.');
-      return true;
-    }
-
-    if(!IS_GUEST_SESSION && CURRENT_PLAYER_KEY){
-      try{
-        const remoteBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
-        if(remoteBuild && typeof remoteBuild === 'object'){
-          this.data = cloneDraftData(remoteBuild);
-          LocalDraftStore.write(this.data);
-          renderAll();
-          DraftStatus.success('Loaded build from the Oracle Archives.');
-          return true;
-        }
-      }catch(err){
-        console.warn('Remote build load failed', err);
-      }
-    }
-
-    DraftStatus.error('No saved draft found. Create and save a character first.');
-    alert('No saved draft found. Create and save a character first.');
-    return false;
-  },
-  export(){
-    const blob=new Blob([JSON.stringify({character:this.data, sessions:this.sessions},null,2)],{type:'application/json'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url; a.download='oracle-character.json'; a.click();
-    URL.revokeObjectURL(url);
-  }
-};
-
-// ... (rest of file unchanged)
   };
 
   // Oracle Build Persistence API
@@ -2521,3 +2370,9 @@ Grand Oracle Trial: January 1</strong></p>
     }
     renderAll();
   })();
+
+  // Optional debug hooks for troubleshooting
+  // Access via browser console: window.ORACLE_DEBUG.State, window.ORACLE_DEBUG.save()
+  window.ORACLE_DEBUG = window.ORACLE_DEBUG || {};
+  window.ORACLE_DEBUG.State = State;
+  window.ORACLE_DEBUG.save = () => State.save();
