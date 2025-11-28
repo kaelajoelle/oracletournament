@@ -150,6 +150,117 @@ test('extractBuildFields handles null/undefined', () => {
   });
 });
 
+test('extractBuildFields handles nested core object', () => {
+  const result = extractBuildFields({
+    core: {
+      name: 'Aria',
+      class: 'Mage',
+    },
+  });
+  
+  assert.equal(result.characterName, 'Aria');
+  assert.equal(result.class, 'Mage');
+  assert.equal(result.university, null);
+});
+
+test('extractBuildFields prefers top-level over core fields', () => {
+  const result = extractBuildFields({
+    class: 'Wizard',
+    characterName: 'Gandalf',
+    core: {
+      name: 'CoreName',
+      class: 'CoreClass',
+    },
+  });
+  
+  assert.equal(result.characterName, 'Gandalf');
+  assert.equal(result.class, 'Wizard');
+});
+
+test('extractBuildFields handles nested university object', () => {
+  const result = extractBuildFields({
+    class: 'Bard',
+    university: {
+      key: 'lorehold',
+      name: 'Lorehold College',
+    },
+  });
+  
+  assert.equal(result.class, 'Bard');
+  assert.equal(result.university, 'lorehold');
+});
+
+test('extractBuildFields prefers university.key over university.name', () => {
+  const result = extractBuildFields({
+    university: {
+      key: 'silverquill',
+      name: 'Silverquill College',
+    },
+  });
+  
+  assert.equal(result.university, 'silverquill');
+});
+
+test('extractBuildFields falls back to university.name when key is missing', () => {
+  const result = extractBuildFields({
+    university: {
+      name: 'Prismari College',
+    },
+  });
+  
+  assert.equal(result.university, 'Prismari College');
+});
+
+test('extractBuildFields handles legacy college field', () => {
+  const result = extractBuildFields({
+    class: 'Cleric',
+    college: 'quandrix',
+  });
+  
+  assert.equal(result.class, 'Cleric');
+  assert.equal(result.university, 'quandrix');
+});
+
+test('extractBuildFields handles legacy school field', () => {
+  const result = extractBuildFields({
+    school: 'witherbloom',
+  });
+  
+  assert.equal(result.university, 'witherbloom');
+});
+
+test('extractBuildFields prefers college over school', () => {
+  const result = extractBuildFields({
+    college: 'prismari',
+    school: 'witherbloom',
+  });
+  
+  assert.equal(result.university, 'prismari');
+});
+
+test('extractBuildFields full precedence: characterName > character_name > core.name', () => {
+  // characterName wins
+  let result = extractBuildFields({
+    characterName: 'Winner',
+    character_name: 'Loser1',
+    core: { name: 'Loser2' },
+  });
+  assert.equal(result.characterName, 'Winner');
+  
+  // character_name wins when characterName is missing
+  result = extractBuildFields({
+    character_name: 'SecondPlace',
+    core: { name: 'Loser' },
+  });
+  assert.equal(result.characterName, 'SecondPlace');
+  
+  // core.name used as fallback
+  result = extractBuildFields({
+    core: { name: 'Fallback' },
+  });
+  assert.equal(result.characterName, 'Fallback');
+});
+
 test('saveOracleBuild returns error for empty playerKey', async () => {
   const supabase = createMockSupabase();
   const { error } = await saveOracleBuild(supabase, '', { class: 'Wizard' });

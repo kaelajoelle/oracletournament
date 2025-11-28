@@ -24,6 +24,9 @@ const COMMENTS_DATA_PATH = process.env.COMMENTS_DATA_PATH
 const CHARACTER_DRAFTS_PATH = process.env.CHARACTER_DRAFTS_PATH
   ? path.resolve(process.env.CHARACTER_DRAFTS_PATH)
   : path.join(path.dirname(DATA_PATH), 'character_drafts.json');
+const BUILDS_DATA_PATH = process.env.BUILDS_DATA_PATH
+  ? path.resolve(process.env.BUILDS_DATA_PATH)
+  : path.join(path.dirname(DATA_PATH), 'builds_data.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -419,6 +422,70 @@ async function saveCharacterDraft(playerKey, draftData){
     return saveCharacterDraftToSupabase(playerKey, draftData);
   }
   return saveCharacterDraftToFile(playerKey, draftData);
+}
+
+// === Local Build Store Helpers (fallback when Supabase is not configured) ===
+
+async function readLocalBuildStore(){
+  try{
+    const raw = await fs.readFile(BUILDS_DATA_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if(parsed && typeof parsed === 'object'){
+      const builds = parsed.builds && typeof parsed.builds === 'object' ? parsed.builds : {};
+      return { version: 1, builds };
+    }
+  }catch(err){
+    if(err && err.code === 'ENOENT'){
+      return { version: 1, builds: {} };
+    }
+    throw err;
+  }
+  return { version: 1, builds: {} };
+}
+
+async function writeLocalBuildStore(store){
+  const safe = {
+    version: 1,
+    builds: store && typeof store.builds === 'object' ? store.builds : {}
+  };
+  try{
+    await fs.mkdir(path.dirname(BUILDS_DATA_PATH), { recursive: true });
+  }catch{}
+  await fs.writeFile(BUILDS_DATA_PATH, JSON.stringify(safe, null, 2));
+  return safe;
+}
+
+function sanitizeBuildObject(build){
+  if(!build || typeof build !== 'object'){
+    return {};
+  }
+  try{
+    return JSON.parse(JSON.stringify(build));
+  }catch(err){
+    console.warn('Failed to serialize build payload', err);
+    return {};
+  }
+}
+
+async function loadBuildFromFile(playerKey){
+  const store = await readLocalBuildStore();
+  const entry = store.builds[playerKey];
+  if(!entry){
+    return null;
+  }
+  return sanitizeBuildObject(entry.data);
+}
+
+async function saveBuildToFile(playerKey, buildData){
+  const store = await readLocalBuildStore();
+  const data = sanitizeBuildObject(buildData);
+  const updatedAt = new Date().toISOString();
+  store.builds[playerKey] = {
+    data,
+    updatedAt
+  };
+  await writeLocalBuildStore(store);
+  return { ok: true };
 }
 
 function supabaseHeaders(extra){
@@ -1142,18 +1209,33 @@ app.delete('/api/roster/extras/:key', async (req, res) => {
 // GET /api/builds - List all saved build summaries
 app.get('/api/builds', async (req, res) => {
   try {
-    if (!supabaseClient) {
-      throw httpError(503, 'Build persistence is not configured.');
+    // Use Supabase if available
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from('build_cards')
+        .select('player_key, character_name, class, university, updated_at')
+        .order('player_key', { ascending: true });
+      if (error) {
+        console.error('list builds failed', error);
+        throw httpError(500, error.message || 'Failed to list builds');
+      }
+      return res.json(data || []);
     }
-    const { data, error } = await supabaseClient
-      .from('build_cards')
-      .select('player_key, character_name, class, university, updated_at')
-      .order('player_key', { ascending: true });
-    if (error) {
-      console.error('list builds failed', error);
-      throw httpError(500, error.message || 'Failed to list builds');
-    }
-    res.json(data || []);
+    
+    // Local file fallback - list all builds from builds_data.json
+    const store = await readLocalBuildStore();
+    const builds = Object.entries(store.builds).map(([playerKey, entry]) => {
+      const data = entry.data || {};
+      return {
+        player_key: playerKey,
+        character_name: data.characterName || data.character_name || null,
+        class: data.class || null,
+        university: data.university || null,
+        updated_at: entry.updatedAt || null
+      };
+    });
+    builds.sort((a, b) => (a.player_key || '').localeCompare(b.player_key || ''));
+    res.json(builds);
   } catch (err) {
     console.error('list builds failed', err);
     handleError(res, err);
@@ -1163,21 +1245,30 @@ app.get('/api/builds', async (req, res) => {
 // GET /api/builds/:playerKey - Load a full Oracle build
 app.get('/api/builds/:playerKey', async (req, res) => {
   try {
-    if (!supabaseClient) {
-      throw httpError(503, 'Build persistence is not configured.');
-    }
     const playerKey = rosterKey(req.params.playerKey);
     if (!playerKey) {
       return handleError(res, httpError(400, 'Player key is required.'));
     }
-    const { data, error } = await loadOracleBuild(supabaseClient, playerKey);
-    if (error) {
-      throw httpError(500, error.message || 'Failed to load build.');
+    assertNotGuestKey(playerKey);
+    
+    // Use Supabase if available, otherwise fall back to local file
+    if (supabaseClient) {
+      const { data, error } = await loadOracleBuild(supabaseClient, playerKey);
+      if (error) {
+        throw httpError(500, error.message || 'Failed to load build.');
+      }
+      if (!data) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      return res.json(data);
     }
-    if (!data) {
+    
+    // Local file fallback
+    const build = await loadBuildFromFile(playerKey);
+    if (!build) {
       return res.status(404).json({ error: 'Not found' });
     }
-    res.json(data);
+    res.json(build);
   } catch (err) {
     console.error('load build failed', err);
     handleError(res, err);
@@ -1187,9 +1278,6 @@ app.get('/api/builds/:playerKey', async (req, res) => {
 // POST /api/builds/:playerKey - Save a full Oracle build
 app.post('/api/builds/:playerKey', async (req, res) => {
   try {
-    if (!supabaseClient) {
-      throw httpError(503, 'Build persistence is not configured.');
-    }
     const playerKey = rosterKey(req.params.playerKey);
     if (!playerKey) {
       return handleError(res, httpError(400, 'Player key is required.'));
@@ -1199,13 +1287,22 @@ app.post('/api/builds/:playerKey', async (req, res) => {
     if (!build || typeof build !== 'object') {
       return handleError(res, httpError(400, 'Build data is required.'));
     }
-    const { error } = await saveOracleBuild(supabaseClient, playerKey, build);
-    if (error) {
-      console.error('saveOracleBuild failed', playerKey, error);
-      throw httpError(500, error.message || 'Failed to save build.');
+    
+    // Use Supabase if available, otherwise fall back to local file
+    if (supabaseClient) {
+      const { error } = await saveOracleBuild(supabaseClient, playerKey, build);
+      if (error) {
+        console.error('saveOracleBuild failed', playerKey, error);
+        throw httpError(500, error.message || 'Failed to save build.');
+      }
+      console.log('Saved build for player', playerKey);
+      return res.status(201).json({ ok: true });
     }
-    console.log('Saved build for player', playerKey);
-    res.json({ ok: true });
+    
+    // Local file fallback
+    await saveBuildToFile(playerKey, build);
+    console.log('Saved build to local file for player', playerKey);
+    res.status(201).json({ ok: true });
   } catch (err) {
     console.error('save build failed', err);
     handleError(res, err);
