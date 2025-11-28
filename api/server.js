@@ -454,14 +454,14 @@ async function writeLocalBuildStore(store){
   return safe;
 }
 
-function sanitizeBuildObject(build){
+function normaliseBuildData(build){
   if(!build || typeof build !== 'object'){
     return {};
   }
   try{
     return JSON.parse(JSON.stringify(build));
   }catch(err){
-    console.warn('Failed to serialize build payload', err);
+    console.warn('Failed to serialise build payload', err);
     return {};
   }
 }
@@ -472,12 +472,12 @@ async function loadBuildFromFile(playerKey){
   if(!entry){
     return null;
   }
-  return sanitizeBuildObject(entry.data);
+  return normaliseBuildData(entry.data);
 }
 
 async function saveBuildToFile(playerKey, buildData){
   const store = await readLocalBuildStore();
-  const data = sanitizeBuildObject(buildData);
+  const data = normaliseBuildData(buildData);
   const updatedAt = new Date().toISOString();
   store.builds[playerKey] = {
     data,
