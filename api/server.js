@@ -9,6 +9,8 @@ const fs = require('fs/promises');
 const { randomUUID, createHash } = require('crypto');
 
 const { createStorageAdapter } = require('./storage');
+const { saveOracleBuild, loadOracleBuild } = require('./oracleBuilds');
+const { createClient } = require('@supabase/supabase-js');
 
 const fetch = global.fetch || require('node-fetch');
 
@@ -49,6 +51,11 @@ const PLAYER_ACCESS_ADMIN_TOKEN = process.env.PLAYER_ACCESS_ADMIN_TOKEN || '';
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const useSupabaseTables = hasSupabase && SUPABASE_STORAGE_MODE === 'tables';
 const canUsePlayerAccess = hasSupabase && Boolean(SUPABASE_PLAYER_ACCESS_TABLE);
+
+// Supabase client for build persistence (using oracleBuilds helpers)
+const supabaseClient = hasSupabase
+  ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 const SUPABASE_REST_BASE = hasSupabase
   ? `${SUPABASE_URL.replace(/\/$/, '')}/rest/v1`
@@ -1127,6 +1134,57 @@ app.delete('/api/roster/extras/:key', async (req, res) => {
     res.json({ state: updated });
   }catch(err){
     console.error('remove roster failed', err);
+    handleError(res, err);
+  }
+});
+
+// === Oracle Build Persistence API ===
+// GET /api/builds/:playerKey - Load a full Oracle build
+app.get('/api/builds/:playerKey', async (req, res) => {
+  try {
+    if (!supabaseClient) {
+      throw httpError(503, 'Build persistence is not configured.');
+    }
+    const playerKey = rosterKey(req.params.playerKey);
+    if (!playerKey) {
+      return handleError(res, httpError(400, 'Player key is required.'));
+    }
+    const { data, error } = await loadOracleBuild(supabaseClient, playerKey);
+    if (error) {
+      throw httpError(500, error.message || 'Failed to load build.');
+    }
+    if (!data) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.json(data);
+  } catch (err) {
+    console.error('load build failed', err);
+    handleError(res, err);
+  }
+});
+
+// POST /api/builds/:playerKey - Save a full Oracle build
+app.post('/api/builds/:playerKey', async (req, res) => {
+  try {
+    if (!supabaseClient) {
+      throw httpError(503, 'Build persistence is not configured.');
+    }
+    const playerKey = rosterKey(req.params.playerKey);
+    if (!playerKey) {
+      return handleError(res, httpError(400, 'Player key is required.'));
+    }
+    assertNotGuestKey(playerKey);
+    const build = req.body;
+    if (!build || typeof build !== 'object') {
+      return handleError(res, httpError(400, 'Build data is required.'));
+    }
+    const { error } = await saveOracleBuild(supabaseClient, playerKey, build);
+    if (error) {
+      throw httpError(500, error.message || 'Failed to save build.');
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('save build failed', err);
     handleError(res, err);
   }
 });

@@ -868,6 +868,63 @@ import { ensureAppConfig } from '../services/config.js';
     }
   };
 
+  // Oracle Build Persistence API
+  // These functions load and save full Oracle builds via the new /api/builds endpoints
+  async function loadSavedBuildForPlayer(playerKey) {
+    if (!playerKey) {
+      console.warn('loadSavedBuildForPlayer: no playerKey provided');
+      return null;
+    }
+    try {
+      const encoded = encodeURIComponent(playerKey);
+      const response = await fetch(withApiBase(`/api/builds/${encoded}`), {
+        headers: { Accept: 'application/json' }
+      });
+      if (response.status === 404) {
+        // No saved build yet - this is fine for new players
+        return null;
+      }
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('loadSavedBuildForPlayer failed:', text);
+        return null;
+      }
+      const data = await response.json();
+      return data;
+    } catch (err) {
+      console.error('loadSavedBuildForPlayer error:', err);
+      return null;
+    }
+  }
+
+  async function saveBuildForPlayer(playerKey, build) {
+    if (!playerKey) {
+      console.warn('saveBuildForPlayer: no playerKey provided');
+      return false;
+    }
+    if (!build || typeof build !== 'object') {
+      console.warn('saveBuildForPlayer: invalid build object');
+      return false;
+    }
+    try {
+      const encoded = encodeURIComponent(playerKey);
+      const response = await fetch(withApiBase(`/api/builds/${encoded}`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(build)
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('saveBuildForPlayer failed:', text);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('saveBuildForPlayer error:', err);
+      return false;
+    }
+  }
+
   const State = {
     data:{
       meta:{version:'0.5-stable'},
@@ -891,6 +948,10 @@ import { ensureAppConfig } from '../services/config.js';
           remoteError = err;
           console.warn('Remote draft save failed', err);
         }
+        // Also save to the new /api/builds endpoint for full build persistence
+        saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot).catch(err => {
+          console.warn('Build persistence failed', err);
+        });
       }
       if(remoteDraft){
         DraftStatus.success('Draft synced to the Oracle Archives and backed up in this browser.');
@@ -2301,6 +2362,27 @@ Grand Oracle Trial: January 1</strong></p>
     }catch(err){
       console.warn('Initial sync failed', err);
       NetworkStatus.setError('Unable to reach the shared datastore. Showing cached data if available.');
+    }
+    // Load saved Oracle build for the current player
+    // Only load from remote if no local draft exists (to avoid overwriting unsaved local changes)
+    if(!IS_GUEST_SESSION && CURRENT_PLAYER_KEY){
+      const localDraft = LocalDraftStore.read();
+      if(!localDraft){
+        try{
+          const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
+          if(savedBuild && typeof savedBuild === 'object'){
+            // Hydrate State.data with the saved build
+            State.data = cloneDraftData(savedBuild);
+            LocalDraftStore.write(State.data);
+            console.info('Loaded saved build for player:', CURRENT_PLAYER_KEY);
+          }
+        }catch(err){
+          console.warn('Failed to load saved build for player', err);
+        }
+      }else{
+        // Local draft exists, use it instead of loading from remote
+        State.data = cloneDraftData(localDraft);
+      }
     }
     renderAll();
   })();
