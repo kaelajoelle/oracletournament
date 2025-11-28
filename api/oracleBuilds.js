@@ -102,7 +102,8 @@ function normalizePlayerKey(value) {
 
 /**
  * Extract standard build fields from an OracleCharacterBuild object.
- * Field precedence: characterName is preferred over character_name (camelCase first).
+ * Field precedence: characterName is preferred over character_name.
+ * This matches JavaScript naming conventions used throughout the API layer.
  * @param {object} build - The build object
  * @returns {object} Extracted fields
  */
@@ -115,7 +116,8 @@ function extractBuildFields(build) {
     };
   }
 
-  // Prefer camelCase (characterName) over snake_case (character_name) for consistency
+  // Prefer camelCase (characterName) as used in the API layer,
+  // with fallback to snake_case (character_name) from database columns
   const charName = build.characterName !== undefined 
     ? build.characterName 
     : build.character_name;
@@ -170,7 +172,7 @@ async function saveOracleBuild(supabase, playerKey, build) {
       class: fields.class,
       university: fields.university,
       character_name: fields.characterName,
-      build_data: build != null ? build : null,
+      build_data: build,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'player_key' });
 
