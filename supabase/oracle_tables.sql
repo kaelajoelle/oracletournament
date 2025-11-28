@@ -112,13 +112,13 @@ create or replace view public.player_access_overview as
 
 insert into public.sessions (id, title, dm, date, capacity, finale)
 values
-  ('s1', 'Session 01', 'Kaela & Tory', '2025-12-21', 6, false),
-  ('s2', 'Session 02', 'Kaela & Tory', '2025-12-22', 6, false),
-  ('s3', 'Session 03', 'Kaela & Tory', '2025-12-26', 6, false),
-  ('s4', 'Session 04', 'Kaela & Tory', '2025-12-27', 6, false),
-  ('s5', 'Session 05', 'Kaela & Tory', '2025-12-28', 6, false),
-  ('s6', 'Session 06', 'Kaela & Tory', '2025-12-29', 6, false),
-  ('finale', 'Grand Finale', 'Kaela & Tory', '2026-01-01', 8, true)
+  ('s1', 'Trial 1', 'Kaela &amp; Tory', '2025-12-21', 6, false),
+  ('s2', 'Trial 2', 'Kaela &amp; Tory', '2025-12-22', 6, false),
+  ('s3', 'Trial 3', 'Kaela &amp; Tory', '2025-12-26', 6, false),
+  ('s4', 'Trial 4', 'Kaela &amp; Tory', '2025-12-27', 6, false),
+  ('s5', 'Trial 5', 'Kaela &amp; Tory', '2025-12-28', 6, false),
+  ('s6', 'Trial 6', 'Kaela &amp; Tory', '2025-12-29', 6, false),
+  ('finale', 'Grand Finale', 'Kaela &amp; Tory', '2026-01-01', 8, true)
 on conflict (id) do update set
   title = excluded.title,
   dm = excluded.dm,
