@@ -1,4 +1,5 @@
 import { ensureAppConfig } from '../services/config.js';
+import { sessionHasPlayer } from '../lib/sessionsClient.js';
 
   /* =======================
      CONSTANTS & STORES
@@ -741,11 +742,57 @@ import { ensureAppConfig } from '../services/config.js';
   { name: 'Marilyn',      status: 'Pending', key: 'marilyn2025' },
     ],
     sessions:[
-    
-      {id:'s2', date:'2025-12-22', title:'Oracle Trials I', dm:'Kaela & Tory', capacity:5, players:[]},
-      {id:'s4', date:'2025-12-27', title:'Oracle Trials II', dm:'Kaela & Tory', capacity:5, players:[]},
-      {id:'s6', date:'2025-12-29', title:'Oracle Trials II', dm:'Kaela & Tory', capacity:5, players:[]},
-      {id:'finale', date:'2026-01-01', title:'Oracle Trials: Grand Finale', dm:'Kaela & Tory', capacity:8, players:[], finale:true}
+      // These are fallback sessions used when API is unavailable
+      // The canonical source of truth is api/state.json, served via /api/sessions
+      {
+        id:'trial1',
+        date:'2025-12-22',
+        title:'Trial I: The Bog Expedition',
+        theme:'Resilience & Compassion',
+        focus:'Problem-solving, teamwork, and moral decisions under pressure.',
+        setting:'Witherbloom\'s Detention Bog.',
+        premise:'Assist Witherbloom faculty in recovering lost alchemical crates.',
+        dm:'Kaela & Tory',
+        capacity:6,
+        players:[]
+      },
+      {
+        id:'trial2',
+        date:'2025-12-27',
+        title:'Trial II: The Masquerade of Mirrors',
+        theme:'Wisdom & Integrity',
+        focus:'Deception, charm, and truth-seeking.',
+        setting:'The Winter Masquerade Ball (Silverquill × Prismari).',
+        premise:'Attend an extravagant gala where factions vie for influence.',
+        dm:'Kaela & Tory',
+        capacity:6,
+        players:[]
+      },
+      {
+        id:'trial3',
+        date:'2025-12-29',
+        title:'Trial III: The Trial of the Ruins',
+        theme:'Courage & Judgement',
+        focus:'Exploration, strategy, and moral courage.',
+        setting:'The Fortress Badlands.',
+        premise:'Retrieve relics from ancient battlefields — a test of bravery.',
+        dm:'Kaela & Tory',
+        capacity:6,
+        players:[]
+      },
+      {
+        id:'finale',
+        date:'2026-01-01',
+        title:'Finale: The Oracle\'s Convergence',
+        theme:'Unity, Insight & Destiny',
+        focus:'Hybrid roleplay + tournament-style mini-games.',
+        setting:'The Oracle Tower materializes as the new year\'s bells ring.',
+        premise:'Chaos erupts as the unstable Oracle spirit manifests. Challenges of insight, power, and heart determine the Oracle\'s Apprentice.',
+        dm:'Kaela & Tory',
+        capacity:12,
+        finale:true,
+        players:[]
+      }
     ]
   };
 
@@ -1024,6 +1071,8 @@ function renderSessionCards(container, opts={readOnly:false}){
     .forEach(s=>{
       const filled = (s.players||[]).length;
       const full = filled>=s.capacity;
+      // Check if current player is in this session (handles null/undefined CURRENT_PLAYER_KEY safely)
+      const playerInSession = CURRENT_PLAYER_KEY ? sessionHasPlayer(s, CURRENT_PLAYER_KEY) : false;
       const roster = filled
         ? (Array.isArray(s.players) ? s.players : []).map(player=>{
             const b = player && player.key ? builds[player.key] : null;
@@ -1034,19 +1083,31 @@ function renderSessionCards(container, opts={readOnly:false}){
               extra = ` — <span class="muted">${classLabel} • ${uniLabel}</span>`;
             }
             const label = escapeHTML(player && (player.character || player.name || player.playerName || 'Player'));
-            return `<div class="pill"><span>${label}</span>${extra}</div>`;
+            // Highlight the current player's entry
+            const isCurrentPlayer = rosterKey(player && player.key) === CURRENT_PLAYER_KEY;
+            const pillClass = isCurrentPlayer ? 'pill pill--highlight' : 'pill';
+            return `<div class="${pillClass}"><span>${label}</span>${extra}</div>`;
           }).join('')
         : '<span class="muted">No players yet</span>';
 
       const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
       const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
+      
+      // Display enriched trial metadata
+      const themeInfo = s.theme ? `<div class="muted"><strong>Theme:</strong> ${escapeHTML(s.theme)}</div>` : '';
+      const focusInfo = s.focus ? `<div class="muted"><strong>Focus:</strong> ${escapeHTML(s.focus)}</div>` : '';
+      const finaleIndicator = s.finale ? '<span class="tag tag--finale">★ Finale</span>' : '';
+      const playerIndicator = playerInSession ? '<span class="tag tag--joined">✓ Joined</span>' : '';
 
-      const card = document.createElement('div'); card.className='card';
+      const card = document.createElement('div'); 
+      card.className = playerInSession ? 'card card--joined' : 'card';
       card.innerHTML = `
         <div class="flex" style="justify-content:space-between">
           <div>
-            <strong>${s.title}</strong>
-            <div class="muted">${s.date} • DM: ${s.dm} • Capacity: ${filled}/${s.capacity}</div>
+            <strong>${escapeHTML(s.title)}</strong> ${finaleIndicator} ${playerIndicator}
+            <div class="muted">${escapeHTML(s.date)} • DM: ${escapeHTML(s.dm || '')} • Capacity: ${filled}/${s.capacity}</div>
+            ${themeInfo}
+            ${focusInfo}
             <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
             ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
             ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
