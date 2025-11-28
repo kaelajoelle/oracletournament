@@ -935,10 +935,11 @@ import { ensureAppConfig } from '../services/config.js';
     async save(){
       const snapshot = cloneDraftData(this.data);
       LocalDraftStore.write(snapshot);
+      DraftStatus.info('Draft saved locally.');
       
       if(!IS_GUEST_SESSION){
         // Persist to Supabase via /api/builds endpoint (fire-and-forget)
-        DraftStatus.info('Draft saved locally. Syncing to the Oracle Archives…');
+        // saveBuildForPlayer handles its own errors and returns boolean
         saveBuildForPlayer(CURRENT_PLAYER_KEY, snapshot).then(ok => {
           if(ok){
             console.info('Build synced to Oracle Archives via /api/builds');
@@ -965,23 +966,17 @@ import { ensureAppConfig } from '../services/config.js';
       }
       
       // If not guest and no local draft, try to load from /api/builds
+      // loadSavedBuildForPlayer handles its own errors and returns null on failure
       if(!IS_GUEST_SESSION){
-        try{
-          const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
-          if(savedBuild && typeof savedBuild === 'object'){
-            this.data = cloneDraftData(savedBuild);
-            LocalDraftStore.write(this.data);
-            renderAll();
-            DraftStatus.success('Draft loaded from the Oracle Archives.');
-            return true;
-          }
-          // No saved build found in remote - fall through to "no drafts" message
-        }catch(err){
-          console.warn('Failed to load saved build from /api/builds', err);
-          DraftStatus.error('Network error: Unable to reach the Oracle Archives.');
-          alert('Network error when contacting the Oracle Archives. No local draft found either. Save a character once you are back online.');
-          return false;
+        const savedBuild = await loadSavedBuildForPlayer(CURRENT_PLAYER_KEY);
+        if(savedBuild && typeof savedBuild === 'object'){
+          this.data = cloneDraftData(savedBuild);
+          LocalDraftStore.write(this.data);
+          renderAll();
+          DraftStatus.success('Draft loaded from the Oracle Archives.');
+          return true;
         }
+        // No saved build found in Oracle Archives - fall through to "no drafts" message
       }
       
       DraftStatus.error('No saved drafts yet.');
