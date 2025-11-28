@@ -449,14 +449,7 @@ async function writeLocalBuildStore(store){
     version: 1,
     builds: store && typeof store.builds === 'object' ? store.builds : {}
   };
-  try{
-    await fs.mkdir(path.dirname(BUILDS_DATA_PATH), { recursive: true });
-  }catch(err){
-    // Ignore EEXIST errors for existing directories
-    if(err && err.code !== 'EEXIST'){
-      console.warn('mkdir warning for builds store:', err.message || err);
-    }
-  }
+  await fs.mkdir(path.dirname(BUILDS_DATA_PATH), { recursive: true });
   await fs.writeFile(BUILDS_DATA_PATH, JSON.stringify(safe, null, 2));
   return safe;
 }
