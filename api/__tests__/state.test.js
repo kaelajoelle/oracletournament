@@ -192,3 +192,111 @@ test('GET /api/sessions/:id returns single session', async (t) => {
     delete require.cache[require.resolve('../server')];
   }
 });
+
+test('POST /api/admin/reload requires authentication', async (t) => {
+  const testSessions = [
+    {
+      id: 'trial1',
+      title: 'Trial I: Test',
+      date: '2025-12-22',
+      capacity: 6,
+      players: []
+    }
+  ];
+
+  const testState = {
+    sessions: testSessions,
+    rosterExtras: [],
+    rosterMeta: {},
+    buildCards: {}
+  };
+
+  const { filePath } = await createStateFile(testState);
+  const originalDataPath = process.env.DATA_PATH;
+  const originalAdminToken = process.env.PLAYER_ACCESS_ADMIN_TOKEN;
+  
+  try {
+    process.env.DATA_PATH = filePath;
+    process.env.PLAYER_ACCESS_ADMIN_TOKEN = 'test-admin-token';
+    delete require.cache[require.resolve('../server')];
+    
+    const app = require('../server');
+    
+    // Test without token - should be unauthorized
+    const noTokenResponse = await request(app).post('/api/admin/reload');
+    assert.equal(noTokenResponse.status, 401);
+    
+    // Test with wrong token - should be unauthorized
+    const wrongTokenResponse = await request(app)
+      .post('/api/admin/reload')
+      .set('x-admin-token', 'wrong-token');
+    assert.equal(wrongTokenResponse.status, 401);
+    
+    // Test with correct token - should succeed
+    const correctTokenResponse = await request(app)
+      .post('/api/admin/reload')
+      .set('x-admin-token', 'test-admin-token');
+    assert.equal(correctTokenResponse.status, 200);
+    assert.equal(correctTokenResponse.body.ok, true);
+    assert.equal(correctTokenResponse.body.sessionCount, 1);
+  } finally {
+    if (originalDataPath !== undefined) {
+      process.env.DATA_PATH = originalDataPath;
+    } else {
+      delete process.env.DATA_PATH;
+    }
+    if (originalAdminToken !== undefined) {
+      process.env.PLAYER_ACCESS_ADMIN_TOKEN = originalAdminToken;
+    } else {
+      delete process.env.PLAYER_ACCESS_ADMIN_TOKEN;
+    }
+    delete require.cache[require.resolve('../server')];
+  }
+});
+
+test('POST /api/admin/reload is disabled when no admin token configured', async (t) => {
+  const testSessions = [
+    {
+      id: 'trial1',
+      title: 'Trial I: Test',
+      date: '2025-12-22',
+      capacity: 6,
+      players: []
+    }
+  ];
+
+  const testState = {
+    sessions: testSessions,
+    rosterExtras: [],
+    rosterMeta: {},
+    buildCards: {}
+  };
+
+  const { filePath } = await createStateFile(testState);
+  const originalDataPath = process.env.DATA_PATH;
+  const originalAdminToken = process.env.PLAYER_ACCESS_ADMIN_TOKEN;
+  
+  try {
+    process.env.DATA_PATH = filePath;
+    delete process.env.PLAYER_ACCESS_ADMIN_TOKEN; // No admin token configured
+    delete require.cache[require.resolve('../server')];
+    
+    const app = require('../server');
+    
+    // Should return 503 when admin token is not configured
+    const response = await request(app).post('/api/admin/reload');
+    assert.equal(response.status, 503);
+  } finally {
+    if (originalDataPath !== undefined) {
+      process.env.DATA_PATH = originalDataPath;
+    } else {
+      delete process.env.DATA_PATH;
+    }
+    if (originalAdminToken !== undefined) {
+      process.env.PLAYER_ACCESS_ADMIN_TOKEN = originalAdminToken;
+    } else {
+      delete process.env.PLAYER_ACCESS_ADMIN_TOKEN;
+    }
+    delete require.cache[require.resolve('../server')];
+  }
+});

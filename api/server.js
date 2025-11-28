@@ -1083,9 +1083,19 @@ app.get('/api/sessions/:id', async (req, res) => {
 /**
  * POST /api/admin/reload - Hot-reload state.json (optional admin endpoint)
  * This allows re-reading the canonical session data without server restart
+ * Requires admin token for authorization
  */
 app.post('/api/admin/reload', async (req, res) => {
   try {
+    // Require admin token for authorization
+    if(!PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(503, 'Admin reload is disabled (no admin token configured).');
+    }
+    const providedToken = sanitizeOptional(req.header('x-admin-token') || req.body?.adminToken);
+    if(providedToken !== PLAYER_ACCESS_ADMIN_TOKEN){
+      throw httpError(401, 'Unauthorized');
+    }
+    
     // Force reload the state from disk
     const state = await loadState();
     res.json({

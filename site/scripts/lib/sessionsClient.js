@@ -2,10 +2,16 @@
  * Sessions Client
  * Lightweight helper for fetching session data from the /sessions endpoint.
  * This is the single source of truth for session data in the frontend.
+ * 
+ * TODO: These functions are ready for use when the frontend is updated to fetch
+ * sessions via the new /api/sessions endpoint instead of /api/state. Currently
+ * the app uses SharedState.refresh() which calls /api/state. Migration to use
+ * these helpers would complete the frontend's alignment with the new session API.
  */
 
 /**
  * Fetch all sessions from the API
+ * TODO: Use this instead of fetching sessions via /api/state for cleaner separation
  * @param {string} apiBaseUrl - Base URL for the API (e.g., '/api' or 'https://api.example.com')
  * @returns {Promise<{sessions: Array, error: string|null}>}
  */
@@ -31,6 +37,7 @@ export async function fetchSessions(apiBaseUrl = '/api') {
 
 /**
  * Fetch a single session by ID
+ * TODO: Use this for session detail views when migrating away from /api/state
  * @param {string} sessionId - The session ID to fetch
  * @param {string} apiBaseUrl - Base URL for the API
  * @returns {Promise<{session: object|null, error: string|null}>}
@@ -82,6 +89,7 @@ export function sessionHasPlayer(session, playerKey) {
 
 /**
  * Get a deep copy of sessions to avoid accidental mutation
+ * TODO: Use this when caching sessions locally to prevent state corruption
  * @param {Array} sessions - Array of session objects
  * @returns {Array}
  */
