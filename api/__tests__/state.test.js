@@ -12,20 +12,39 @@ async function createStateFile(initialState){
   return { dir, filePath };
 }
 
-test('GET /api/state merges stored data with default sessions', async (t) => {
-  const partialState = {
-    sessions: [
-      {
-        id: 's1',
-        title: 'Custom Session 1',
-        players: [
-          { character: 'Zia', key: 'zia' }
-        ]
-      }
-    ]
+test('GET /api/state returns sessions from state.json', async (t) => {
+  const testSessions = [
+    {
+      id: 'test-trial1',
+      title: 'Test Trial I',
+      date: '2025-12-22',
+      theme: 'Test Theme',
+      focus: 'Test Focus',
+      setting: 'Test Setting',
+      premise: 'Test Premise',
+      dm: 'Test DM',
+      capacity: 6,
+      players: [
+        { key: 'player1', character: 'Character 1' }
+      ]
+    },
+    {
+      id: 'test-trial2',
+      title: 'Test Trial II',
+      date: '2025-12-27',
+      capacity: 6,
+      players: []
+    }
+  ];
+
+  const testState = {
+    sessions: testSessions,
+    rosterExtras: [],
+    rosterMeta: {},
+    buildCards: {}
   };
 
-  const { filePath } = await createStateFile(partialState);
+  const { filePath } = await createStateFile(testState);
   const originalDataPath = process.env.DATA_PATH;
   
   try {
@@ -40,18 +59,18 @@ test('GET /api/state merges stored data with default sessions', async (t) => {
     assert.equal(response.status, 200);
     const { state } = response.body;
     assert.ok(state.sessions);
+    assert.equal(state.sessions.length, 2);
 
-    const customSession = state.sessions.find(session => session.id === 's1');
-    assert.ok(customSession);
-    assert.equal(customSession.title, 'Custom Session 1');
-    assert.ok(customSession.players.some(p => p.key === 'zia' && p.character === 'Zia'));
+    const trial1 = state.sessions.find(session => session.id === 'test-trial1');
+    assert.ok(trial1);
+    assert.equal(trial1.title, 'Test Trial I');
+    assert.equal(trial1.theme, 'Test Theme');
+    assert.ok(trial1.players.some(p => p.key === 'player1' && p.character === 'Character 1'));
 
-    const expectedSessionCount = require('../server').DEFAULT_STATE.sessions.length;
-    assert.equal(state.sessions.length, expectedSessionCount);
-
-    const fallbackSession = state.sessions.find(session => session.id === 's2');
-    assert.ok(fallbackSession);
-    assert.ok(Array.isArray(fallbackSession.players));
+    const trial2 = state.sessions.find(session => session.id === 'test-trial2');
+    assert.ok(trial2);
+    assert.equal(trial2.title, 'Test Trial II');
+    assert.ok(Array.isArray(trial2.players));
   } finally {
     // Restore original DATA_PATH
     if (originalDataPath !== undefined) {
@@ -60,6 +79,116 @@ test('GET /api/state merges stored data with default sessions', async (t) => {
       delete process.env.DATA_PATH;
     }
     // Clear the require cache again to ensure clean state
+    delete require.cache[require.resolve('../server')];
+  }
+});
+
+test('GET /api/sessions returns all sessions', async (t) => {
+  const testSessions = [
+    {
+      id: 'trial1',
+      title: 'Trial I: Test',
+      date: '2025-12-22',
+      theme: 'Test Theme',
+      focus: 'Test Focus',
+      dm: 'Test DM',
+      capacity: 6,
+      players: []
+    },
+    {
+      id: 'finale',
+      title: 'Finale: Test',
+      date: '2026-01-01',
+      capacity: 12,
+      finale: true,
+      players: []
+    }
+  ];
+
+  const testState = {
+    sessions: testSessions,
+    rosterExtras: [],
+    rosterMeta: {},
+    buildCards: {}
+  };
+
+  const { filePath } = await createStateFile(testState);
+  const originalDataPath = process.env.DATA_PATH;
+  
+  try {
+    process.env.DATA_PATH = filePath;
+    delete require.cache[require.resolve('../server')];
+    
+    const app = require('../server');
+    const response = await request(app).get('/api/sessions');
+
+    assert.equal(response.status, 200);
+    const { sessions } = response.body;
+    assert.ok(Array.isArray(sessions));
+    assert.equal(sessions.length, 2);
+    
+    const finale = sessions.find(s => s.id === 'finale');
+    assert.ok(finale);
+    assert.equal(finale.finale, true);
+    assert.equal(finale.capacity, 12);
+  } finally {
+    if (originalDataPath !== undefined) {
+      process.env.DATA_PATH = originalDataPath;
+    } else {
+      delete process.env.DATA_PATH;
+    }
+    delete require.cache[require.resolve('../server')];
+  }
+});
+
+test('GET /api/sessions/:id returns single session', async (t) => {
+  const testSessions = [
+    {
+      id: 'trial1',
+      title: 'Trial I: Test',
+      date: '2025-12-22',
+      theme: 'Test Theme',
+      focus: 'Test Focus',
+      dm: 'Test DM',
+      capacity: 6,
+      players: [{ key: 'player1', character: 'Char1' }]
+    }
+  ];
+
+  const testState = {
+    sessions: testSessions,
+    rosterExtras: [],
+    rosterMeta: {},
+    buildCards: {}
+  };
+
+  const { filePath } = await createStateFile(testState);
+  const originalDataPath = process.env.DATA_PATH;
+  
+  try {
+    process.env.DATA_PATH = filePath;
+    delete require.cache[require.resolve('../server')];
+    
+    const app = require('../server');
+    
+    // Test existing session
+    const response = await request(app).get('/api/sessions/trial1');
+    assert.equal(response.status, 200);
+    const { session } = response.body;
+    assert.ok(session);
+    assert.equal(session.id, 'trial1');
+    assert.equal(session.title, 'Trial I: Test');
+    assert.equal(session.theme, 'Test Theme');
+    
+    // Test non-existent session
+    const notFoundResponse = await request(app).get('/api/sessions/nonexistent');
+    assert.equal(notFoundResponse.status, 404);
+  } finally {
+    if (originalDataPath !== undefined) {
+      process.env.DATA_PATH = originalDataPath;
+    } else {
+      delete process.env.DATA_PATH;
+    }
     delete require.cache[require.resolve('../server')];
   }
 });

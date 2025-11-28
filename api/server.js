@@ -6,6 +6,7 @@ require('dotenv').config({ path: path.join(__dirname, '..', 'scripts', '.env'), 
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs/promises');
+const fsSync = require('fs');
 const { randomUUID, createHash } = require('crypto');
 
 const { createStorageAdapter } = require('./storage');
@@ -69,75 +70,42 @@ const SUPABASE_REST_URL = hasSupabase
 
 const GUEST_PLAYER_KEY = 'guest';
 
-const DEFAULT_SESSIONS = [
-  {
-    id: 'trial1',
-    date: '2025-12-22',
-    title: 'Trial I: The Bog Expedition',
-    theme: 'Resilience & Compassion',
-    focus: 'Problem-solving, teamwork, and moral decisions under pressure.',
-    setting: 'Witherbloom’s Detention Bog.',
-    premise: 'Assist Witherbloom faculty in recovering lost alchemical crates.',
-    dm: 'Kaela & Tory',
-    capacity: 6,
-    players: [
-      { key: 'amy', character: 'Amy', playerName: 'Amy' },
-      { key: 'trevor', character: 'Trevor', playerName: 'Trevor' },
-      { key: 'marilyn', character: 'Marilyn', playerName: 'Marilyn' },
-      { key: 'jocelyn', character: 'Jocelyn', playerName: 'Jocelyn' },
-      { key: 'emory', character: 'Emory', playerName: 'Emory' },
-    ],
-  },
-  {
-    id: 'trial2',
-    date: '2025-12-27',
-    title: 'Trial II: The Masquerade of Mirrors',
-    theme: 'Wisdom & Integrity',
-    focus: 'Deception, charm, and truth-seeking.',
-    setting: 'The Winter Masquerade Ball (Silverquill × Prismari).',
-    premise: 'Attend an extravagant gala where factions vie for influence.',
-    dm: 'Kaela & Tory',
-    capacity: 6,
-    players: [
-      { key: 'melissa', character: 'Melissa', playerName: 'Melissa' },
-      { key: 'becca', character: 'Becca', playerName: 'Becca' },
-      { key: 'evan', character: 'Evan', playerName: 'Evan' },
-      { key: 'erin', character: 'Erin', playerName: 'Erin' },
-      { key: 'nicole', character: 'Nicole', playerName: 'Nicole' },
-      { key: 'spencer', character: 'Spencer', playerName: 'Spencer' },
-    ],
-  },
-  {
-    id: 'trial3',
-    date: '2025-12-29',
-    title: 'Trial III: The Trial of the Ruins',
-    theme: 'Courage & Judgement',
-    focus: 'Exploration, strategy, and moral courage.',
-    setting: 'The Fortress Badlands.',
-    premise: 'Retrieve relics from ancient battlefields — a test of bravery.',
-    dm: 'Kaela & Tory',
-    capacity: 6,
-    players: [
-      { key: 'josh', character: 'Josh', playerName: 'Josh' },
-      { key: 'nova', character: 'Nova', playerName: 'Nova' },
-      { key: 'snack erin', character: 'Snack Erin', playerName: 'Snack Erin' },
-      { key: 'colby', character: 'Colby', playerName: 'Colby' },
-    ],
-  },
-  {
-    id: 'finale',
-    date: '2026-01-01',
-    title: 'Finale: The Oracle’s Convergence',
-    theme: 'Unity, Insight & Destiny',
-    focus: 'Hybrid roleplay + tournament-style mini-games.',
-    setting: 'The Oracle Tower materializes as the new year’s bells ring.',
-    premise: 'Chaos erupts as the unstable Oracle spirit manifests. Challenges of insight, power, and heart determine the Oracle’s Apprentice.',
-    dm: 'Kaela & Tory',
-    capacity: 12,
-    players: [],
-    finale: true,
-  },
-];
+/**
+ * Loads canonical sessions from state.json at startup.
+ * This is the single source of truth for session definitions.
+ * Falls back to an empty array if the file is missing or malformed.
+ */
+function loadCanonicalSessions() {
+  try {
+    const raw = fsSync.readFileSync(DATA_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.sessions)) {
+      return parsed.sessions.map(session => {
+        if (!session || typeof session !== 'object' || !session.id) return null;
+        return {
+          id: String(session.id || '').trim(),
+          date: String(session.date || '').trim(),
+          title: String(session.title || '').trim(),
+          theme: String(session.theme || '').trim(),
+          focus: String(session.focus || '').trim(),
+          setting: String(session.setting || '').trim(),
+          premise: String(session.premise || '').trim(),
+          dm: String(session.dm || '').trim(),
+          capacity: Number.isFinite(Number(session.capacity)) ? Number(session.capacity) : 0,
+          finale: Boolean(session.finale),
+          players: Array.isArray(session.players) ? session.players : []
+        };
+      }).filter(Boolean);
+    }
+  } catch (err) {
+    console.warn('Failed to load canonical sessions from state.json:', err.message);
+  }
+  return [];
+}
+
+// Canonical sessions loaded from state.json at startup
+// This is the single source of truth - no hardcoded session definitions
+const DEFAULT_SESSIONS = loadCanonicalSessions();
 
 
 const DEFAULT_STATE = {
@@ -1058,6 +1026,74 @@ app.get('/api/state', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/sessions - Returns all sessions with enriched trial metadata
+ * This endpoint serves the canonical session data from state.json
+ */
+app.get('/api/sessions', async (req, res) => {
+  try {
+    const state = await loadState();
+    // Return a deep copy to avoid accidental mutation
+    const sessions = state.sessions.map(session => ({
+      ...session,
+      players: Array.isArray(session.players)
+        ? session.players.map(player => ({ ...player }))
+        : []
+    }));
+    res.json({ sessions });
+  } catch (err) {
+    console.error('sessions fetch failed', err);
+    handleError(res, err);
+  }
+});
+
+/**
+ * GET /api/sessions/:id - Returns a single session by id
+ */
+app.get('/api/sessions/:id', async (req, res) => {
+  const sessionId = sanitizeOptional(req.params.id);
+  if (!sessionId) {
+    return handleError(res, httpError(400, 'Session id is required.'));
+  }
+  try {
+    const state = await loadState();
+    const session = state.sessions.find(s => s.id === sessionId);
+    if (!session) {
+      return handleError(res, httpError(404, 'Session not found.'));
+    }
+    // Return a deep copy to avoid accidental mutation
+    const result = {
+      ...session,
+      players: Array.isArray(session.players)
+        ? session.players.map(player => ({ ...player }))
+        : []
+    };
+    res.json({ session: result });
+  } catch (err) {
+    console.error('session fetch failed', err);
+    handleError(res, err);
+  }
+});
+
+/**
+ * POST /api/admin/reload - Hot-reload state.json (optional admin endpoint)
+ * This allows re-reading the canonical session data without server restart
+ */
+app.post('/api/admin/reload', async (req, res) => {
+  try {
+    // Force reload the state from disk
+    const state = await loadState();
+    res.json({
+      ok: true,
+      message: 'State reloaded successfully.',
+      sessionCount: state.sessions.length
+    });
+  } catch (err) {
+    console.error('reload failed', err);
+    handleError(res, err);
+  }
+});
+
 app.post('/api/sessions/:id/join', async (req, res) => {
   const sessionId = sanitizeOptional(req.params.id);
   const characterName = sanitizeName(req.body?.characterName || req.body?.name);
@@ -1382,5 +1418,7 @@ if(require.main === module){
 
 module.exports = app;
 module.exports.DEFAULT_STATE = DEFAULT_STATE;
+module.exports.DEFAULT_SESSIONS = DEFAULT_SESSIONS;
+module.exports.loadCanonicalSessions = loadCanonicalSessions;
 module.exports.normaliseState = normaliseState;
 module.exports.replaceSupabaseTablesState = replaceSupabaseTablesState;
