@@ -1112,6 +1112,47 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     color:var(--ink);
   }
 
+  /* =============== DASHBOARD PANEL =============== */
+  .dashboard-panel{
+    margin-bottom:1.25rem;
+  }
+  .dashboard-grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:1rem;
+  }
+  .dashboard-card{
+    background:var(--panel);
+    border:2px solid var(--border);
+    border-radius:12px;
+    padding:1rem 1.1rem;
+    box-shadow:0 2px 6px rgba(0,0,0,.06);
+  }
+  .dashboard-title{
+    margin:0 0 .65rem;
+    font-family:'IM Fell English SC',serif;
+    font-size:1.15rem;
+    color:var(--ink);
+  }
+  .dashboard-stat{
+    font-size:1.05rem;
+    margin-bottom:.35rem;
+  }
+  .dashboard-detail{
+    font-size:.9rem;
+    color:var(--muted);
+    margin-bottom:.25rem;
+  }
+  .dashboard-empty{
+    font-style:italic;
+    color:var(--muted);
+    margin-bottom:.35rem;
+  }
+  .dashboard-btn{
+    margin-top:.75rem;
+    width:100%;
+  }
+
   /* =============== MOBILE BUILDER POLISH =============== */
   @media (max-width:768px){
     /* Header & title */
@@ -1267,6 +1308,22 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     .player-banner__logout{
       padding:5px 12px;
       font-size:.8rem;
+    }
+
+    /* Dashboard on mobile */
+    .dashboard-grid{
+      grid-template-columns:1fr;
+      gap:.75rem;
+    }
+    .dashboard-card{
+      padding:.85rem;
+    }
+    .dashboard-title{
+      font-size:1rem;
+      margin-bottom:.5rem;
+    }
+    .dashboard-stat{
+      font-size:.95rem;
     }
   }
 

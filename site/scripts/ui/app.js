@@ -1031,6 +1031,91 @@ function handleLogout() {
   /* =======================
      HELPERS
   ======================= */
+
+// Dashboard: renders "My Character" and "My Session" summary cards
+function renderDashboard() {
+  // My Character card
+  const core = State.data?.core || {};
+  const uni = State.data?.university || {};
+  const hasCharacter = core.name && core.name.trim().length > 0;
+  
+  let characterContent = '';
+  if (hasCharacter) {
+    const charName = escapeHTML(core.name || '');
+    const charClass = escapeHTML(core.class || 'No class');
+    const charLevel = core.level || '?';
+    const uniKey = uni.key || '';
+    const uniName = uniKey ? ((DATA.universities || []).find(u => u.key === uniKey)?.name || uniKey) : 'No college';
+    characterContent = `
+      <div class="dashboard-stat"><strong>${charName}</strong></div>
+      <div class="dashboard-detail">${charClass} • Level ${charLevel}</div>
+      <div class="dashboard-detail">${escapeHTML(uniName)}</div>
+      <button class="secondary dashboard-btn" data-nav="builder">Edit Character →</button>
+    `;
+  } else {
+    characterContent = `
+      <div class="dashboard-empty">No character saved yet.</div>
+      <div class="muted">Visit the Character Builder step to get started.</div>
+      <button class="primary dashboard-btn" data-nav="builder">Create Character →</button>
+    `;
+  }
+
+  // My Session card
+  const sessions = State.sessions || [];
+  let playerSession = null;
+  for (const s of sessions) {
+    if (CURRENT_PLAYER_KEY && sessionHasPlayer(s, CURRENT_PLAYER_KEY)) {
+      playerSession = s;
+      break;
+    }
+  }
+
+  let sessionContent = '';
+  if (playerSession) {
+    const filled = (playerSession.players || []).length;
+    sessionContent = `
+      <div class="dashboard-stat"><strong>${escapeHTML(playerSession.title)}</strong></div>
+      <div class="dashboard-detail">${escapeHTML(playerSession.date)} • DM: ${escapeHTML(playerSession.dm || 'TBD')}</div>
+      <div class="dashboard-detail">Capacity: ${filled}/${playerSession.capacity}</div>
+      <button class="secondary dashboard-btn" data-nav="join">View Sessions →</button>
+    `;
+  } else {
+    sessionContent = `
+      <div class="dashboard-empty">You have not joined a Trial yet.</div>
+      <div class="muted">Pick a session to reserve your seat.</div>
+      <button class="primary dashboard-btn" data-nav="join">Join a Session →</button>
+    `;
+  }
+
+  return `
+<div class="dashboard-panel">
+  <div class="dashboard-grid">
+    <div class="dashboard-card" id="dashboard-character">
+      <h4 class="dashboard-title">📜 My Character</h4>
+      ${characterContent}
+    </div>
+    <div class="dashboard-card" id="dashboard-session">
+      <h4 class="dashboard-title">🎭 My Session</h4>
+      ${sessionContent}
+    </div>
+  </div>
+</div>
+`;
+}
+
+// Wire up dashboard navigation buttons
+function bindDashboardNav(container) {
+  container.querySelectorAll('button[data-nav]').forEach(btn => {
+    btn.onclick = () => {
+      const target = btn.dataset.nav;
+      if (!STEPS) return;
+      const idx = STEPS.findIndex(s => s.key === target);
+      if (idx >= 0) {
+        activateStep(idx, true);
+      }
+    };
+  });
+}
     
 function buildReady() {
   const c = State.data.core || {};
@@ -1665,7 +1750,11 @@ const STEPS = [
 function panelIntro(){
   const p = document.createElement('div');
   p.className = 'panel';
-  p.innerHTML = `
+  
+  // Build the dashboard content
+  const dashboardHtml = renderDashboard();
+  
+  p.innerHTML = dashboardHtml + `
 <details class="scroll-letter" open>
   <summary>
     <span class="seal">✶</span>
@@ -1865,6 +1954,7 @@ Grand Oracle Trial: January 1</strong></p>
   `;
   setupCommentBoard(p);
   hydrateQuestBoard(p);
+  bindDashboardNav(p);
   return p;
 }
 
