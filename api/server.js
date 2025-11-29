@@ -708,7 +708,8 @@ const storage = createStorageAdapter({
     normaliseState,
   },
   supabaseTables: {
-    defaultSessions: DEFAULT_SESSIONS,
+    // In tables mode, sessions come exclusively from the database - no defaults
+    defaultSessions: [],
     normaliseState,
     sanitizeName,
     sanitizeOptional,

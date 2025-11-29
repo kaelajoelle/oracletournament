@@ -672,35 +672,35 @@ function handleLogout() {
     levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
     abilityArrays:{ standard:[15,14,13,12,10,8] },
     universities:[
-      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', spells:{
+      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', flavour:'Delve into the past with spirits and flame. History is never dead here.', spells:{
           1:['Comprehend Languages','Identify'],
           2:['Borrowed Knowledge','Locate Object'],
           3:['Speak with Dead','Spirit Guardians'],
           4:['Arcane Eye','Stone Shape'],
           5:['Flame Strike','Legend Lore']
       }},
-      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', spells:{
+      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', flavour:'Express yourself through elemental fury. Art meets raw magical power.', spells:{
           1:['Chromatic Orb','Thunderwave'],
           2:['Flaming Sphere','Kinetic Jaunt'],
           3:['Haste','Water Walk'],
           4:['Freedom of Movement','Wall of Fire'],
           5:['Cone of Cold','Conjure Elemental']
       }},
-      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', spells:{
+      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', flavour:'Bend reality with mathematics. Nature obeys those who understand its formulas.', spells:{
           1:['Entangle','Guiding Bolt'],
           2:['Enlarge/Reduce','Vortex Warp'],
           3:['Aura of Vitality','Haste'],
           4:['Control Water','Freedom of Movement'],
           5:['Circle of Power','Passwall']
       }},
-      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', spells:{
+      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', flavour:'Words cut deeper than blades. Master the magic of eloquence and shadow.', spells:{
           1:['Dissonant Whispers','Silvery Barbs'],
           2:['Calm Emotions','Darkness'],
           3:['Beacon of Hope','Daylight'],
           4:['Compulsion','Confusion'],
           5:['Dominate Person','Rary’s Telepathic Bond']
       }},
-      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', spells:{
+      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', flavour:'Life and death are two sides of one coin. Embrace the cycle and thrive.', spells:{
           1:['Cure Wounds','Inflict Wounds'],
           2:['Lesser Restoration','Wither and Bloom'],
           3:['Revivify','Vampiric Touch'],
@@ -2021,15 +2021,12 @@ Grand Oracle Trial: January 1</strong></p>
             <small class="muted">Select your college</small>
           </summary>
           <div class="section-body">
-            <div class="grid cols-2">
-              <div>
-                <label>Choose University</label>
-                <select id="uni"></select>
-              </div>
-              <div>
-                <label>Strixhaven Initiate — Spellcasting Ability</label>
-                <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-              </div>
+            <label style="display:block;margin-bottom:8px;">Choose your College</label>
+            <div id="college_cards" class="college-grid" role="radiogroup" aria-label="Choose a college"></div>
+            <input type="hidden" id="uni" value="" />
+            <div style="margin-top:14px;">
+              <label>Strixhaven Initiate — Spellcasting Ability</label>
+              <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
             </div>
             <div id="uni_info" class="card" style="margin-top:10px"></div>
             <div class="section-actions">
@@ -2162,12 +2159,104 @@ Grand Oracle Trial: January 1</strong></p>
       State.save().catch(err => console.error('Failed to persist core setup', err));
     };
 
-    // University
+    // University - render college cards
     const sel=p.querySelector('#uni');
-    sel.innerHTML = `<option value="">— Select —</option>`+DATA.universities.map(u=>`<option value="${u.key}">${u.name}</option>`).join('');
+    const collegeGrid = p.querySelector('#college_cards');
+    
+    function updateTabindices(){
+      const cards = collegeGrid.querySelectorAll('.college-card');
+      const selectedCard = collegeGrid.querySelector('.college-card[aria-selected="true"]');
+      cards.forEach((card, idx) => {
+        // First card or selected card gets tabindex 0, others get -1
+        if(selectedCard){
+          card.setAttribute('tabindex', card === selectedCard ? '0' : '-1');
+        } else {
+          card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+        }
+      });
+    }
+    
+    function focusCardByIndex(cards, index){
+      if(index < 0) index = cards.length - 1;
+      if(index >= cards.length) index = 0;
+      cards[index].focus();
+    }
+    
+    function handleRadiogroupKeydown(e){
+      const cards = Array.from(collegeGrid.querySelectorAll('.college-card'));
+      const currentCard = e.target.closest('.college-card');
+      if(!currentCard) return;
+      const currentIndex = cards.indexOf(currentCard);
+      
+      switch(e.key){
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          focusCardByIndex(cards, currentIndex + 1);
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          focusCardByIndex(cards, currentIndex - 1);
+          break;
+        case 'Home':
+          e.preventDefault();
+          focusCardByIndex(cards, 0);
+          break;
+        case 'End':
+          e.preventDefault();
+          focusCardByIndex(cards, cards.length - 1);
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          selectCollege(currentCard.getAttribute('data-key'));
+          break;
+      }
+    }
+    
+    function renderCollegeCards(){
+      collegeGrid.innerHTML = '';
+      DATA.universities.forEach((u, idx)=>{
+        const isSelected = sel.value === u.key;
+        const card = document.createElement('div');
+        card.className = 'college-card';
+        card.setAttribute('role', 'radio');
+        // Roving tabindex: only first or selected card is tabbable
+        card.setAttribute('tabindex', (isSelected || (!sel.value && idx === 0)) ? '0' : '-1');
+        card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        card.setAttribute('data-key', u.key);
+        card.innerHTML = `
+          <h4 class="college-card__name">${escapeHTML(u.name)}</h4>
+          <p class="college-card__flavour">${escapeHTML(u.flavour || u.theme)}</p>
+          <span class="college-card__colours">${escapeHTML(u.colours)}</span>
+        `;
+        card.addEventListener('click', ()=> selectCollege(u.key));
+        collegeGrid.appendChild(card);
+      });
+      // Attach keyboard handler to the radiogroup container
+      collegeGrid.addEventListener('keydown', handleRadiogroupKeydown);
+    }
+    
+    function selectCollege(key){
+      sel.value = key;
+      // Update all cards' aria states and tabindices
+      collegeGrid.querySelectorAll('.college-card').forEach(card=>{
+        const isSelected = card.getAttribute('data-key') === key;
+        card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        card.setAttribute('tabindex', isSelected ? '0' : '-1');
+      });
+      // Focus the selected card
+      const selectedCard = collegeGrid.querySelector('.college-card[aria-selected="true"]');
+      if(selectedCard) selectedCard.focus();
+      drawInfo();
+    }
+    
     function drawInfo(){
       const key = sel.value; const out=p.querySelector('#uni_info');
-      if(!key){ out.innerHTML='<span class="muted">Select a university to view theme & bonus spells.</span>'; return; }
+      if(!key){ out.innerHTML='<span class="muted">Select a college to view theme & bonus spells.</span>'; return; }
       const u = DATA.universities.find(x=>x.key===key);
       const spellRows = Object.entries(u.spells).map(([lvl,list])=>`<tr><td>${lvl}</td><td>${list.join(', ')}</td></tr>`).join('');
       out.innerHTML = `
@@ -2186,13 +2275,16 @@ Grand Oracle Trial: January 1</strong></p>
         <div class="callout" style="margin-top:8px"><strong>Feat:</strong> ${DATA.feats.strixhavenInitiate.name} — ${DATA.feats.strixhavenInitiate.text}</div>
       `;
     }
-    sel.addEventListener('change', drawInfo);
+    
+    // Initialize with saved value
     sel.value = State.data.university.key || '';
     p.querySelector('#spell_ability').value = State.data.university.spellAbility || 'INT';
+    renderCollegeCards();
     drawInfo();
+    
     p.querySelector('#save_university').onclick = ()=>{
       State.data.university={ key: sel.value, spellAbility: p.querySelector('#spell_ability').value };
-      if(!State.data.university.key){ alert('Pick a university to continue.'); return; }
+      if(!State.data.university.key){ alert('Pick a college to continue.'); return; }
       if(!State.data.feats.find(f=>f.name==='Strixhaven Initiate')){
         State.data.feats.push({name:'Strixhaven Initiate', ability: State.data.university.spellAbility });
       } else {
@@ -2445,7 +2537,8 @@ Grand Oracle Trial: January 1</strong></p>
       <div class="controls">
         <div class="left"><button id="back_s">← Back</button></div>
         <div class="right">
-          <button id="publish_roster">Add to Availability Roster</button>
+          <!-- Roster button disabled: foreign key constraint requires player_access entry -->
+          <!-- <button id="publish_roster">Add to Availability Roster</button> -->
           <button id="save_s">Save Draft</button>
           <button id="export_s" class="primary">Export JSON</button>
           <button id="pdf_s" class="success">Print / PDF</button>
