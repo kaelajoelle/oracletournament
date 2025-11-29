@@ -292,6 +292,14 @@ import { sessionHasPlayer } from '../lib/sessionsClient.js';
     }
   }
 
+function renderCurrentPlayerBanner(player) {
+  const el = document.getElementById('current-player-banner');
+  if (!el || !player) return;
+
+  el.textContent = `Logged in as ${player.displayName || player.playerKey}`;
+}
+
+
   window.APP_UTILS = window.APP_UTILS || {};
   window.APP_UTILS.testApiConnection = async function testApiConnection(){
     const response = await apiFetch('/api/state', { headers:{ Accept:'application/json' } });
