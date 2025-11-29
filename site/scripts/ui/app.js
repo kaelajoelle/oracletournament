@@ -2163,15 +2163,69 @@ Grand Oracle Trial: January 1</strong></p>
     const sel=p.querySelector('#uni');
     const collegeGrid = p.querySelector('#college_cards');
     
+    function updateTabindices(){
+      const cards = collegeGrid.querySelectorAll('.college-card');
+      const selectedCard = collegeGrid.querySelector('.college-card[aria-selected="true"]');
+      cards.forEach((card, idx) => {
+        // First card or selected card gets tabindex 0, others get -1
+        if(selectedCard){
+          card.setAttribute('tabindex', card === selectedCard ? '0' : '-1');
+        } else {
+          card.setAttribute('tabindex', idx === 0 ? '0' : '-1');
+        }
+      });
+    }
+    
+    function focusCardByIndex(cards, index){
+      if(index < 0) index = cards.length - 1;
+      if(index >= cards.length) index = 0;
+      cards[index].focus();
+    }
+    
+    function handleRadiogroupKeydown(e){
+      const cards = Array.from(collegeGrid.querySelectorAll('.college-card'));
+      const currentCard = e.target.closest('.college-card');
+      if(!currentCard) return;
+      const currentIndex = cards.indexOf(currentCard);
+      
+      switch(e.key){
+        case 'ArrowRight':
+        case 'ArrowDown':
+          e.preventDefault();
+          focusCardByIndex(cards, currentIndex + 1);
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+          e.preventDefault();
+          focusCardByIndex(cards, currentIndex - 1);
+          break;
+        case 'Home':
+          e.preventDefault();
+          focusCardByIndex(cards, 0);
+          break;
+        case 'End':
+          e.preventDefault();
+          focusCardByIndex(cards, cards.length - 1);
+          break;
+        case 'Enter':
+        case ' ':
+          e.preventDefault();
+          selectCollege(currentCard.getAttribute('data-key'));
+          break;
+      }
+    }
+    
     function renderCollegeCards(){
       collegeGrid.innerHTML = '';
-      DATA.universities.forEach(u=>{
+      DATA.universities.forEach((u, idx)=>{
+        const isSelected = sel.value === u.key;
         const card = document.createElement('div');
         card.className = 'college-card';
         card.setAttribute('role', 'radio');
-        card.setAttribute('tabindex', '0');
-        card.setAttribute('aria-checked', sel.value === u.key ? 'true' : 'false');
-        card.setAttribute('aria-selected', sel.value === u.key ? 'true' : 'false');
+        // Roving tabindex: only first or selected card is tabbable
+        card.setAttribute('tabindex', (isSelected || (!sel.value && idx === 0)) ? '0' : '-1');
+        card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
         card.setAttribute('data-key', u.key);
         card.innerHTML = `
           <h4 class="college-card__name">${escapeHTML(u.name)}</h4>
@@ -2179,24 +2233,24 @@ Grand Oracle Trial: January 1</strong></p>
           <span class="college-card__colours">${escapeHTML(u.colours)}</span>
         `;
         card.addEventListener('click', ()=> selectCollege(u.key));
-        card.addEventListener('keydown', (e)=>{
-          if(e.key === 'Enter' || e.key === ' '){
-            e.preventDefault();
-            selectCollege(u.key);
-          }
-        });
         collegeGrid.appendChild(card);
       });
+      // Attach keyboard handler to the radiogroup container
+      collegeGrid.addEventListener('keydown', handleRadiogroupKeydown);
     }
     
     function selectCollege(key){
       sel.value = key;
-      // Update all cards' aria states
+      // Update all cards' aria states and tabindices
       collegeGrid.querySelectorAll('.college-card').forEach(card=>{
         const isSelected = card.getAttribute('data-key') === key;
         card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
         card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+        card.setAttribute('tabindex', isSelected ? '0' : '-1');
       });
+      // Focus the selected card
+      const selectedCard = collegeGrid.querySelector('.college-card[aria-selected="true"]');
+      if(selectedCard) selectedCard.focus();
       drawInfo();
     }
     
