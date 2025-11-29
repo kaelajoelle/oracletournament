@@ -672,35 +672,35 @@ function handleLogout() {
     levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
     abilityArrays:{ standard:[15,14,13,12,10,8] },
     universities:[
-      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', flavour:'Delve into the past with spirits and flame. History is never dead here.', spells:{
+      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', flavour:'Archaeology, ruins, and talking to the dead. You’re a history nerd, relic hunter, or spirit-whisperer. Great for bards, clerics, wizards, paladins with a sense of destiny.', spells:{
           1:['Comprehend Languages','Identify'],
           2:['Borrowed Knowledge','Locate Object'],
           3:['Speak with Dead','Spirit Guardians'],
           4:['Arcane Eye','Stone Shape'],
           5:['Flame Strike','Legend Lore']
       }},
-      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', flavour:'Express yourself through elemental fury. Art meets raw magical power.', spells:{
+      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', flavour:'Art, performance, and loud elemental magic. You’re a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), flashy fighters/rogues.', spells:{
           1:['Chromatic Orb','Thunderwave'],
           2:['Flaming Sphere','Kinetic Jaunt'],
           3:['Haste','Water Walk'],
           4:['Freedom of Movement','Wall of Fire'],
           5:['Cone of Cold','Conjure Elemental']
       }},
-      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', flavour:'Bend reality with mathematics. Nature obeys those who understand its formulas.', spells:{
+      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', flavour:'Math wizards and pattern-brains. You see reality as numbers, fractals, and equations and then bend them. Great for wizards, druids, sorcerers, or any clever type.', spells:{
           1:['Entangle','Guiding Bolt'],
           2:['Enlarge/Reduce','Vortex Warp'],
           3:['Aura of Vitality','Haste'],
           4:['Control Water','Freedom of Movement'],
           5:['Circle of Power','Passwall']
       }},
-      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', flavour:'Words cut deeper than blades. Master the magic of eloquence and shadow.', spells:{
+      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', flavour:'Word mages. Debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, persuasive rogues/paladins.', spells:{
           1:['Dissonant Whispers','Silvery Barbs'],
           2:['Calm Emotions','Darkness'],
           3:['Beacon of Hope','Daylight'],
           4:['Compulsion','Confusion'],
           5:['Dominate Person','Rary’s Telepathic Bond']
       }},
-      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', flavour:'Life and death are two sides of one coin. Embrace the cycle and thrive.', spells:{
+      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', flavour:'Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, spooky clerics.', spells:{
           1:['Cure Wounds','Inflict Wounds'],
           2:['Lesser Restoration','Wither and Bloom'],
           3:['Revivify','Vampiric Touch'],
@@ -1188,7 +1188,6 @@ function renderSessionCards(container, opts={readOnly:false}){
             <div class="muted">${escapeHTML(s.date)} • DM: ${escapeHTML(s.dm || '')} • Capacity: ${filled}/${s.capacity}</div>
             ${themeInfo}
             ${focusInfo}
-            <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
             ${(!readOnly && !playerInSession && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
             ${(!readOnly && !playerInSession && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
           </div>
@@ -1758,7 +1757,7 @@ function panelIntro(){
 <details class="scroll-letter" open>
   <summary>
     <span class="seal">✶</span>
-    Official Correspondence: The Oracle Qualification Trials
+    Official Correspondence: The Oracle Apprentice Qualification Trials
     <span class="chev">▶</span>
   </summary>
 
@@ -1774,9 +1773,25 @@ function panelIntro(){
     <p><strong>Winter Term • Year 739 of Archavios</strong></p>
     <p><em>An Invitation to the Learned and the Brave,</em></p>
 
-    <p>In preparation for this century’s selection of the Oracle Apprentice, the University will conduct a series of sanctioned field examinations. Each Trial is designed to assess essential qualities of leadership, wisdom, and magical aptitude expected of one who may one day inherit the Oracle’s mantle. <br><br>
+    <p>This site is your student portal for the Oracle Trials — a Strixhaven-inspired D&D event. <br>
+    You'll use it to:
+    <ul>
+    <li>Create your Strixhaven student character
+    <li>Save their key details
+    <li>Reserve a seat at one of the Trial sessions
+    </ul>
+    </p>
 
-    Participants will represent their chosen college and be evaluated by a panel of distinguished faculty and arcane observers. Though each Trial varies in format, all share a single purpose — to illuminate the heart, mind, and will of every contender.<br>
+    <p>You don’t have to do everything in one sitting. As long as you use the same access code, you can come back to update your character or change sessions.</p>
+
+    <p> How it works (big picture):
+    <ul>
+    <li> Build your student – Choose a name, class, level, and Strixhaven college.
+    <li> Save your character – We’ll store your details so you don’t lose them.
+    <li> Join a Trial session – The date that you have been assigned.
+    </ul>
+    </p>
+    <p> When you’re done, you’ll see your choices in the “My Character” and “My Session” panels at the top of the page. That’s your “I’m ready” indicator. </p>
 
     <p>Strixhaven is honoured to welcome distinguished students and faculty from magical academies across the planes for this year’s Oracle Trials. Each institution brings its own traditions, theories, and flavour of chaos to the proceedings — ensuring that no two duels, debates, or dissertations are ever the same.</p>
 
@@ -1795,8 +1810,8 @@ function panelIntro(){
 
     <p><strong>Student Expectations</strong><br>
       Arrive prepared for adventure, study, and a modest amount of chaos.<br>
-      Dice, imagination, and one’s best festive attire recommended.<br>
-      Non-finalists may appear as professors, spirits, or helpful onlookers via “Supporter Cards.”<br>
+      Dice, imagination, and one’s best festive, school themed attire recommended.<br>
+      Non-finalists may appear as professors, spirits, or helpful onlookers via “Supporter Cards" and cause extra chaos or help the future Oracle Apprentice.<br>
       Cooperation, roleplay, and good humour will be rewarded; detentions will be minimal.
     </p>
     
@@ -1811,7 +1826,7 @@ Grand Oracle Trial: January 1</strong></p>
   <details class="news-item" closed>
     <summary>
       <span class="dot" aria-hidden="true"></span>
-      <span class="news-title-text">Trial I: The Bog Expedition (Date TBD)</span>
+      <span class="news-title-text">Trial I: The Bog Expedition (Dec 22)</span>
       <span class="chev" aria-hidden="true">▶</span>
     </summary>
     <div class="news-body">
@@ -1827,7 +1842,7 @@ Grand Oracle Trial: January 1</strong></p>
   <details class="news-item" closed>
     <summary>
       <span class="dot" aria-hidden="true"></span>
-      <span class="news-title-text">Trial II: The Masquerade of Mirrors (Date TBD)</span>
+      <span class="news-title-text">Trial II: The Masquerade of Mirrors (Dec 27)</span>
       <span class="chev" aria-hidden="true">▶</span>
     </summary>
     <div class="news-body">
@@ -1843,7 +1858,7 @@ Grand Oracle Trial: January 1</strong></p>
   <details class="news-item" closed>
     <summary>
       <span class="dot" aria-hidden="true"></span>
-      <span class="news-title-text">Trial III: The Trial of the Ruins (Date TBD)</span>
+      <span class="news-title-text">Trial III: The Trial of the Ruins (Dec 29)</span>
       <span class="chev" aria-hidden="true">▶</span>
     </summary>
     <div class="news-body">
@@ -1904,27 +1919,22 @@ Grand Oracle Trial: January 1</strong></p>
 
 <section class="news-board" id="newsBoard">
   <h3>Announcements &amp; Updates</h3>
-  <p class="muted">Drop in quick notes for the group. Duplicate the sample dropdown below to add more updates.</p>
+  <p class="muted">UPDATE: November 29th, 2025</p>
   <details class="news-item" open>
     <summary>
       <span class="dot" aria-hidden="true"></span>
-      <span class="news-title-text">Sample Update — Replace Me</span>
+      <span class="news-title-text">App is now live for character creation!</span>
       <span class="chev" aria-hidden="true">▶</span>
     </summary>
     <div class="news-body">
-      <p>Share schedule changes, supply lists, or links here. Copy this entire <code>&lt;details class="news-item"&gt;</code> block to post another note.</p>
-      <ul>
-        <li><strong>When:</strong> Example date and time</li>
-        <li><strong>Where:</strong> Library of the Biblioplex</li>
-        <li><strong>Bring:</strong> Dice, pencils, favourite snack</li>
-      </ul>
+      <p>Please review text and character creation pages! </p>
     </div>
   </details>
 </section>
 
 <section class="comment-board" id="commentBoard">
   <h3>Comments &amp; Notes</h3>
-  <p class="muted">Jot reminders or questions for the group. Comments sync through the Oracle Archives so everyone stays in the loop.</p>
+  <p class="muted">Say Hello! Or jot reminders or questions for the group. Comments sync through the Oracle Archives so everyone stays in the loop.</p>
   <form id="commentForm" class="comment-form">
     <div class="comment-form-grid">
       <div class="form-field">
@@ -1966,9 +1976,28 @@ Grand Oracle Trial: January 1</strong></p>
     const p = document.createElement('div');
     p.className = 'panel';
     p.innerHTML = `
-      <h2>Character Builder</h2>
+<h2>Character Builder</h2>
       <div class="card">
-        <p>Complete each accordion below. Save a section once you’ve filled the fields — you can revisit and update any time.</p>
+        <h2> How to Build Your Oracle Trials Character </h2>
+        <p>For this event, we’re using a simplified Strixhaven student setup so everyone is on the same page and no one has to crunch a full campaign build.<br><br>
+
+<strong>Your character needs:</strong><br>
+<ul>
+<li> Name
+<li> Class & Level – A standard 5e class at the event’s starting level 4.
+<li> Strixhaven College – Your magical “house”.
+<li> Strixhaven Initiate feat – A small bundle of spells themed to your college.
+</p>
+
+<p> The extra sections in this builder (Job & Extracurriculars, Personality & Prompt) are here to help you add flavour and story hooks. They’re encouraged but not required homework. <br><br>
+
+<strong> Minimum before game day: </strong> <br>
+<ul>
+<li> You know who you are (name + personality vibe)
+<li> You know what you are (class & level)
+<li> You know where you belong (college)
+</ul><br>
+        When you’re happy, click <strong>Save Character.</strong> You can still come back and tweak things later.</p>
       </div>
       <details class="builder-section" open>
         <summary>
