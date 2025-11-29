@@ -438,7 +438,8 @@ Grand Oracle Trial: January 1</strong></p>
       <div class="controls">
         <div class="left"><button id="back_s">\u2190 Back</button></div>
         <div class="right">
-          <button id="publish_roster">Add to Availability Roster</button>
+          <!-- Roster button disabled: foreign key constraint requires player_access entry -->
+          <!-- <button id="publish_roster">Add to Availability Roster</button> -->
           <button id="save_s">Save Draft</button>
           <button id="export_s" class="primary">Export JSON</button>
           <button id="pdf_s" class="success">Print / PDF</button>
