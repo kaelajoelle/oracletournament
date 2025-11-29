@@ -1042,6 +1042,234 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
     border-color:var(--accent);
   }
 
+  /* =============== BUILDER SECTION ACCORDIONS =============== */
+  details.builder-section{
+    border:2px solid var(--border);
+    border-radius:12px;
+    background:rgba(255,248,223,0.85);
+    margin-bottom:12px;
+    overflow:hidden;
+  }
+  details.builder-section > summary{
+    list-style:none;
+    cursor:pointer;
+    padding:0.9rem 1.1rem;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.75rem;
+    font-weight:600;
+    font-size:1.05rem;
+    background:linear-gradient(180deg,#fff8df,#f4e8bf);
+    border-bottom:1px solid transparent;
+    user-select:none;
+    transition:background .2s;
+  }
+  details.builder-section > summary::-webkit-details-marker{ display:none; }
+  details.builder-section > summary::after{
+    content:"▶";
+    font-size:.75rem;
+    color:var(--muted);
+    transition:transform .2s ease;
+    flex-shrink:0;
+  }
+  details.builder-section[open] > summary{
+    border-bottom-color:var(--border);
+  }
+  details.builder-section[open] > summary::after{
+    transform:rotate(90deg);
+  }
+  details.builder-section > summary small{
+    font-weight:500;
+    font-size:.85rem;
+    color:var(--muted);
+    margin-left:auto;
+    margin-right:.5rem;
+  }
+  details.builder-section .section-body{
+    padding:1rem 1.1rem 1.1rem;
+  }
+  details.builder-section .section-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:14px;
+    flex-wrap:wrap;
+  }
+
+  /* Container card to wrap builder sections */
+  .builder-card{
+    background:var(--panel);
+    border:2px solid var(--border);
+    border-radius:14px;
+    padding:1rem;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+  }
+  .builder-card > h3{
+    margin:0 0 .85rem;
+    font-family:'IM Fell English SC',serif;
+    font-size:1.25rem;
+    color:var(--ink);
+  }
+
+  /* =============== MOBILE BUILDER POLISH =============== */
+  @media (max-width:768px){
+    /* Header & title */
+    header{
+      padding:.85rem .75rem .75rem;
+    }
+    h1{
+      font-size:clamp(1.3rem, 6vw, 1.8rem);
+      margin:.15rem 0 .25rem;
+    }
+    .subtitle{
+      font-size:clamp(.95rem, 3.5vw, 1.1rem);
+    }
+
+    /* Disclaimer */
+    .disclaimer{
+      margin:.75rem .5rem;
+      padding:.85rem 1rem;
+      font-size:.9rem;
+    }
+
+    /* Steps shell */
+    .steps-shell{
+      padding:.75rem .65rem;
+      margin:0 .25rem;
+    }
+    .steps-header h3{
+      font-size:1rem;
+    }
+
+    /* Step pills: allow scroll with padding */
+    .steps-rail{
+      gap:10px;
+      padding:.35rem .25rem .5rem;
+      margin:0 -.25rem;
+    }
+    .step-pill{
+      min-width:130px;
+      padding:.5rem .7rem;
+      min-height:48px;
+    }
+    .step-pill .step-number{
+      width:28px;
+      height:28px;
+      font-size:.9rem;
+    }
+    .step-pill .step-label{
+      font-size:.9rem;
+    }
+    .step-pill .step-label small{
+      font-size:.75rem;
+    }
+
+    /* Wizard & panels */
+    .wizard{
+      padding:.75rem .5rem;
+      gap:1rem;
+    }
+    .panel{
+      padding:.85rem;
+      margin-bottom:10px;
+    }
+    .card{
+      padding:10px;
+    }
+
+    /* Builder sections */
+    details.builder-section{
+      margin-bottom:10px;
+    }
+    details.builder-section > summary{
+      padding:.75rem .85rem;
+      font-size:.95rem;
+      flex-wrap:wrap;
+    }
+    details.builder-section > summary small{
+      font-size:.78rem;
+      flex-basis:100%;
+      margin-left:0;
+      margin-top:.25rem;
+    }
+    details.builder-section .section-body{
+      padding:.85rem;
+    }
+    details.builder-section .section-actions{
+      flex-direction:column;
+      align-items:stretch;
+    }
+    details.builder-section .section-actions button{
+      width:100%;
+    }
+
+    /* Builder card container */
+    .builder-card{
+      padding:.75rem;
+      margin-bottom:12px;
+    }
+    .builder-card > h3{
+      font-size:1.1rem;
+      margin-bottom:.65rem;
+    }
+
+    /* Quick actions */
+    .steps-actions{
+      padding:.75rem .65rem;
+      margin:0 .25rem;
+    }
+    .steps-actions .kicker{
+      font-size:.85rem;
+    }
+    .steps-actions .flex{
+      flex-direction:column;
+    }
+    .steps-actions .flex button{
+      width:100%;
+    }
+
+    /* Typography polish */
+    .kicker{
+      font-size:.8rem;
+    }
+    .muted{
+      font-size:.85rem;
+    }
+    .callout{
+      padding:.75rem .85rem;
+      font-size:.9rem;
+    }
+    .callout ul{
+      padding-left:1.1rem;
+      margin:.5rem 0;
+    }
+
+    /* Form elements */
+    .grid.cols-2{
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    .two{
+      grid-template-columns:1fr;
+      gap:10px;
+    }
+    input, select, textarea{
+      font-size:16px; /* prevents iOS zoom */
+    }
+
+    /* Player banner */
+    .player-banner{
+      padding:.4rem .75rem;
+      font-size:.85rem;
+      gap:8px;
+    }
+    .player-banner__logout{
+      padding:5px 12px;
+      font-size:.8rem;
+    }
+  }
+
   </style>
 </head>
   

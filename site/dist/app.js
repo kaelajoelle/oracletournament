@@ -273,56 +273,58 @@ Grand Oracle Trial: January 1</strong></p>
           </div>
         </div>
       </details>
-      <details class="builder-section">
-        <summary>
-          <span>University & Feat</span>
-          <small class="muted">Select your college</small>
-        </summary>
-        <div class="section-body">
-          <div class="grid cols-2">
-            <div>
-              <label>Choose University</label>
-              <select id="uni"></select>
+      <div class="builder-card">
+        <h3>Strixhaven Details</h3>
+        <details class="builder-section" open>
+          <summary>
+            <span>University & Feat</span>
+            <small class="muted">Select your college</small>
+          </summary>
+          <div class="section-body">
+            <div class="grid cols-2">
+              <div>
+                <label>Choose University</label>
+                <select id="uni"></select>
+              </div>
+              <div>
+                <label>Strixhaven Initiate \u2014 Spellcasting Ability</label>
+                <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
+              </div>
             </div>
-            <div>
-              <label>Strixhaven Initiate \u2014 Spellcasting Ability</label>
-              <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-            </div>
-          </div>
-          <div id="uni_info" class="card" style="margin-top:10px"></div>
-          <div class="section-actions">
-            <button class="primary" id="save_university">Save University</button>
-            <span class="muted" data-save-note="university"></span>
-          </div>
-        </div>
-      </details>
-      <details class="builder-section">
-        <summary>
-          <span>Job & Extracurriculars</span>
-          <small class="muted">Schedule & flavour</small>
-        </summary>
-        <div class="section-body">
-          <div class="grid cols-2">
-            <div>
-              <label>Job (optional, 5 gp/week)</label>
-              <select id="job"><option value="">\u2014 None \u2014</option>${S.jobs.map(n=>`<option value="${n.key}">${n.name}</option>`).join("")}</select>
-            </div>
-            <div>
-              <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
-              <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
+            <div id="uni_info" class="card" style="margin-top:10px"></div>
+            <div class="section-actions">
+              <button class="primary" id="save_university">Save University</button>
+              <span class="muted" data-save-note="university"></span>
             </div>
           </div>
-          <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
-          <div class="section-actions">
-            <button class="primary" id="save_extras">Save Job & Clubs</button>
-            <span class="muted" data-save-note="extras"></span>
+        </details>
+        <details class="builder-section">
+          <summary>
+            <span>Job & Extracurriculars</span>
+            <small class="muted">Schedule & flavour</small>
+          </summary>
+          <div class="section-body">
+            <div class="grid cols-2">
+              <div>
+                <label>Job (optional, 5 gp/week)</label>
+                <select id="job"><option value="">\u2014 None \u2014</option>${S.jobs.map(n=>`<option value="${n.key}">${n.name}</option>`).join("")}</select>
+              </div>
+              <div>
+                <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
+                <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
+              </div>
+            </div>
+            <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
+            <div class="section-actions">
+              <button class="primary" id="save_extras">Save Job & Clubs</button>
+              <span class="muted" data-save-note="extras"></span>
+            </div>
           </div>
-        </div>
-      </details>
-      <details class="builder-section">
-        <summary>
-          <span>Personality & Prompt</span>
-          <small class="muted">Backstory beats</small>
+        </details>
+        <details class="builder-section">
+          <summary>
+            <span>Personality & Prompt</span>
+            <small class="muted">Backstory beats</small>
         </summary>
         <div class="section-body">
           <div class="grid cols-2">
@@ -341,6 +343,7 @@ Grand Oracle Trial: January 1</strong></p>
           </div>
         </div>
       </details>
+      </div>
       <div class="controls">
         <div class="left"><button id="back_builder">\u2190 Back</button></div>
         <div class="right"><button class="primary" id="next_builder">Next \u2192</button></div>
