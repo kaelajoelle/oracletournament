@@ -19,5 +19,6 @@ scripts/.env
 /node_modules/
 # Root-level dist (deployment artifacts)
 /dist/
-# Note: site/dist/ is the frontend build output directory (app.js, app.js.map)
-# It is intentionally tracked in git for deployment convenience.
+
+# Frontend build output (bundled/minified JS, CSS, assets)
+site/dist/
