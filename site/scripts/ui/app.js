@@ -292,11 +292,41 @@ import { sessionHasPlayer } from '../lib/sessionsClient.js';
     }
   }
 
-function renderCurrentPlayerBanner(player) {
+function renderCurrentPlayerBanner() {
   const el = document.getElementById('current-player-banner');
-  if (!el || !player) return;
+  if (!el) return;
 
-  el.textContent = `Logged in as ${player.displayName || player.playerKey}`;
+  // Get the current player key and roster entry for display name
+  const playerKey = CURRENT_PLAYER_KEY;
+  if (!playerKey) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const rosterEntry = PlayerIdentity.getRosterEntry();
+  const displayName = rosterEntry?.name || playerKey;
+  const isGuest = PlayerIdentity.isGuest();
+  const displayLabel = isGuest ? 'Guest' : displayName;
+
+  el.innerHTML = `
+    <div class="player-banner">
+      <span class="player-banner__text">Logged in as <span class="player-banner__name">${escapeHTML(displayLabel)}</span></span>
+      <button type="button" class="player-banner__logout" id="logout-btn">Logout</button>
+    </div>
+  `;
+
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    // Use onclick to avoid accumulating event listeners on re-render
+    logoutBtn.onclick = handleLogout;
+  }
+}
+
+function handleLogout() {
+  // Clear the player key from localStorage
+  PlayerIdentity.clear();
+  // Redirect to login page
+  window.location.href = './login.html';
 }
 
 
@@ -1001,6 +1031,91 @@ function renderCurrentPlayerBanner(player) {
   /* =======================
      HELPERS
   ======================= */
+
+// Dashboard: renders "My Character" and "My Session" summary cards
+function renderDashboard() {
+  // My Character card
+  const core = State.data?.core || {};
+  const uni = State.data?.university || {};
+  const hasCharacter = core.name && core.name.trim().length > 0;
+  
+  let characterContent = '';
+  if (hasCharacter) {
+    const charName = escapeHTML(core.name || '');
+    const charClass = escapeHTML(core.class || 'No class');
+    const charLevel = core.level || '?';
+    const uniKey = uni.key || '';
+    const uniName = uniKey ? ((DATA.universities || []).find(u => u.key === uniKey)?.name || uniKey) : 'No college';
+    characterContent = `
+      <div class="dashboard-stat"><strong>${charName}</strong></div>
+      <div class="dashboard-detail">${charClass} • Level ${charLevel}</div>
+      <div class="dashboard-detail">${escapeHTML(uniName)}</div>
+      <button class="secondary dashboard-btn" data-nav="builder">Edit Character →</button>
+    `;
+  } else {
+    characterContent = `
+      <div class="dashboard-empty">No character saved yet.</div>
+      <div class="muted">Visit the Character Builder step to get started.</div>
+      <button class="primary dashboard-btn" data-nav="builder">Create Character →</button>
+    `;
+  }
+
+  // My Session card
+  const sessions = State.sessions || [];
+  let playerSession = null;
+  for (const s of sessions) {
+    if (CURRENT_PLAYER_KEY && sessionHasPlayer(s, CURRENT_PLAYER_KEY)) {
+      playerSession = s;
+      break;
+    }
+  }
+
+  let sessionContent = '';
+  if (playerSession) {
+    const filled = (playerSession.players || []).length;
+    sessionContent = `
+      <div class="dashboard-stat"><strong>${escapeHTML(playerSession.title)}</strong></div>
+      <div class="dashboard-detail">${escapeHTML(playerSession.date)} • DM: ${escapeHTML(playerSession.dm || 'TBD')}</div>
+      <div class="dashboard-detail">Capacity: ${filled}/${playerSession.capacity}</div>
+      <button class="secondary dashboard-btn" data-nav="join">View Sessions →</button>
+    `;
+  } else {
+    sessionContent = `
+      <div class="dashboard-empty">You have not joined a Trial yet.</div>
+      <div class="muted">Pick a session to reserve your seat.</div>
+      <button class="primary dashboard-btn" data-nav="join">Join a Session →</button>
+    `;
+  }
+
+  return `
+<div class="dashboard-panel">
+  <div class="dashboard-grid">
+    <div class="dashboard-card" id="dashboard-character">
+      <h4 class="dashboard-title">📜 My Character</h4>
+      ${characterContent}
+    </div>
+    <div class="dashboard-card" id="dashboard-session">
+      <h4 class="dashboard-title">🎭 My Session</h4>
+      ${sessionContent}
+    </div>
+  </div>
+</div>
+`;
+}
+
+// Wire up dashboard navigation buttons
+function bindDashboardNav(container) {
+  container.querySelectorAll('button[data-nav]').forEach(btn => {
+    btn.onclick = () => {
+      const target = btn.dataset.nav;
+      if (!STEPS) return;
+      const idx = STEPS.findIndex(s => s.key === target);
+      if (idx >= 0) {
+        activateStep(idx, true);
+      }
+    };
+  });
+}
     
 function buildReady() {
   const c = State.data.core || {};
@@ -1045,8 +1160,18 @@ function renderSessionCards(container, opts={readOnly:false}){
           }).join('')
         : '<span class="muted">No players yet</span>';
 
-      const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
-      const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
+      // Determine which button to show: Join or Leave
+      let actionBtn = '';
+      if (!readOnly) {
+        if (playerInSession) {
+          // Player is already in this session - show Leave button
+          actionBtn = `<button data-leave-id="${escapeAttr(s.id)}" class="danger">Leave this session</button>`;
+        } else {
+          // Player is not in this session - show Join button (disabled if full or build not ready)
+          const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
+          actionBtn = `<button data-id="${escapeAttr(s.id)}" class="primary" ${joinDisabled}>Add my character</button>`;
+        }
+      }
       
       // Display enriched trial metadata
       const themeInfo = s.theme ? `<div class="muted"><strong>Theme:</strong> ${escapeHTML(s.theme)}</div>` : '';
@@ -1064,11 +1189,11 @@ function renderSessionCards(container, opts={readOnly:false}){
             ${themeInfo}
             ${focusInfo}
             <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
-            ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
-            ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
+            ${(!readOnly && !playerInSession && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
+            ${(!readOnly && !playerInSession && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
           </div>
           <div class="flex">
-            ${joinBtn}
+            ${actionBtn}
             <button data-ics="${s.id}">.ics</button>
           </div>
         </div>
@@ -1625,7 +1750,11 @@ const STEPS = [
 function panelIntro(){
   const p = document.createElement('div');
   p.className = 'panel';
-  p.innerHTML = `
+  
+  // Build the dashboard content
+  const dashboardHtml = renderDashboard();
+  
+  p.innerHTML = dashboardHtml + `
 <details class="scroll-letter" open>
   <summary>
     <span class="seal">✶</span>
@@ -1825,6 +1954,7 @@ Grand Oracle Trial: January 1</strong></p>
   `;
   setupCommentBoard(p);
   hydrateQuestBoard(p);
+  bindDashboardNav(p);
   return p;
 }
 
@@ -1883,56 +2013,58 @@ Grand Oracle Trial: January 1</strong></p>
           </div>
         </div>
       </details>
-      <details class="builder-section">
-        <summary>
-          <span>University & Feat</span>
-          <small class="muted">Select your college</small>
-        </summary>
-        <div class="section-body">
-          <div class="grid cols-2">
-            <div>
-              <label>Choose University</label>
-              <select id="uni"></select>
+      <div class="builder-card">
+        <h3>Strixhaven Details</h3>
+        <details class="builder-section" open>
+          <summary>
+            <span>University & Feat</span>
+            <small class="muted">Select your college</small>
+          </summary>
+          <div class="section-body">
+            <div class="grid cols-2">
+              <div>
+                <label>Choose University</label>
+                <select id="uni"></select>
+              </div>
+              <div>
+                <label>Strixhaven Initiate — Spellcasting Ability</label>
+                <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
+              </div>
             </div>
-            <div>
-              <label>Strixhaven Initiate — Spellcasting Ability</label>
-              <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-            </div>
-          </div>
-          <div id="uni_info" class="card" style="margin-top:10px"></div>
-          <div class="section-actions">
-            <button class="primary" id="save_university">Save University</button>
-            <span class="muted" data-save-note="university"></span>
-          </div>
-        </div>
-      </details>
-      <details class="builder-section">
-        <summary>
-          <span>Job & Extracurriculars</span>
-          <small class="muted">Schedule & flavour</small>
-        </summary>
-        <div class="section-body">
-          <div class="grid cols-2">
-            <div>
-              <label>Job (optional, 5 gp/week)</label>
-              <select id="job"><option value="">— None —</option>${DATA.jobs.map(j=>`<option value="${j.key}">${j.name}</option>`).join('')}</select>
-            </div>
-            <div>
-              <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
-              <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
+            <div id="uni_info" class="card" style="margin-top:10px"></div>
+            <div class="section-actions">
+              <button class="primary" id="save_university">Save University</button>
+              <span class="muted" data-save-note="university"></span>
             </div>
           </div>
-          <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
-          <div class="section-actions">
-            <button class="primary" id="save_extras">Save Job & Clubs</button>
-            <span class="muted" data-save-note="extras"></span>
+        </details>
+        <details class="builder-section">
+          <summary>
+            <span>Job & Extracurriculars</span>
+            <small class="muted">Schedule & flavour</small>
+          </summary>
+          <div class="section-body">
+            <div class="grid cols-2">
+              <div>
+                <label>Job (optional, 5 gp/week)</label>
+                <select id="job"><option value="">— None —</option>${DATA.jobs.map(j=>`<option value="${j.key}">${j.name}</option>`).join('')}</select>
+              </div>
+              <div>
+                <label>Extracurriculars (pick up to 2; 1 if you also take a job)</label>
+                <div id="clublist" class="grid cols-2" style="max-height:240px;overflow:auto"></div>
+              </div>
+            </div>
+            <div id="bonus_readout" class="callout" style="margin-top:10px"></div>
+            <div class="section-actions">
+              <button class="primary" id="save_extras">Save Job & Clubs</button>
+              <span class="muted" data-save-note="extras"></span>
+            </div>
           </div>
-        </div>
-      </details>
-      <details class="builder-section">
-        <summary>
-          <span>Personality & Prompt</span>
-          <small class="muted">Backstory beats</small>
+        </details>
+        <details class="builder-section">
+          <summary>
+            <span>Personality & Prompt</span>
+            <small class="muted">Backstory beats</small>
         </summary>
         <div class="section-body">
           <div class="grid cols-2">
@@ -1951,6 +2083,7 @@ Grand Oracle Trial: January 1</strong></p>
           </div>
         </div>
       </details>
+      </div>
       <div class="controls">
         <div class="left"><button id="back_builder">← Back</button></div>
         <div class="right"><button class="primary" id="next_builder">Next →</button></div>
@@ -2066,6 +2199,8 @@ Grand Oracle Trial: January 1</strong></p>
         State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
       }
       markSaved('university','University saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after university update', err));
     };
 
     // Extras
@@ -2111,6 +2246,8 @@ Grand Oracle Trial: January 1</strong></p>
       State.data.extras.job = job;
       State.data.extras.clubs = clubs;
       markSaved('extras','Schedule saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after extras update', err));
     };
 
     // Personality
@@ -2144,6 +2281,8 @@ Grand Oracle Trial: January 1</strong></p>
         prompt: State.data.personality.prompt||''
       };
       markSaved('personality','Personality saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after personality update', err));
     };
 
     p.querySelector('#back_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='intro')); };
@@ -2220,6 +2359,34 @@ Grand Oracle Trial: January 1</strong></p>
         })
         .catch((err)=>{
           alert(`Unable to join ${s.title}: ${err && err.message ? err.message : 'Request failed.'}`);
+        });
+      return;
+    }
+    // Handle leave button clicks
+    const leaveBtn = ev.target.closest('button[data-leave-id]');
+    if(leaveBtn){
+      if(IS_GUEST_SESSION){
+        alert(READ_ONLY_NOTICE);
+        return;
+      }
+      const id = leaveBtn.getAttribute('data-leave-id');
+      const s = (State.sessions||[]).find(x=>x.id===id);
+      if(!s){
+        alert('Session not found.');
+        return;
+      }
+      if(!confirm(`Leave ${s.title}? You can rejoin later if there's space.`)){
+        return;
+      }
+      Backend.leaveSession(id, {
+        playerKey: CURRENT_PLAYER_KEY
+      })
+        .then(()=>{
+          renderSessionCards(wrap, {readOnly: IS_GUEST_SESSION});
+          alert(`You have left ${s.title}.`);
+        })
+        .catch((err)=>{
+          alert(`Unable to leave ${s.title}: ${err && err.message ? err.message : 'Request failed.'}`);
         });
       return;
     }
@@ -2331,6 +2498,7 @@ Grand Oracle Trial: January 1</strong></p>
   ======================= */
   function renderAll(){
     try{
+      renderCurrentPlayerBanner();
       renderNav();
       renderPanels();
       bindHeaderActions();
