@@ -1420,7 +1420,7 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-if (require.main === module) {
+if(require.main === module) {
   // Optional config summary on startup for easier debugging
   logConfigSummary();
 
