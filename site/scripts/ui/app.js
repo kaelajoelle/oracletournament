@@ -672,35 +672,35 @@ function handleLogout() {
     levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
     abilityArrays:{ standard:[15,14,13,12,10,8] },
     universities:[
-      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', spells:{
+      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', flavour:'Delve into the past with spirits and flame. History is never dead here.', spells:{
           1:['Comprehend Languages','Identify'],
           2:['Borrowed Knowledge','Locate Object'],
           3:['Speak with Dead','Spirit Guardians'],
           4:['Arcane Eye','Stone Shape'],
           5:['Flame Strike','Legend Lore']
       }},
-      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', spells:{
+      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', flavour:'Express yourself through elemental fury. Art meets raw magical power.', spells:{
           1:['Chromatic Orb','Thunderwave'],
           2:['Flaming Sphere','Kinetic Jaunt'],
           3:['Haste','Water Walk'],
           4:['Freedom of Movement','Wall of Fire'],
           5:['Cone of Cold','Conjure Elemental']
       }},
-      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', spells:{
+      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', flavour:'Bend reality with mathematics. Nature obeys those who understand its formulas.', spells:{
           1:['Entangle','Guiding Bolt'],
           2:['Enlarge/Reduce','Vortex Warp'],
           3:['Aura of Vitality','Haste'],
           4:['Control Water','Freedom of Movement'],
           5:['Circle of Power','Passwall']
       }},
-      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', spells:{
+      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', flavour:'Words cut deeper than blades. Master the magic of eloquence and shadow.', spells:{
           1:['Dissonant Whispers','Silvery Barbs'],
           2:['Calm Emotions','Darkness'],
           3:['Beacon of Hope','Daylight'],
           4:['Compulsion','Confusion'],
           5:['Dominate Person','Rary’s Telepathic Bond']
       }},
-      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', spells:{
+      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', flavour:'Life and death are two sides of one coin. Embrace the cycle and thrive.', spells:{
           1:['Cure Wounds','Inflict Wounds'],
           2:['Lesser Restoration','Wither and Bloom'],
           3:['Revivify','Vampiric Touch'],
@@ -2163,15 +2163,6 @@ Grand Oracle Trial: January 1</strong></p>
     const sel=p.querySelector('#uni');
     const collegeGrid = p.querySelector('#college_cards');
     
-    // College flavour text (short descriptions for each college)
-    const collegeFlavour = {
-      lorehold: 'Delve into the past with spirits and flame. History is never dead here.',
-      prismari: 'Express yourself through elemental fury. Art meets raw magical power.',
-      quandrix: 'Bend reality with mathematics. Nature obeys those who understand its formulas.',
-      silverquill: 'Words cut deeper than blades. Master the magic of eloquence and shadow.',
-      witherbloom: 'Life and death are two sides of one coin. Embrace the cycle and thrive.'
-    };
-    
     function renderCollegeCards(){
       collegeGrid.innerHTML = '';
       DATA.universities.forEach(u=>{
@@ -2184,7 +2175,7 @@ Grand Oracle Trial: January 1</strong></p>
         card.setAttribute('data-key', u.key);
         card.innerHTML = `
           <h4 class="college-card__name">${escapeHTML(u.name)}</h4>
-          <p class="college-card__flavour">${escapeHTML(collegeFlavour[u.key] || u.theme)}</p>
+          <p class="college-card__flavour">${escapeHTML(u.flavour || u.theme)}</p>
           <span class="college-card__colours">${escapeHTML(u.colours)}</span>
         `;
         card.addEventListener('click', ()=> selectCollege(u.key));
