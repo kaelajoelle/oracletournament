@@ -1799,7 +1799,26 @@ function panelIntro(){
   const dashboardHtml = renderDashboard();
   
   p.innerHTML = dashboardHtml + `
-<details class="scroll-letter" open>
+<div class="card">
+  <h2>Welcome to the Oracle Trials</h2>
+  <p>This site is your student portal for the Oracle Trials — a Strixhaven-inspired D&amp;D event.</p>
+  <p>You'll use it to:</p>
+  <ul>
+    <li>Create your Strixhaven student character</li>
+    <li>Save their key details</li>
+    <li>Reserve a seat at one of the Trial sessions</li>
+  </ul>
+  <p>You don't have to do everything in one sitting. As long as you use the same access code, you can come back to update your character or change sessions.</p>
+  <p><strong>How it works (big picture):</strong></p>
+  <ul>
+    <li><strong>Build your student</strong> – Choose a name, class, level, and Strixhaven college.</li>
+    <li><strong>Save your character</strong> – We'll store your details so you don't lose them.</li>
+    <li><strong>Join a Trial session</strong> – Pick one date that fits your schedule.</li>
+  </ul>
+  <p>When you're done, you'll see your choices in the "My Character" and "My Session" panels at the top of the page. That's your "I'm ready" indicator.</p>
+</div>
+
+<details class="scroll-letter">
   <summary>
     <span class="seal">✶</span>
     Official Correspondence: The Oracle Apprentice Qualification Trials
@@ -1818,27 +1837,7 @@ function panelIntro(){
     <p><strong>Winter Term • Year 739 of Archavios</strong></p>
     <p><em>An Invitation to the Learned and the Brave,</em></p>
 
-    <p>This site is your student portal for the Oracle Trials — a Strixhaven-inspired D&D event. <br>
-    You'll use it to:
-    <ul>
-    <li>Create your Strixhaven student character
-    <li>Save their key details
-    <li>Reserve a seat at one of the Trial sessions
-    </ul>
-    </p>
-
-    <p>You don’t have to do everything in one sitting. As long as you use the same access code, you can come back to update your character or change sessions.</p>
-
-    <p> How it works (big picture):
-    <ul>
-    <li> Build your student – Choose a name, class, level, and Strixhaven college.
-    <li> Save your character – We’ll store your details so you don’t lose them.
-    <li> Join a Trial session – The date that you have been assigned.
-    </ul>
-    </p>
-    <p> When you’re done, you’ll see your choices in the “My Character” and “My Session” panels at the top of the page. That’s your “I’m ready” indicator. </p>
-
-    <p>Strixhaven is honoured to welcome distinguished students and faculty from magical academies across the planes for this year’s Oracle Trials. Each institution brings its own traditions, theories, and flavour of chaos to the proceedings — ensuring that no two duels, debates, or dissertations are ever the same.</p>
+    <p>Strixhaven is honoured to welcome distinguished students and faculty from magical academies across the planes for this year's Oracle Trials. Each institution brings its own traditions, theories, and flavour of chaos to the proceedings — ensuring that no two duels, debates, or dissertations are ever the same.</p>
 
     <div class="table-scroll letter-table">
       <table class="table">
@@ -2023,27 +2022,42 @@ Grand Oracle Trial: January 1</strong></p>
     p.innerHTML = `
 <h2>Character Builder</h2>
       <div class="card">
-        <h2> How to Build Your Oracle Trials Character </h2>
-        <p>For this event, we’re using a simplified Strixhaven student setup so everyone is on the same page and no one has to crunch a full campaign build.<br><br>
+        <h2>How to Build Your Oracle Trials Character</h2>
+        <p>For this event, we're using a simplified Strixhaven student setup so everyone is on the same page and no one has to crunch a full campaign build.</p>
 
-<strong>Your character needs:</strong><br>
-<ul>
-<li> Name
-<li> Class & Level – A standard 5e class at the event’s starting level 4.
-<li> Strixhaven College – Your magical “house”.
-<li> Strixhaven Initiate feat – A small bundle of spells themed to your college.
-</p>
+        <p><strong>Your character needs:</strong></p>
+        <ul>
+          <li>Name</li>
+          <li>Class &amp; Level – A standard 5e class at the event's starting level (ask your DM if you're unsure).</li>
+          <li>Strixhaven College – Your magical "house".</li>
+          <li>Strixhaven Initiate feat – A small bundle of spells themed to your college.</li>
+        </ul>
 
-<p> The extra sections in this builder (Job & Extracurriculars, Personality & Prompt) are here to help you add flavour and story hooks. They’re encouraged but not required homework. <br><br>
+        <p>The extra sections in this builder (Job &amp; Extracurriculars, Personality &amp; Prompt) are here to help you add flavour and story hooks. They're encouraged but not required homework.</p>
 
-<strong> Minimum before game day: </strong> <br>
-<ul>
-<li> You know who you are (name + personality vibe)
-<li> You know what you are (class & level)
-<li> You know where you belong (college)
-</ul><br>
-        When you’re happy, click <strong>Save Character.</strong> You can still come back and tweak things later.</p>
+        <p><strong>Minimum before game day:</strong></p>
+        <ul>
+          <li>You know who you are (name + personality vibe)</li>
+          <li>You know what you are (class &amp; level)</li>
+          <li>You know where you belong (college)</li>
+        </ul>
+
+        <p>When you're happy, click <strong>Save Character.</strong> You can still come back and tweak things later.</p>
       </div>
+
+      <div class="card">
+        <h3>Choosing Your College</h3>
+        <p>Strixhaven has five colleges. Pick the one that feels like your character's "home base":</p>
+        <ul>
+          <li><strong>Lorehold</strong> – Archaeology, ruins, and talking to the dead. You're a history nerd, relic hunter, or spirit-whisperer. Great for bards, clerics, wizards, paladins with a sense of destiny.</li>
+          <li><strong>Prismari</strong> – Art, performance, and loud elemental magic. You're a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), flashy fighters/rogues.</li>
+          <li><strong>Quandrix</strong> – Math wizards and pattern-brains. You see reality as numbers, fractals, and equations and then bend them. Great for wizards, druids, sorcerers, or any clever type.</li>
+          <li><strong>Silverquill</strong> – Word mages. Debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, persuasive rogues/paladins.</li>
+          <li><strong>Witherbloom</strong> – Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, spooky clerics.</li>
+        </ul>
+        <p>Each college comes with a themed Strixhaven Initiate feat (extra cantrips + one 1st-level spell). If you're not sure what to pick, just choose spells that feel on-brand for your college and your DM can help tidy details at the table.</p>
+      </div>
+
       <details class="builder-section" open>
         <summary>
           <span>Core 5e Setup</span>
@@ -2459,9 +2473,32 @@ Grand Oracle Trial: January 1</strong></p>
     function panelJoin(){
   const p=document.createElement('div'); p.className='panel';
   p.innerHTML = `
-    <h2>Join a Session</h2>
+    <h2>Join Your Trial Session</h2>
     <div class="card">
-      <p>Pick a table for your finished character. You’ll need a <strong>Name</strong>, <strong>Class</strong>, <strong>Level</strong>, and a chosen <strong>University</strong>.</p>
+      <p>Now that you've got a student, it's time to choose their Trial.</p>
+      
+      <p><strong>How this works:</strong></p>
+      <ul>
+        <li>You'll sign up for one Trial session.</li>
+        <li>Each session has limited seats — when it's full, it's full.</li>
+        <li>You'll bring the character you saved in Step 2 to this session.</li>
+      </ul>
+      
+      <p><strong>How to sign up:</strong></p>
+      <ul>
+        <li>Look through the list of Trials below.</li>
+        <li>Find a date/time that works for you.</li>
+        <li>Click "Add my character" on that session.</li>
+        <li>Your name will appear under that session when it's successful.</li>
+      </ul>
+      
+      <p><strong>If you change your mind later:</strong></p>
+      <ul>
+        <li>Click "Leave this session" on your current Trial.</li>
+        <li>Then choose a different session (if there's still space).</li>
+      </ul>
+      
+      <p>You can always see your current choice in the "My Session" panel at the top of the page.</p>
     </div>
     ${IS_GUEST_SESSION ? '<div class="card" role="note"><p class="muted">Guest mode is read-only. Use your personal access code to reserve a seat.</p></div>' : ''}
     <div id="join_list" class="grid"></div>
