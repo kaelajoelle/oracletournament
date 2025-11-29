@@ -6,7 +6,7 @@
  *
  * Environment files are loaded in order (later files do not override existing values):
  * 1. Project root `.env`
- * 2. `api/.env` (legacy/local overrides)
+ * 2. `api/.env` (legacy/local defaults)
  * 3. `scripts/.env` (legacy pattern, if present)
  * 4. `script/.env` (actual file present in this repo, singular)
  */
