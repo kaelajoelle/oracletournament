@@ -1007,6 +1007,40 @@ details.news-item[open] > summary .chev{ transform:rotate(90deg); }
   .status-note[data-tone="success"]{ color:#1b7048; }
   .status-note[data-tone="error"]{ color:#a01919; }
 
+  /* Logged-in banner */
+  .player-banner{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    margin-top:0.75rem;
+    padding:0.5rem 1rem;
+    background:rgba(179,139,70,0.12);
+    border-radius:8px;
+    font-size:0.95rem;
+    flex-wrap:wrap;
+  }
+  .player-banner__text{
+    color:var(--ink);
+  }
+  .player-banner__name{
+    font-weight:600;
+    color:var(--accent);
+  }
+  .player-banner__logout{
+    padding:6px 14px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:#efe7c8;
+    font-size:0.85rem;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .2s, border-color .2s;
+  }
+  .player-banner__logout:hover{
+    background:#e5dccc;
+    border-color:var(--accent);
+  }
 
   </style>
 </head>

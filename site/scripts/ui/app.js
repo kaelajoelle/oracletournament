@@ -292,11 +292,41 @@ import { sessionHasPlayer } from '../lib/sessionsClient.js';
     }
   }
 
-function renderCurrentPlayerBanner(player) {
+function renderCurrentPlayerBanner() {
   const el = document.getElementById('current-player-banner');
-  if (!el || !player) return;
+  if (!el) return;
 
-  el.textContent = `Logged in as ${player.displayName || player.playerKey}`;
+  // Get the current player key and roster entry for display name
+  const playerKey = CURRENT_PLAYER_KEY;
+  if (!playerKey) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const rosterEntry = PlayerIdentity.getRosterEntry();
+  const displayName = rosterEntry?.name || playerKey;
+  const isGuest = PlayerIdentity.isGuest();
+  const displayLabel = isGuest ? 'Guest' : displayName;
+
+  el.innerHTML = `
+    <div class="player-banner">
+      <span class="player-banner__text">Logged in as <span class="player-banner__name">${escapeHTML(displayLabel)}</span></span>
+      <button type="button" class="player-banner__logout" id="logout-btn">Logout</button>
+    </div>
+  `;
+
+  const logoutBtn = document.getElementById('logout-btn');
+  if (logoutBtn) {
+    // Use onclick to avoid accumulating event listeners on re-render
+    logoutBtn.onclick = handleLogout;
+  }
+}
+
+function handleLogout() {
+  // Clear the player key from localStorage
+  PlayerIdentity.clear();
+  // Redirect to login page
+  window.location.href = './login.html';
 }
 
 
@@ -2331,6 +2361,7 @@ Grand Oracle Trial: January 1</strong></p>
   ======================= */
   function renderAll(){
     try{
+      renderCurrentPlayerBanner();
       renderNav();
       renderPanels();
       bindHeaderActions();
