@@ -1075,8 +1075,18 @@ function renderSessionCards(container, opts={readOnly:false}){
           }).join('')
         : '<span class="muted">No players yet</span>';
 
-      const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
-      const joinBtn = readOnly ? '' : `<button data-id="${s.id}" class="primary" ${joinDisabled}>Add my character</button>`;
+      // Determine which button to show: Join or Leave
+      let actionBtn = '';
+      if (!readOnly) {
+        if (playerInSession) {
+          // Player is already in this session - show Leave button
+          actionBtn = `<button data-leave-id="${escapeAttr(s.id)}" class="danger">Leave this session</button>`;
+        } else {
+          // Player is not in this session - show Join button (disabled if full or build not ready)
+          const joinDisabled = (!buildReady() || full) ? 'disabled' : '';
+          actionBtn = `<button data-id="${escapeAttr(s.id)}" class="primary" ${joinDisabled}>Add my character</button>`;
+        }
+      }
       
       // Display enriched trial metadata
       const themeInfo = s.theme ? `<div class="muted"><strong>Theme:</strong> ${escapeHTML(s.theme)}</div>` : '';
@@ -1094,11 +1104,11 @@ function renderSessionCards(container, opts={readOnly:false}){
             ${themeInfo}
             ${focusInfo}
             <div class="muted" style="margin-top:4px">No duplicate universities allowed in the same session.</div>
-            ${(!readOnly && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
-            ${(!readOnly && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
+            ${(!readOnly && !playerInSession && !buildReady()) ? `<div class="muted" style="margin-top:6px">Finish <em>Core 5e</em> + choose a <em>University</em> to join.</div>` : ''}
+            ${(!readOnly && !playerInSession && full) ? `<div class="muted" style="margin-top:6px">This session is full.</div>` : ''}
           </div>
           <div class="flex">
-            ${joinBtn}
+            ${actionBtn}
             <button data-ics="${s.id}">.ics</button>
           </div>
         </div>
@@ -2250,6 +2260,34 @@ Grand Oracle Trial: January 1</strong></p>
         })
         .catch((err)=>{
           alert(`Unable to join ${s.title}: ${err && err.message ? err.message : 'Request failed.'}`);
+        });
+      return;
+    }
+    // Handle leave button clicks
+    const leaveBtn = ev.target.closest('button[data-leave-id]');
+    if(leaveBtn){
+      if(IS_GUEST_SESSION){
+        alert(READ_ONLY_NOTICE);
+        return;
+      }
+      const id = leaveBtn.getAttribute('data-leave-id');
+      const s = (State.sessions||[]).find(x=>x.id===id);
+      if(!s){
+        alert('Session not found.');
+        return;
+      }
+      if(!confirm(`Leave ${s.title}? You can rejoin later if there's space.`)){
+        return;
+      }
+      Backend.leaveSession(id, {
+        playerKey: CURRENT_PLAYER_KEY
+      })
+        .then(()=>{
+          renderSessionCards(wrap, {readOnly: IS_GUEST_SESSION});
+          alert(`You have left ${s.title}.`);
+        })
+        .catch((err)=>{
+          alert(`Unable to leave ${s.title}: ${err && err.message ? err.message : 'Request failed.'}`);
         });
       return;
     }
