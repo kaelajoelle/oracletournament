@@ -50,7 +50,8 @@ test('GET /api/state returns sessions from state.json', async (t) => {
   try {
     process.env.DATA_PATH = filePath;
     
-    // Clear the require cache for server module to pick up new DATA_PATH
+    // Clear the require cache for server and config modules to pick up new DATA_PATH
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
     
     const app = require('../server');
@@ -79,6 +80,7 @@ test('GET /api/state returns sessions from state.json', async (t) => {
       delete process.env.DATA_PATH;
     }
     // Clear the require cache again to ensure clean state
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
   }
 });
@@ -117,6 +119,7 @@ test('GET /api/sessions returns all sessions', async (t) => {
   
   try {
     process.env.DATA_PATH = filePath;
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
     
     const app = require('../server');
@@ -137,6 +140,7 @@ test('GET /api/sessions returns all sessions', async (t) => {
     } else {
       delete process.env.DATA_PATH;
     }
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
   }
 });
@@ -167,6 +171,7 @@ test('GET /api/sessions/:id returns single session', async (t) => {
   
   try {
     process.env.DATA_PATH = filePath;
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
     
     const app = require('../server');
@@ -189,6 +194,7 @@ test('GET /api/sessions/:id returns single session', async (t) => {
     } else {
       delete process.env.DATA_PATH;
     }
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
   }
 });
@@ -218,6 +224,7 @@ test('POST /api/admin/reload requires authentication', async (t) => {
   try {
     process.env.DATA_PATH = filePath;
     process.env.PLAYER_ACCESS_ADMIN_TOKEN = 'test-admin-token';
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
     
     const app = require('../server');
@@ -250,6 +257,7 @@ test('POST /api/admin/reload requires authentication', async (t) => {
     } else {
       delete process.env.PLAYER_ACCESS_ADMIN_TOKEN;
     }
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
   }
 });
@@ -278,7 +286,9 @@ test('POST /api/admin/reload is disabled when no admin token configured', async 
   
   try {
     process.env.DATA_PATH = filePath;
-    delete process.env.PLAYER_ACCESS_ADMIN_TOKEN; // No admin token configured
+    // Set to empty string instead of deleting, to prevent dotenv from loading from script/.env
+    process.env.PLAYER_ACCESS_ADMIN_TOKEN = '';
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
     
     const app = require('../server');
@@ -297,6 +307,7 @@ test('POST /api/admin/reload is disabled when no admin token configured', async 
     } else {
       delete process.env.PLAYER_ACCESS_ADMIN_TOKEN;
     }
+    delete require.cache[require.resolve('../config')];
     delete require.cache[require.resolve('../server')];
   }
 });

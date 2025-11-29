@@ -17,4 +17,8 @@ api/.env
 scripts/.env
 # Node dependencies
 /node_modules/
+# Root-level dist (deployment artifacts)
 /dist/
+
+# Frontend build output (bundled/minified JS, CSS, assets)
+site/dist/

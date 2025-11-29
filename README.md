@@ -119,6 +119,21 @@ Each player needs a display name and access code. The script will hash the code 
 
 * The UI shows a banner while requests are in flight and whenever the network fails. When the API is unreachable the app falls back to the most recent cached state stored in `localStorage`.
 
+## Frontend Structure
+
+The Oracle Tournament frontend lives under the `site` directory.
+
+- Source JavaScript lives in `site/scripts/`
+- Build output (bundled or minified JS/CSS) goes into `site/dist/`
+- The HTML entry points (`index.html`, `login.html`) already reference the correct `<script src="...">` paths
+
+Treat `site/dist` as generated output. You should not manually edit files there.
+
+If you add a bundler (Vite/Webpack/etc.), configure it so that:
+- **Input/source** = `site/scripts`
+- **Output** = `site/dist`
+- Existing public URLs referenced in the HTML remain stable
+
 ### Front-end bundle
 
 * The JavaScript that used to live inline inside `index.html` now resides under `site/scripts/` (split between `ui/` and `services/`).
