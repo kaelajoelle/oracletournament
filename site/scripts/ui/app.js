@@ -2021,15 +2021,12 @@ Grand Oracle Trial: January 1</strong></p>
             <small class="muted">Select your college</small>
           </summary>
           <div class="section-body">
-            <div class="grid cols-2">
-              <div>
-                <label>Choose University</label>
-                <select id="uni"></select>
-              </div>
-              <div>
-                <label>Strixhaven Initiate — Spellcasting Ability</label>
-                <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
-              </div>
+            <label style="display:block;margin-bottom:8px;">Choose your College</label>
+            <div id="college_cards" class="college-grid" role="radiogroup" aria-label="Choose a college"></div>
+            <input type="hidden" id="uni" value="" />
+            <div style="margin-top:14px;">
+              <label>Strixhaven Initiate — Spellcasting Ability</label>
+              <select id="spell_ability"><option>INT</option><option>WIS</option><option>CHA</option></select>
             </div>
             <div id="uni_info" class="card" style="margin-top:10px"></div>
             <div class="section-actions">
@@ -2162,12 +2159,59 @@ Grand Oracle Trial: January 1</strong></p>
       State.save().catch(err => console.error('Failed to persist core setup', err));
     };
 
-    // University
+    // University - render college cards
     const sel=p.querySelector('#uni');
-    sel.innerHTML = `<option value="">— Select —</option>`+DATA.universities.map(u=>`<option value="${u.key}">${u.name}</option>`).join('');
+    const collegeGrid = p.querySelector('#college_cards');
+    
+    // College flavour text (short descriptions for each college)
+    const collegeFlavour = {
+      lorehold: 'Delve into the past with spirits and flame. History is never dead here.',
+      prismari: 'Express yourself through elemental fury. Art meets raw magical power.',
+      quandrix: 'Bend reality with mathematics. Nature obeys those who understand its formulas.',
+      silverquill: 'Words cut deeper than blades. Master the magic of eloquence and shadow.',
+      witherbloom: 'Life and death are two sides of one coin. Embrace the cycle and thrive.'
+    };
+    
+    function renderCollegeCards(){
+      collegeGrid.innerHTML = '';
+      DATA.universities.forEach(u=>{
+        const card = document.createElement('div');
+        card.className = 'college-card';
+        card.setAttribute('role', 'radio');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-checked', sel.value === u.key ? 'true' : 'false');
+        card.setAttribute('aria-selected', sel.value === u.key ? 'true' : 'false');
+        card.setAttribute('data-key', u.key);
+        card.innerHTML = `
+          <h4 class="college-card__name">${escapeHTML(u.name)}</h4>
+          <p class="college-card__flavour">${escapeHTML(collegeFlavour[u.key] || u.theme)}</p>
+          <span class="college-card__colours">${escapeHTML(u.colours)}</span>
+        `;
+        card.addEventListener('click', ()=> selectCollege(u.key));
+        card.addEventListener('keydown', (e)=>{
+          if(e.key === 'Enter' || e.key === ' '){
+            e.preventDefault();
+            selectCollege(u.key);
+          }
+        });
+        collegeGrid.appendChild(card);
+      });
+    }
+    
+    function selectCollege(key){
+      sel.value = key;
+      // Update all cards' aria states
+      collegeGrid.querySelectorAll('.college-card').forEach(card=>{
+        const isSelected = card.getAttribute('data-key') === key;
+        card.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+        card.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+      });
+      drawInfo();
+    }
+    
     function drawInfo(){
       const key = sel.value; const out=p.querySelector('#uni_info');
-      if(!key){ out.innerHTML='<span class="muted">Select a university to view theme & bonus spells.</span>'; return; }
+      if(!key){ out.innerHTML='<span class="muted">Select a college to view theme & bonus spells.</span>'; return; }
       const u = DATA.universities.find(x=>x.key===key);
       const spellRows = Object.entries(u.spells).map(([lvl,list])=>`<tr><td>${lvl}</td><td>${list.join(', ')}</td></tr>`).join('');
       out.innerHTML = `
@@ -2186,13 +2230,16 @@ Grand Oracle Trial: January 1</strong></p>
         <div class="callout" style="margin-top:8px"><strong>Feat:</strong> ${DATA.feats.strixhavenInitiate.name} — ${DATA.feats.strixhavenInitiate.text}</div>
       `;
     }
-    sel.addEventListener('change', drawInfo);
+    
+    // Initialize with saved value
     sel.value = State.data.university.key || '';
     p.querySelector('#spell_ability').value = State.data.university.spellAbility || 'INT';
+    renderCollegeCards();
     drawInfo();
+    
     p.querySelector('#save_university').onclick = ()=>{
       State.data.university={ key: sel.value, spellAbility: p.querySelector('#spell_ability').value };
-      if(!State.data.university.key){ alert('Pick a university to continue.'); return; }
+      if(!State.data.university.key){ alert('Pick a college to continue.'); return; }
       if(!State.data.feats.find(f=>f.name==='Strixhaven Initiate')){
         State.data.feats.push({name:'Strixhaven Initiate', ability: State.data.university.spellAbility });
       } else {
