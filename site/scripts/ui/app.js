@@ -2106,6 +2106,8 @@ Grand Oracle Trial: January 1</strong></p>
         State.data.feats = State.data.feats.map(f=> f.name==='Strixhaven Initiate'? {...f, ability: State.data.university.spellAbility }: f);
       }
       markSaved('university','University saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after university update', err));
     };
 
     // Extras
@@ -2151,6 +2153,8 @@ Grand Oracle Trial: January 1</strong></p>
       State.data.extras.job = job;
       State.data.extras.clubs = clubs;
       markSaved('extras','Schedule saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after extras update', err));
     };
 
     // Personality
@@ -2184,6 +2188,8 @@ Grand Oracle Trial: January 1</strong></p>
         prompt: State.data.personality.prompt||''
       };
       markSaved('personality','Personality saved.');
+      // Persist the full build (does not block UI; errors logged to console)
+      State.save().catch(err => console.error('Failed to persist build after personality update', err));
     };
 
     p.querySelector('#back_builder').onclick = ()=>{ activateStep(STEPS.findIndex(s=>s.key==='intro')); };
