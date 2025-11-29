@@ -671,42 +671,87 @@ function handleLogout() {
   const DATA = {
     levels:[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
     abilityArrays:{ standard:[15,14,13,12,10,8] },
-    universities:[
-      { key:'lorehold', name:'Lorehold', theme:'History & Spirits', colours:'Red/White', focus:'Archaeomancy', playstyle:'Scholar / Explorer', flavour:'Archaeology, ruins, and talking to the dead. You’re a history nerd, relic hunter, or spirit-whisperer. Great for bards, clerics, wizards, paladins with a sense of destiny.', spells:{
-          1:['Comprehend Languages','Identify'],
-          2:['Borrowed Knowledge','Locate Object'],
-          3:['Speak with Dead','Spirit Guardians'],
-          4:['Arcane Eye','Stone Shape'],
-          5:['Flame Strike','Legend Lore']
-      }},
-      { key:'prismari', name:'Prismari', theme:'Elemental Arts', colours:'Blue/Red', focus:'Performance & Elements', playstyle:'Passion / Spectacle', flavour:'Art, performance, and loud elemental magic. You’re a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), flashy fighters/rogues.', spells:{
-          1:['Chromatic Orb','Thunderwave'],
-          2:['Flaming Sphere','Kinetic Jaunt'],
-          3:['Haste','Water Walk'],
-          4:['Freedom of Movement','Wall of Fire'],
-          5:['Cone of Cold','Conjure Elemental']
-      }},
-      { key:'quandrix', name:'Quandrix', theme:'Math & Nature', colours:'Blue/Green', focus:'Fractals / Growth', playstyle:'Logical / Curious', flavour:'Math wizards and pattern-brains. You see reality as numbers, fractals, and equations and then bend them. Great for wizards, druids, sorcerers, or any clever type.', spells:{
-          1:['Entangle','Guiding Bolt'],
-          2:['Enlarge/Reduce','Vortex Warp'],
-          3:['Aura of Vitality','Haste'],
-          4:['Control Water','Freedom of Movement'],
-          5:['Circle of Power','Passwall']
-      }},
-      { key:'silverquill', name:'Silverquill', theme:'Eloquence & Ink', colours:'White/Black', focus:'Radiance & Shadow', playstyle:'Charisma / Wit', flavour:'Word mages. Debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, persuasive rogues/paladins.', spells:{
-          1:['Dissonant Whispers','Silvery Barbs'],
-          2:['Calm Emotions','Darkness'],
-          3:['Beacon of Hope','Daylight'],
-          4:['Compulsion','Confusion'],
-          5:['Dominate Person','Rary’s Telepathic Bond']
-      }},
-      { key:'witherbloom', name:'Witherbloom', theme:'Life & Decay', colours:'Green/Black', focus:'Alchemy / Essence', playstyle:'Healer / Witch', flavour:'Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, spooky clerics.', spells:{
-          1:['Cure Wounds','Inflict Wounds'],
-          2:['Lesser Restoration','Wither and Bloom'],
-          3:['Revivify','Vampiric Touch'],
-          4:['Blight','Death Ward'],
-          5:['Antilife Shell','Greater Restoration']
-      }}
+    universities: [
+      {
+        key: 'lorehold',
+        name: 'Lorehold',
+        theme: 'History & Spirits',
+        colours: 'Red/White',
+        focus: 'Archaeomancy',
+        playstyle: 'Scholar / Explorer',
+        flavour: "Archaeology, ruins, and talking to the dead. You're a history nerd, relic hunter, or spirit-whisperer. Great for bards, clerics, wizards, paladins with a sense of destiny.",
+        spells: {
+          1: ['Comprehend Languages', 'Identify'],
+          2: ['Borrowed Knowledge', 'Locate Object'],
+          3: ['Speak with Dead', 'Spirit Guardians'],
+          4: ['Arcane Eye', 'Stone Shape'],
+          5: ['Flame Strike', 'Legend Lore']
+        }
+      },
+      {
+        key: 'prismari',
+        name: 'Prismari',
+        theme: 'Elemental Arts',
+        colours: 'Blue/Red',
+        focus: 'Performance & Elements',
+        playstyle: 'Passion / Spectacle',
+        flavour: "Art, performance, and loud elemental magic. You're a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), and flashy fighters or rogues.",
+        spells: {
+          1: ['Chromatic Orb', 'Thunderwave'],
+          2: ['Flaming Sphere', 'Kinetic Jaunt'],
+          3: ['Haste', 'Water Walk'],
+          4: ['Freedom of Movement', 'Wall of Fire'],
+          5: ['Cone of Cold', 'Conjure Elemental']
+        }
+      },
+      {
+        key: 'quandrix',
+        name: 'Quandrix',
+        theme: 'Math & Nature',
+        colours: 'Blue/Green',
+        focus: 'Fractals / Growth',
+        playstyle: 'Logical / Curious',
+        flavour: 'Math wizards and pattern-brains. You see reality as numbers, fractals, and equations and then bend them. Great for wizards, druids, sorcerers, or any clever type.',
+        spells: {
+          1: ['Entangle', 'Guiding Bolt'],
+          2: ['Enlarge/Reduce', 'Vortex Warp'],
+          3: ['Aura of Vitality', 'Haste'],
+          4: ['Control Water', 'Freedom of Movement'],
+          5: ['Circle of Power', 'Passwall']
+        }
+      },
+      {
+        key: 'silverquill',
+        name: 'Silverquill',
+        theme: 'Eloquence & Ink',
+        colours: 'White/Black',
+        focus: 'Radiance & Shadow',
+        playstyle: 'Charisma / Wit',
+        flavour: 'Word mages: debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, and persuasive rogues or paladins.',
+        spells: {
+          1: ['Dissonant Whispers', 'Silvery Barbs'],
+          2: ['Calm Emotions', 'Darkness'],
+          3: ['Beacon of Hope', 'Daylight'],
+          4: ['Compulsion', 'Confusion'],
+          5: ['Dominate Person', "Rary's Telepathic Bond"]
+        }
+      },
+      {
+        key: 'witherbloom',
+        name: 'Witherbloom',
+        theme: 'Life & Decay',
+        colours: 'Green/Black',
+        focus: 'Alchemy / Essence',
+        playstyle: 'Healer / Witch',
+        flavour: 'Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, and spooky clerics.',
+        spells: {
+          1: ['Cure Wounds', 'Inflict Wounds'],
+          2: ['Lesser Restoration', 'Wither and Bloom'],
+          3: ['Revivify', 'Vampiric Touch'],
+          4: ['Blight', 'Death Ward'],
+          5: ['Antilife Shell', 'Greater Restoration']
+        }
+      }
     ],
     backgrounds:[
       {key:'lorehold-student', name:'Lorehold Student', skills:['History','Religion'], tools:[], languages:'2 of choice', gear:['Ink/pen','Hammer','Lantern','History tome','Uniform'], feat:'Strixhaven Initiate (Lorehold)'},
