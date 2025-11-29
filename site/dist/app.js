@@ -296,10 +296,10 @@ Grand Oracle Trial: January 1</strong></p>
         <p>Strixhaven has five colleges. Pick the one that feels like your character's "home base":</p>
         <ul>
           <li><strong>Lorehold</strong> \u2013 Archaeology, ruins, and talking to the dead. You're a history nerd, relic hunter, or spirit-whisperer. Great for bards, clerics, wizards, paladins with a sense of destiny.</li>
-          <li><strong>Prismari</strong> \u2013 Art, performance, and loud elemental magic. You're a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), flashy fighters/rogues.</li>
+          <li><strong>Prismari</strong> \u2013 Art, performance, and loud elemental magic. You're a drama kid with fireballs, a dancer who sculpts lightning, or a painter with ice. Great for sorcerers, druids, wizards, monks (Four Elements), and flashy fighters or rogues.</li>
           <li><strong>Quandrix</strong> \u2013 Math wizards and pattern-brains. You see reality as numbers, fractals, and equations and then bend them. Great for wizards, druids, sorcerers, or any clever type.</li>
-          <li><strong>Silverquill</strong> \u2013 Word mages. Debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, persuasive rogues/paladins.</li>
-          <li><strong>Witherbloom</strong> \u2013 Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, spooky clerics.</li>
+          <li><strong>Silverquill</strong> \u2013 Word mages. Debate champions, terrifying public speakers, poets with knives in their metaphors. Great for bards, warlocks, clerics, and persuasive rogues or paladins.</li>
+          <li><strong>Witherbloom</strong> \u2013 Swamp goths and weird herbalists. You brew potions, poke at corpses (academically), and balance life and decay. Great for druids, warlocks, rangers, barbarians, and spooky clerics.</li>
         </ul>
         <p>Each college comes with a themed Strixhaven Initiate feat (extra cantrips + one 1st-level spell). If you're not sure what to pick, just choose spells that feel on-brand for your college and your DM can help tidy details at the table.</p>
       </div>
