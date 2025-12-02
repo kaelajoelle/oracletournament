@@ -1801,21 +1801,34 @@ function panelIntro(){
   p.innerHTML = dashboardHtml + `
 <div class="card">
   <h2>Welcome to the Oracle Trials</h2>
-  <p>This site is your student portal for the Oracle Trials — a Strixhaven-inspired D&amp;D event.</p>
-  <p>You'll use it to:</p>
-  <ul>
-    <li>Create your Strixhaven student character</li>
-    <li>Save their key details</li>
-    <li>Reserve a seat at one of the Trial sessions</li>
-  </ul>
-  <p>You don't have to do everything in one sitting. As long as you use the same access code, you can come back to update your character or change sessions.</p>
-  <p><strong>How it works (big picture):</strong></p>
-  <ul>
-    <li><strong>Build your student</strong> – Choose a name, class, level, and Strixhaven college.</li>
-    <li><strong>Save your character</strong> – We'll store your details so you don't lose them.</li>
-    <li><strong>Join a Trial session</strong> – Pick one date that fits your schedule.</li>
-  </ul>
-  <p>When you're done, you'll see your choices in the "My Character" and "My Session" panels at the top of the page. That's your "I'm ready" indicator.</p>
+
+<p>Congratulations, student! You've been selected to compete in the Oracle Trials—Strixhaven’s prestigious (and occasionally chaotic) competition to choose the next Oracle’s Apprentice.</p>
+
+<p>This portal works alongside D&amp;D Beyond. You’ll build your full character sheet on DDB, and use this site to access the Strixhaven-exclusive features that D&amp;D Beyond can’t support, such as:</p>
+<ul>
+  <li>Your College die and special ability</li>
+  <li>Trial cards and event mechanics</li>
+  <li>Your saved character info</li>
+</ul>
+
+<p><strong>Your Steps:</strong></p>
+<ul>
+  <li><strong>1. Log in</strong> using your unique access code.</li>
+  <li><strong>2. Choose your College</strong> and learn your special Strixhaven die feature.</li>
+  <li><strong>3. Build your character sheet</strong> in our shared D&amp;D Beyond campaign:<br>
+      <a href="https://www.dndbeyond.com/campaigns/join/7179642509676640" target="_blank">
+      Join the D&amp;D Beyond Campaign</a></li>
+  <li><strong>4. Read the Strixhaven Sourcebook</strong> (free via content sharing):<br>
+      <a href="https://www.dndbeyond.com/sources/dnd/sacoc" target="_blank">
+      Strixhaven: A Curriculum of Chaos</a></li>
+  <li><strong>5. Join the Community Discord</strong> to find your table and stay updated:<br>
+      <a href="https://discord.gg/r9MFQEwc" target="_blank">
+      Oracle Trials Discord Server</a></li>
+</ul>
+
+<p>You can return here anytime with the same code to review your abilities or update your character details. Your “My Character” panel at the top of the page will show your saved choices—think of it as your “I’m ready” badge.</p>
+
+
 </div>
 
 <details class="scroll-letter">
